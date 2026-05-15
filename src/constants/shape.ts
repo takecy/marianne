@@ -25,6 +25,16 @@ export const ARROW_HEAD_HALF_WIDTH = 40;
 export const ARROW_NECK_LENGTH = 66;
 export const ARROW_HEAD_LENGTH = 80;
 
+// Endpoint drag handles drawn on top of a selected arrow in select mode.
+// Sizes are SCREEN pixels (not multiplied by image-to-screen scale) so the
+// handles stay easy to grab at any image zoom — same convention as Konva's
+// built-in Transformer anchors.
+export const ARROW_HANDLE_RADIUS = 9;
+export const ARROW_HANDLE_FILL = "#ffffff";
+export const ARROW_HANDLE_STROKE = "#0f172a";
+export const ARROW_HANDLE_STROKE_WIDTH = 2;
+export const ARROW_HANDLE_SHADOW_BLUR = 4;
+
 // Default font size for text shapes (in image-natural pixels). On-canvas
 // rendering multiplies by the image-to-screen scale; the input overlay uses
 // the same number directly as CSS pixels.
