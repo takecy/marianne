@@ -417,6 +417,7 @@ export function CanvasArea(props: CanvasAreaProps) {
                     imageSize={imageSize}
                     image={image}
                     isSelectMode={isSelectMode}
+                    isSelected={shape.id === selectedShapeId}
                     onSelect={onSelectShape}
                     onUpdateRect={onUpdateRect}
                     onUpdateText={onUpdateText}

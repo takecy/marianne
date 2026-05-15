@@ -1,18 +1,13 @@
 import type Konva from "konva";
 import type { KonvaEventObject } from "konva/lib/Node";
 import { useEffect, useRef } from "react";
-import { Line, Rect, Text } from "react-konva";
+import { Rect, Text } from "react-konva";
 import { imageToScreen, imageToScreenScale, screenToImage } from "@/lib/imageFit";
 import type { FitRect, Size as FitSize } from "@/lib/imageFit";
 import type { LoadedImage } from "@/types/image";
 import type { ArrowShape, MosaicShape, RectShape, Shape, TextShape } from "@/types/shape";
 import { colorHex, textStrokeColorFor } from "@/types/tool";
 import {
-  ARROW_HEAD_HALF_WIDTH,
-  ARROW_HEAD_LENGTH,
-  ARROW_NECK_HALF_WIDTH,
-  ARROW_NECK_LENGTH,
-  ARROW_TAIL_HALF_WIDTH,
   SHAPE_STROKE_WIDTH,
   TEXT_FONT_SIZE,
   TEXT_FONT_SIZE_MIN,
@@ -23,7 +18,7 @@ import {
   TEXT_SHADOW_OFFSET_Y,
   TEXT_STROKE_WIDTH,
 } from "@/constants/shape";
-import { computeArrowPolygon } from "@/lib/arrowGeometry";
+import { ArrowShapeNode } from "./ArrowShapeNode";
 import { MOSAIC_NATURAL_PIXEL_SIZE, MosaicNode } from "./MosaicNode";
 
 type RectPatch = Partial<Omit<RectShape, "id" | "type">>;
@@ -37,6 +32,10 @@ interface SelectableShapeProps {
   imageSize: FitSize;
   image: LoadedImage | null;
   isSelectMode: boolean;
+  // Whether this shape is the currently selected one. Used by the arrow
+  // branch to render endpoint drag handles; other shape types ignore it
+  // because the Konva.Transformer in CanvasArea handles their selection UI.
+  isSelected: boolean;
   onSelect: (id: string) => void;
   onUpdateRect: (id: string, patch: RectPatch) => void;
   onUpdateText: (id: string, patch: TextPatch) => void;
@@ -52,6 +51,7 @@ export function SelectableShape(props: SelectableShapeProps) {
     imageSize,
     image,
     isSelectMode,
+    isSelected,
     onSelect,
     onUpdateRect,
     onUpdateText,
@@ -182,55 +182,16 @@ export function SelectableShape(props: SelectableShapeProps) {
   }
 
   if (shape.type === "arrow") {
-    const from = imageToScreen({ x: shape.fromX, y: shape.fromY }, fit, imageSize);
-    const to = imageToScreen({ x: shape.toX, y: shape.toY }, fit, imageSize);
-    const arrowScale = Math.min(imgScaleX, imgScaleY);
-    const polygon = computeArrowPolygon(from, to, {
-      tailHalfWidth: ARROW_TAIL_HALF_WIDTH * arrowScale,
-      neckHalfWidth: ARROW_NECK_HALF_WIDTH * arrowScale,
-      headHalfWidth: ARROW_HEAD_HALF_WIDTH * arrowScale,
-      neckLength: ARROW_NECK_LENGTH * arrowScale,
-      headLength: ARROW_HEAD_LENGTH * arrowScale,
-    });
     return (
-      <Line
-        ref={(node) => {
-          ref.current = node;
-        }}
-        listening={isSelectMode}
-        draggable={isSelectMode}
-        onClick={handleSelect}
-        onTap={handleSelect}
-        points={polygon}
-        closed
-        fill={colorHex(shape.color)}
-        shadowBlur={6 * arrowScale}
-        shadowColor="rgba(0,0,0,0.45)"
-        shadowOffsetX={1 * arrowScale}
-        shadowOffsetY={2 * arrowScale}
-        onDragEnd={(event: KonvaEventObject<DragEvent>) => {
-          const node = event.target;
-          const dx = node.x();
-          const dy = node.y();
-          node.x(0);
-          node.y(0);
-          const newFrom = screenToImage(
-            { x: from.x + dx, y: from.y + dy },
-            fit,
-            imageSize,
-          );
-          const newTo = screenToImage(
-            { x: to.x + dx, y: to.y + dy },
-            fit,
-            imageSize,
-          );
-          onUpdateArrow(shape.id, {
-            fromX: newFrom.x,
-            fromY: newFrom.y,
-            toX: newTo.x,
-            toY: newTo.y,
-          });
-        }}
+      <ArrowShapeNode
+        shape={shape}
+        fit={fit}
+        imageSize={imageSize}
+        isSelectMode={isSelectMode}
+        isSelected={isSelected}
+        onSelect={onSelect}
+        onUpdateArrow={onUpdateArrow}
+        registerNode={registerNode}
       />
     );
   }
