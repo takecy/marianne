@@ -30,6 +30,11 @@ export const ARROW_HEAD_LENGTH = 80;
 // the same number directly as CSS pixels.
 export const TEXT_FONT_SIZE = 72;
 
+// Minimum font size when resizing text (image-natural pixels). Below this the
+// resize is rejected and the node position is reset to the shape's stored
+// coordinates to avoid transient drift.
+export const TEXT_FONT_SIZE_MIN = 12;
+
 // Default font style for text shapes. Konva accepts the same keywords as CSS
 // font-style/weight (including numeric weights like "900"); the input overlay
 // maps this to CSS font-weight.

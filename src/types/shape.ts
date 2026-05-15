@@ -23,6 +23,7 @@ export interface TextShape extends ShapeBase {
   x: number;
   y: number;
   text: string;
+  fontSize?: number;
 }
 
 export interface ArrowShape extends ShapeBase {
