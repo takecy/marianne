@@ -6,3 +6,39 @@
   position: relative;
   overflow: hidden;
 }
+
+.canvasAreaDragging {
+  outline: 3px dashed #2563eb;
+  outline-offset: -6px;
+  background: #dbeafe;
+}
+
+.emptyState {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  color: #475569;
+  font-size: 0.95rem;
+  text-align: center;
+  padding: 1.5rem;
+}
+
+.emptyStateInner {
+  max-width: 24rem;
+  line-height: 1.6;
+}
+
+.emptyStateTitle {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #0f172a;
+  margin: 0 0 0.5rem;
+}
+
+.emptyStateBody {
+  margin: 0;
+  color: #475569;
+}
