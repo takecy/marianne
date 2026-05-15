@@ -63,6 +63,20 @@ pnpm test:run       # Vitest (single run)
 pnpm tauri build    # Emits the macOS bundle under src-tauri/target/release/bundle
 ```
 
+## Local installation (macOS)
+
+Install the latest build into `/Applications/` so the app shows up in Launchpad and Spotlight on your dev machine.
+
+```sh
+pnpm install:local
+```
+
+The script runs `pnpm tauri build`, removes any existing `/Applications/marianne.app`, and copies the freshly built bundle into place.
+
+> The build is not codesigned. On first launch macOS may block it with "marianne cannot be opened because the developer cannot be verified". Workaround: right-click the app and choose "Open", or run `xattr -dr com.apple.quarantine /Applications/marianne.app` once.
+
+Requirements: macOS only. The script exits with an error on Linux / Windows. Quit the app before reinstalling — overwriting a running `.app` may fail.
+
 ## License
 
 [MIT](./LICENSE)

@@ -63,6 +63,20 @@ pnpm test:run       # Vitest (single run)
 pnpm tauri build    # macOS バンドルを src-tauri/target/release/bundle に出力
 ```
 
+## ローカルインストール (macOS)
+
+開発機で日常的に使うために、最新ビルドを `/Applications/` に配置して Launchpad / Spotlight から起動できるようにする。
+
+```sh
+pnpm install:local
+```
+
+このスクリプトは `pnpm tauri build` を実行し、既存の `/Applications/marianne.app` を削除して、新しくビルドした bundle をその場所にコピーする。
+
+> 本ビルドはコード署名なし。macOS 初回起動時に「開発元を確認できないため開けません」と警告される場合は、対象の `.app` を右クリック →「開く」を選ぶか、`xattr -dr com.apple.quarantine /Applications/marianne.app` を一度実行する。
+
+要件: macOS 専用。Linux / Windows ではエラーで終了する。アプリ起動中に実行すると上書きに失敗する場合があるため、事前にアプリを終了しておく。
+
 ## ライセンス
 
 [MIT](./LICENSE)
