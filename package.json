@@ -15,7 +15,8 @@
     "fmt:check": "deno fmt --check",
     "test": "vitest",
     "test:run": "vitest run",
-    "test:ui": "vitest --ui"
+    "test:ui": "vitest --ui",
+    "install:local": "scripts/install-local.sh"
   },
   "dependencies": {
     "@tauri-apps/api": "^2",

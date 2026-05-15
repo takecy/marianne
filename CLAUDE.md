@@ -15,6 +15,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - フォーマッタは **`deno fmt`** であって Prettier ではない (`deno.json` 設定済み)
 - 単一テスト実行: `pnpm test:run src/store/canvasStore.test.ts` / `pnpm test:run -t "undo"`
 - パスエイリアス `@/*` → `./src/*` は `tsconfig.json` / `vite.config.ts` / `vitest.config.ts` の 3 箇所で設定。変更時は全て同期させる。
+- ローカルインストール: `pnpm install:local`（macOS 専用。`scripts/install-local.sh` が `pnpm tauri build` 実行後、`/Applications/marianne.app` にコピー。コード署名なしのため初回起動で Gatekeeper 警告 — 右クリック「開く」または `xattr -dr com.apple.quarantine` で回避。詳細は README）
 
 ## アーキテクチャ
 
