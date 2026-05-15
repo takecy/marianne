@@ -113,4 +113,73 @@ describe("Toolbar", () => {
     await user.click(screen.getByRole("button", { name: "コピー" }));
     expect(onExportToClipboard).toHaveBeenCalledTimes(1);
   });
+
+  it("renders 戻る/進む buttons and invokes their callbacks", async () => {
+    const user = userEvent.setup();
+    const onUndo = vi.fn();
+    const onRedo = vi.fn();
+    render(
+      <Toolbar
+        activeTool="select"
+        onToolChange={vi.fn()}
+        activeColor="red"
+        onColorChange={vi.fn()}
+        onUndo={onUndo}
+        onRedo={onRedo}
+        canUndo
+        canRedo
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "戻る" }));
+    expect(onUndo).toHaveBeenCalledTimes(1);
+
+    await user.click(screen.getByRole("button", { name: "進む" }));
+    expect(onRedo).toHaveBeenCalledTimes(1);
+  });
+
+  it("disables 戻る/進む buttons when canUndo / canRedo are false", async () => {
+    const user = userEvent.setup();
+    const onUndo = vi.fn();
+    const onRedo = vi.fn();
+    render(
+      <Toolbar
+        activeTool="select"
+        onToolChange={vi.fn()}
+        activeColor="red"
+        onColorChange={vi.fn()}
+        onUndo={onUndo}
+        onRedo={onRedo}
+        canUndo={false}
+        canRedo={false}
+      />,
+    );
+
+    expect(screen.getByRole("button", { name: "戻る" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "進む" })).toBeDisabled();
+
+    await user.click(screen.getByRole("button", { name: "戻る" }));
+    expect(onUndo).not.toHaveBeenCalled();
+    await user.click(screen.getByRole("button", { name: "進む" }));
+    expect(onRedo).not.toHaveBeenCalled();
+  });
+
+  it("disables 戻る/進む when the whole toolbar is disabled even if canUndo / canRedo are true", () => {
+    render(
+      <Toolbar
+        activeTool="select"
+        onToolChange={vi.fn()}
+        activeColor="red"
+        onColorChange={vi.fn()}
+        onUndo={vi.fn()}
+        onRedo={vi.fn()}
+        canUndo
+        canRedo
+        disabled
+      />,
+    );
+
+    expect(screen.getByRole("button", { name: "戻る" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "進む" })).toBeDisabled();
+  });
 });

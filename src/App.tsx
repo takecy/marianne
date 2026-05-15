@@ -28,6 +28,10 @@ function App() {
   const updateArrow = useCanvasStore((s) => s.updateArrow);
   const updateMosaic = useCanvasStore((s) => s.updateMosaic);
   const clearShapes = useCanvasStore((s) => s.clearShapes);
+  const undo = useCanvasStore((s) => s.undo);
+  const redo = useCanvasStore((s) => s.redo);
+  const canUndo = useCanvasStore((s) => s.past.length > 0);
+  const canRedo = useCanvasStore((s) => s.future.length > 0);
 
   const handleImageLoaded = useCallback(
     (loaded: LoadedImage) => {
@@ -81,6 +85,10 @@ function App() {
         disabled={image === null}
         onExportToFile={handleExportToFile}
         onExportToClipboard={handleExportToClipboard}
+        onUndo={undo}
+        onRedo={redo}
+        canUndo={canUndo}
+        canRedo={canRedo}
       />
       <CanvasArea
         image={image}
@@ -96,6 +104,8 @@ function App() {
         onUpdateText={updateText}
         onUpdateArrow={updateArrow}
         onUpdateMosaic={updateMosaic}
+        onUndo={undo}
+        onRedo={redo}
       />
     </div>
   );
