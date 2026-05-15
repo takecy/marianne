@@ -1,0 +1,36 @@
+name: Bump version
+
+on:
+  workflow_dispatch:
+    inputs:
+      bump_version:
+        description: 'Version bump type (Conventional Commits auto-detection takes precedence)'
+        type: choice
+        default: patch
+        options:
+          - patch
+          - minor
+          - major
+      release_branches:
+        description: 'Branches allowed to be tagged (comma-separated, regex supported)'
+        type: string
+        default: main
+
+permissions:
+  contents: write
+
+jobs:
+  tagging:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
+
+      - name: Bump version and push tag
+        id: tag_version
+        uses: mathieudutour/github-tag-action@a22cf08638b34d5badda920f9daf6e72c477b07b # v6.2
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          release_branches: ${{ inputs.release_branches }}
+          tag_prefix: "v"
+          default_bump: ${{ inputs.bump_version }}
