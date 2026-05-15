@@ -63,22 +63,54 @@ describe("Toolbar", () => {
     const user = userEvent.setup();
     const onToolChange = vi.fn();
     const onColorChange = vi.fn();
+    const onExportToFile = vi.fn();
+    const onExportToClipboard = vi.fn();
     render(
       <Toolbar
         activeTool="arrow"
         onToolChange={onToolChange}
         activeColor="red"
         onColorChange={onColorChange}
+        onExportToFile={onExportToFile}
+        onExportToClipboard={onExportToClipboard}
         disabled
       />,
     );
 
     expect(screen.getByRole("button", { name: "矢印" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "red" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "保存" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "コピー" })).toBeDisabled();
 
     await user.click(screen.getByRole("button", { name: "テキスト" }));
     expect(onToolChange).not.toHaveBeenCalled();
     await user.click(screen.getByRole("button", { name: "blue" }));
     expect(onColorChange).not.toHaveBeenCalled();
+    await user.click(screen.getByRole("button", { name: "保存" }));
+    expect(onExportToFile).not.toHaveBeenCalled();
+    await user.click(screen.getByRole("button", { name: "コピー" }));
+    expect(onExportToClipboard).not.toHaveBeenCalled();
+  });
+
+  it("invokes onExportToFile and onExportToClipboard on the respective buttons", async () => {
+    const user = userEvent.setup();
+    const onExportToFile = vi.fn();
+    const onExportToClipboard = vi.fn();
+    render(
+      <Toolbar
+        activeTool="select"
+        onToolChange={vi.fn()}
+        activeColor="red"
+        onColorChange={vi.fn()}
+        onExportToFile={onExportToFile}
+        onExportToClipboard={onExportToClipboard}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "保存" }));
+    expect(onExportToFile).toHaveBeenCalledTimes(1);
+
+    await user.click(screen.getByRole("button", { name: "コピー" }));
+    expect(onExportToClipboard).toHaveBeenCalledTimes(1);
   });
 });

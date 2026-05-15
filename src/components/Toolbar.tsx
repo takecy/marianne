@@ -16,10 +16,20 @@ interface ToolbarProps {
   activeColor: ColorPresetName;
   onColorChange: (next: ColorPresetName) => void;
   disabled?: boolean;
+  onExportToFile?: () => void;
+  onExportToClipboard?: () => void;
 }
 
 export function Toolbar(props: ToolbarProps) {
-  const { activeTool, onToolChange, activeColor, onColorChange, disabled = false } = props;
+  const {
+    activeTool,
+    onToolChange,
+    activeColor,
+    onColorChange,
+    disabled = false,
+    onExportToFile,
+    onExportToClipboard,
+  } = props;
 
   return (
     <header className={styles.toolbar} aria-label="ツールバー">
@@ -54,6 +64,25 @@ export function Toolbar(props: ToolbarProps) {
             onClick={() => onColorChange(preset.name)}
           />
         ))}
+      </div>
+      <div className={styles.spacer} aria-hidden />
+      <div className={styles.exportGroup} role="group" aria-label="書き出し">
+        <button
+          type="button"
+          className={styles.exportButton}
+          disabled={disabled}
+          onClick={onExportToFile}
+        >
+          保存
+        </button>
+        <button
+          type="button"
+          className={styles.exportButton}
+          disabled={disabled}
+          onClick={onExportToClipboard}
+        >
+          コピー
+        </button>
       </div>
     </header>
   );
