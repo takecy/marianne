@@ -22,6 +22,7 @@ import type {
 } from "@/types/shape";
 import type { ColorPresetName, ToolKind } from "@/types/tool";
 import { colorHex } from "@/types/tool";
+import { ARROW_HEAD_SIZE, SHAPE_STROKE_WIDTH } from "@/constants/shape";
 import { SelectableShape } from "./SelectableShape";
 import { TextInputOverlay } from "./TextInputOverlay";
 import styles from "./CanvasArea.module.css";
@@ -82,7 +83,7 @@ function renderDraft(draft: DraftShape, fit: FitRect, imageSize: FitSize) {
         width={w * scaleX}
         height={h * scaleY}
         stroke={hex}
-        strokeWidth={4}
+        strokeWidth={SHAPE_STROKE_WIDTH}
         listening={false}
         opacity={0.7}
       />
@@ -115,10 +116,10 @@ function renderDraft(draft: DraftShape, fit: FitRect, imageSize: FitSize) {
     <Arrow
       points={[from.x, from.y, to.x, to.y]}
       stroke={hex}
-      strokeWidth={4}
+      strokeWidth={SHAPE_STROKE_WIDTH}
       fill={hex}
-      pointerLength={14}
-      pointerWidth={14}
+      pointerLength={ARROW_HEAD_SIZE}
+      pointerWidth={ARROW_HEAD_SIZE}
       shadowBlur={6}
       shadowColor="rgba(0,0,0,0.45)"
       shadowOffsetX={1}

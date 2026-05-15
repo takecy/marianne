@@ -1,5 +1,17 @@
 import Konva from "konva";
 import { MOSAIC_NATURAL_PIXEL_SIZE } from "@/components/MosaicNode";
+import {
+  ARROW_HEAD_SIZE,
+  SHAPE_STROKE_WIDTH,
+  TEXT_FONT_SIZE,
+  TEXT_FONT_STYLE,
+  TEXT_SHADOW_BLUR,
+  TEXT_SHADOW_COLOR,
+  TEXT_SHADOW_OFFSET_X,
+  TEXT_SHADOW_OFFSET_Y,
+  TEXT_STROKE_COLOR,
+  TEXT_STROKE_WIDTH,
+} from "@/constants/shape";
 import type { LoadedImage } from "@/types/image";
 import type { Shape } from "@/types/shape";
 import { colorHex } from "@/types/tool";
@@ -14,7 +26,7 @@ function buildShapeNode(shape: Shape, image: LoadedImage): Konva.Shape {
       width: shape.width,
       height: shape.height,
       stroke: colorHex(shape.color),
-      strokeWidth: 4,
+      strokeWidth: SHAPE_STROKE_WIDTH,
       listening: false,
     });
   }
@@ -23,9 +35,17 @@ function buildShapeNode(shape: Shape, image: LoadedImage): Konva.Shape {
       x: shape.x,
       y: shape.y,
       text: shape.text,
-      fontSize: 24,
+      fontSize: TEXT_FONT_SIZE,
+      fontStyle: TEXT_FONT_STYLE,
       fontFamily: "sans-serif",
       fill: colorHex(shape.color),
+      stroke: TEXT_STROKE_COLOR,
+      strokeWidth: TEXT_STROKE_WIDTH,
+      fillAfterStrokeEnabled: true,
+      shadowColor: TEXT_SHADOW_COLOR,
+      shadowBlur: TEXT_SHADOW_BLUR,
+      shadowOffsetX: TEXT_SHADOW_OFFSET_X,
+      shadowOffsetY: TEXT_SHADOW_OFFSET_Y,
       listening: false,
     });
   }
@@ -33,10 +53,10 @@ function buildShapeNode(shape: Shape, image: LoadedImage): Konva.Shape {
     return new Konva.Arrow({
       points: [shape.fromX, shape.fromY, shape.toX, shape.toY],
       stroke: colorHex(shape.color),
-      strokeWidth: 4,
+      strokeWidth: SHAPE_STROKE_WIDTH,
       fill: colorHex(shape.color),
-      pointerLength: 14,
-      pointerWidth: 14,
+      pointerLength: ARROW_HEAD_SIZE,
+      pointerWidth: ARROW_HEAD_SIZE,
       shadowBlur: 6,
       shadowColor: "rgba(0,0,0,0.45)",
       shadowOffsetX: 1,

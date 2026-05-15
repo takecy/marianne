@@ -7,6 +7,18 @@ import type { FitRect, Size as FitSize } from "@/lib/imageFit";
 import type { LoadedImage } from "@/types/image";
 import type { ArrowShape, MosaicShape, RectShape, Shape, TextShape } from "@/types/shape";
 import { colorHex } from "@/types/tool";
+import {
+  ARROW_HEAD_SIZE,
+  SHAPE_STROKE_WIDTH,
+  TEXT_FONT_SIZE,
+  TEXT_FONT_STYLE,
+  TEXT_SHADOW_BLUR,
+  TEXT_SHADOW_COLOR,
+  TEXT_SHADOW_OFFSET_X,
+  TEXT_SHADOW_OFFSET_Y,
+  TEXT_STROKE_COLOR,
+  TEXT_STROKE_WIDTH,
+} from "@/constants/shape";
 import { MOSAIC_NATURAL_PIXEL_SIZE, MosaicNode } from "./MosaicNode";
 
 type RectPatch = Partial<Omit<RectShape, "id" | "type">>;
@@ -68,7 +80,7 @@ export function SelectableShape(props: SelectableShapeProps) {
         width={shape.width * imgScaleX}
         height={shape.height * imgScaleY}
         stroke={colorHex(shape.color)}
-        strokeWidth={4}
+        strokeWidth={SHAPE_STROKE_WIDTH}
         onDragEnd={(event: KonvaEventObject<DragEvent>) => {
           const node = event.target;
           const imgPt = screenToImage({ x: node.x(), y: node.y() }, fit, imageSize);
@@ -112,9 +124,17 @@ export function SelectableShape(props: SelectableShapeProps) {
         x={topLeft.x}
         y={topLeft.y}
         text={shape.text}
-        fontSize={24 * fontScale}
+        fontSize={TEXT_FONT_SIZE * fontScale}
+        fontStyle={TEXT_FONT_STYLE}
         fontFamily="sans-serif"
         fill={colorHex(shape.color)}
+        stroke={TEXT_STROKE_COLOR}
+        strokeWidth={TEXT_STROKE_WIDTH * fontScale}
+        fillAfterStrokeEnabled
+        shadowColor={TEXT_SHADOW_COLOR}
+        shadowBlur={TEXT_SHADOW_BLUR * fontScale}
+        shadowOffsetX={TEXT_SHADOW_OFFSET_X * fontScale}
+        shadowOffsetY={TEXT_SHADOW_OFFSET_Y * fontScale}
         onDragEnd={(event: KonvaEventObject<DragEvent>) => {
           const imgPt = screenToImage(
             { x: event.target.x(), y: event.target.y() },
@@ -141,10 +161,10 @@ export function SelectableShape(props: SelectableShapeProps) {
         onTap={handleSelect}
         points={[from.x, from.y, to.x, to.y]}
         stroke={colorHex(shape.color)}
-        strokeWidth={4}
+        strokeWidth={SHAPE_STROKE_WIDTH}
         fill={colorHex(shape.color)}
-        pointerLength={14}
-        pointerWidth={14}
+        pointerLength={ARROW_HEAD_SIZE}
+        pointerWidth={ARROW_HEAD_SIZE}
         shadowBlur={6}
         shadowColor="rgba(0,0,0,0.45)"
         shadowOffsetX={1}
