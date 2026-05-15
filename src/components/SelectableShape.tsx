@@ -1,14 +1,18 @@
 import type Konva from "konva";
 import type { KonvaEventObject } from "konva/lib/Node";
 import { useEffect, useRef } from "react";
-import { Arrow, Rect, Text } from "react-konva";
+import { Line, Rect, Text } from "react-konva";
 import { imageToScreen, imageToScreenScale, screenToImage } from "@/lib/imageFit";
 import type { FitRect, Size as FitSize } from "@/lib/imageFit";
 import type { LoadedImage } from "@/types/image";
 import type { ArrowShape, MosaicShape, RectShape, Shape, TextShape } from "@/types/shape";
 import { colorHex } from "@/types/tool";
 import {
-  ARROW_HEAD_SIZE,
+  ARROW_HEAD_HALF_WIDTH,
+  ARROW_HEAD_LENGTH,
+  ARROW_NECK_HALF_WIDTH,
+  ARROW_NECK_LENGTH,
+  ARROW_TAIL_HALF_WIDTH,
   SHAPE_STROKE_WIDTH,
   TEXT_FONT_SIZE,
   TEXT_FONT_STYLE,
@@ -19,6 +23,7 @@ import {
   TEXT_STROKE_COLOR,
   TEXT_STROKE_WIDTH,
 } from "@/constants/shape";
+import { computeArrowPolygon } from "@/lib/arrowGeometry";
 import { MOSAIC_NATURAL_PIXEL_SIZE, MosaicNode } from "./MosaicNode";
 
 type RectPatch = Partial<Omit<RectShape, "id" | "type">>;
@@ -150,8 +155,16 @@ export function SelectableShape(props: SelectableShapeProps) {
   if (shape.type === "arrow") {
     const from = imageToScreen({ x: shape.fromX, y: shape.fromY }, fit, imageSize);
     const to = imageToScreen({ x: shape.toX, y: shape.toY }, fit, imageSize);
+    const arrowScale = Math.min(imgScaleX, imgScaleY);
+    const polygon = computeArrowPolygon(from, to, {
+      tailHalfWidth: ARROW_TAIL_HALF_WIDTH * arrowScale,
+      neckHalfWidth: ARROW_NECK_HALF_WIDTH * arrowScale,
+      headHalfWidth: ARROW_HEAD_HALF_WIDTH * arrowScale,
+      neckLength: ARROW_NECK_LENGTH * arrowScale,
+      headLength: ARROW_HEAD_LENGTH * arrowScale,
+    });
     return (
-      <Arrow
+      <Line
         ref={(node) => {
           ref.current = node;
         }}
@@ -159,16 +172,13 @@ export function SelectableShape(props: SelectableShapeProps) {
         draggable={isSelectMode}
         onClick={handleSelect}
         onTap={handleSelect}
-        points={[from.x, from.y, to.x, to.y]}
-        stroke={colorHex(shape.color)}
-        strokeWidth={SHAPE_STROKE_WIDTH}
+        points={polygon}
+        closed
         fill={colorHex(shape.color)}
-        pointerLength={ARROW_HEAD_SIZE}
-        pointerWidth={ARROW_HEAD_SIZE}
-        shadowBlur={6}
+        shadowBlur={6 * arrowScale}
         shadowColor="rgba(0,0,0,0.45)"
-        shadowOffsetX={1}
-        shadowOffsetY={2}
+        shadowOffsetX={1 * arrowScale}
+        shadowOffsetY={2 * arrowScale}
         onDragEnd={(event: KonvaEventObject<DragEvent>) => {
           const node = event.target;
           const dx = node.x();

@@ -2,12 +2,28 @@
 // on typical screenshot-style images. See src/components/MosaicNode.tsx for the
 // matching MOSAIC_NATURAL_PIXEL_SIZE constant.
 
-// Stroke width for rect and arrow shapes (image-natural pixels in export,
-// screen pixels in on-canvas rendering — both share this number).
+// Stroke width for rect shapes (image-natural pixels in export, screen
+// pixels in on-canvas rendering — both share this number). Arrows use a
+// custom polygon (see ARROW_* constants below) and do not stroke.
 export const SHAPE_STROKE_WIDTH = 18;
 
-// Arrowhead size: applied to both pointerLength and pointerWidth.
-export const ARROW_HEAD_SIZE = 63;
+// Skitch-style "harpoon" arrow geometry. The arrow is rendered as a closed
+// concave polygon (Konva.Line with `closed: true`) so the shaft tapers from a
+// near-point tail and the wing tips sit BEHIND the neck — creating the
+// characteristic harpoon-barb cutout. See src/lib/arrowGeometry.ts.
+//
+// HALF_WIDTH values are perpendicular extents on one side of the centerline;
+// LENGTH values are axial distances measured from the tip going backwards.
+// All in image-natural pixels for export, screen pixels for on-canvas
+// rendering (multiplied by image-to-screen scale).
+//
+// Invariant: NECK_LENGTH < HEAD_LENGTH. The wing tip sits further from the
+// tip than the neck does — this is what carves the harpoon cutout.
+export const ARROW_TAIL_HALF_WIDTH = 1;
+export const ARROW_NECK_HALF_WIDTH = 13;
+export const ARROW_HEAD_HALF_WIDTH = 40;
+export const ARROW_NECK_LENGTH = 66;
+export const ARROW_HEAD_LENGTH = 80;
 
 // Default font size for text shapes (in image-natural pixels). On-canvas
 // rendering multiplies by the image-to-screen scale; the input overlay uses

@@ -1,7 +1,11 @@
 import Konva from "konva";
 import { MOSAIC_NATURAL_PIXEL_SIZE } from "@/components/MosaicNode";
 import {
-  ARROW_HEAD_SIZE,
+  ARROW_HEAD_HALF_WIDTH,
+  ARROW_HEAD_LENGTH,
+  ARROW_NECK_HALF_WIDTH,
+  ARROW_NECK_LENGTH,
+  ARROW_TAIL_HALF_WIDTH,
   SHAPE_STROKE_WIDTH,
   TEXT_FONT_SIZE,
   TEXT_FONT_STYLE,
@@ -12,6 +16,7 @@ import {
   TEXT_STROKE_COLOR,
   TEXT_STROKE_WIDTH,
 } from "@/constants/shape";
+import { computeArrowPolygon } from "@/lib/arrowGeometry";
 import type { LoadedImage } from "@/types/image";
 import type { Shape } from "@/types/shape";
 import { colorHex } from "@/types/tool";
@@ -50,13 +55,21 @@ function buildShapeNode(shape: Shape, image: LoadedImage): Konva.Shape {
     });
   }
   if (shape.type === "arrow") {
-    return new Konva.Arrow({
-      points: [shape.fromX, shape.fromY, shape.toX, shape.toY],
-      stroke: colorHex(shape.color),
-      strokeWidth: SHAPE_STROKE_WIDTH,
+    const polygon = computeArrowPolygon(
+      { x: shape.fromX, y: shape.fromY },
+      { x: shape.toX, y: shape.toY },
+      {
+        tailHalfWidth: ARROW_TAIL_HALF_WIDTH,
+        neckHalfWidth: ARROW_NECK_HALF_WIDTH,
+        headHalfWidth: ARROW_HEAD_HALF_WIDTH,
+        neckLength: ARROW_NECK_LENGTH,
+        headLength: ARROW_HEAD_LENGTH,
+      },
+    );
+    return new Konva.Line({
+      points: polygon,
+      closed: true,
       fill: colorHex(shape.color),
-      pointerLength: ARROW_HEAD_SIZE,
-      pointerWidth: ARROW_HEAD_SIZE,
       shadowBlur: 6,
       shadowColor: "rgba(0,0,0,0.45)",
       shadowOffsetX: 1,
