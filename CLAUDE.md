@@ -1,0 +1,105 @@
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+## プロジェクト概要
+
+`marianne` は完全オフラインで動作する Skitch 風の画像注釈デスクトップアプリ（MVP）。画像に対して矩形 / 矢印 / テキスト / モザイクのアノテーションを付与し、PNG としてファイル保存またはクリップボードへコピーする。外部ネットワーク通信は一切行わない。
+
+技術スタック: **Tauri v2（Rust シェル）+ React 19 + TypeScript + Vite + react-konva + Zustand**。Tauri バックエンドは意図的に最小限（`src-tauri/src/lib.rs` にサンプルの `greet` コマンドのみ）で、機能開発はほぼ `src/` 内で完結する。
+
+## よく使うコマンド
+
+基本コマンドは @README_ja.md を参照（英語版は @README.md）。CLAUDE 固有の注意点のみ:
+
+- フォーマッタは **`deno fmt`** であって Prettier ではない (`deno.json` 設定済み)
+- 単一テスト実行: `pnpm test:run src/store/canvasStore.test.ts` / `pnpm test:run -t "undo"`
+- パスエイリアス `@/*` → `./src/*` は `tsconfig.json` / `vite.config.ts` / `vitest.config.ts` の 3 箇所で設定。変更時は全て同期させる。
+
+## アーキテクチャ
+
+### 座標系の不変条件（最初に読むこと）
+
+**`Shape`（`src/types/shape.ts`）および `canvasStore` に保存されるシェイプ座標は、すべて画像の自然ピクセル空間（natural pixel space）である。** `(0, 0)` が画像の左上、最大値は `naturalWidth / naturalHeight`。screen 座標との変換は描画境界でのみ行い、`src/lib/imageFit.ts` のヘルパーを使う:
+
+- `fitContain(image, container)` → 画像をレターボックス配置した時の表示矩形（screen px の `FitRect`）
+- `imageToScreen` / `screenToImage` — 双方向変換
+- `imageToScreenScale` — ストローク幅・フォントサイズ・モザイクピクセルサイズ向けの `scaleX` / `scaleY` を個別に返す
+- `clampToImage` — ポインタ由来の座標を画像内にクランプ
+
+新しいシェイプ型やポインタ操作を追加する際、screen 座標を絶対に永続化しないこと。マウスハンドラや `onTransformEnd` の入口で変換し、natural 座標を保存する。`SelectableShape.tsx` と `CanvasArea.tsx` がそのパターンの実例。各 transform 終了後に `node.scaleX(1); node.scaleY(1)` でリセットしている理由は、Konva の一時的な scale が次のレンダーへリークしないようにするため。
+
+### 状態管理: Zustand + identity-preserving な履歴
+
+`src/store/canvasStore.ts` がシェイプ・選択・undo/redo の単一の真実ソース:
+
+- `shapes`, `past: Shape[][]`, `future: Shape[][]`, `selectedShapeId`
+- すべての変更は `withHistory(state, nextShapes)` を経由する。挙動:
+  1. `nextShapes === state.shapes`（参照等価）なら旧 state をそのまま返す。`patchByType` はマッチが無い時に元配列を再利用するので、ヒットしない `updateXxx()` 呼び出しが履歴を汚すのを防ぐ。
+  2. 旧 `shapes` を `past` に push し、`HISTORY_LIMIT = 50` でキャップ、`future` をクリア。
+- `undo` / `redo` は `selectedShapeId` をクリアする（しないと Transformer が古いノードに掴みかかるため）。
+- `App.tsx` は新しい画像を読み込む際に `clearShapes()` を呼び、前の画像のアノテーションが残らないようにしている（`clearShapes()` は `past` / `future` も同時にクリアするため、画像切替後は前画像のシェイプを undo で復元できない）。
+
+新しいシェイプ種別を追加するときは、`patchByType(shapes, id, "<type>", patch)` を呼ぶ型付き `updateXxx` アクションを追加する。型 discriminator が `shape.type` でフィルタするので、型を跨いだパッチは黙って破棄される。
+
+### 描画ジェスチャーのステートマシン
+
+`src/lib/drawingGesture.ts` は純粋モジュール（React 非依存・Konva 非依存）。`CanvasArea.handleMouseDown/Move/Up` の流れ:
+
+1. `startDraft(tool, color, point)` → `DraftShape`
+2. mousemove ごとに `moveDraft(draft, point)`
+3. `finalizeDraft(draft)` → `Shape | null`（`MIN_*` 閾値未満なら `null` を返す）
+
+`DraftShape` はドラッグ中に `width / height` が負になることを許容する。`finalizeDraft` 内で `Math.min` + `Math.abs` を使い、正の extent を持つシェイプに正規化する。このモジュールは独自の単体テストを持っており、React を import してはいけない。
+
+### モザイクの描画 & エクスポートパイプライン
+
+モザイクはパイプラインで最も繊細な部分:
+
+- 画面表示 (`MosaicNode.tsx`): natural ピクセル矩形を `crop` として持つ `Konva.Image` に `filters: [Pixelate]` を適用し、`pixelSize = MOSAIC_NATURAL_PIXEL_SIZE * min(imgScaleX, imgScaleY)` を設定。`useEffect` 内で `cache()` を呼ぶが、その deps にはキャッシュキャンバスに影響する全 prop を含めること。1 つでも漏らすとピクセル化が古いまま固まる。
+- エクスポート (`src/lib/exportImage.ts`): 画像の自然サイズで _新しい_ オフスクリーン `Konva.Stage` を構築し、モザイクノードに `MOSAIC_EXPORT_FLAG` のタグを付け、`stage.toCanvas({ pixelRatio: 1 })` の **前に** `.cache({ pixelRatio: 1 })` を呼ぶ。この 2 箇所の `pixelRatio: 1` は必須。指定しないと Retina (DPR=2) でキャッシュキャンバスが 2 倍化し、PNG 上でブロックサイズが小さく見えてしまう。
+
+`MOSAIC_NATURAL_PIXEL_SIZE = 16`（`MosaicNode.tsx` で定義）は natural 画像座標でのブロックサイズ。画面側ノードもエクスポートパイプラインもこの同じ定数を import する。
+
+### クリップボードへのエクスポート — 同期的な Promise ハンドオフ
+
+`App.tsx` の `handleExportToClipboard` は **`async` ではなく**、blob を **`await` しない**:
+
+```ts
+const blobPromise = exportToBlob(image, shapes);
+copyImageToClipboard(blobPromise); // Promise<Blob> をそのまま ClipboardItem へ渡す
+```
+
+`copyImageToClipboard`（`src/lib/exportImage.ts`）は `Promise<Blob>` を直接 `new ClipboardItem({ "image/png": blobPromise })` に渡す。WebKit / WKWebView では `navigator.clipboard.write` をユーザージェスチャーハンドラ内で同期的に開始する必要があり、先に `await` すると transient user activation トークンを失って Tauri webview 上でクリップボード書き込みが無言で失敗する。これを `async/await` にリファクタしないこと。
+
+### 画像の入力
+
+ファイルオープンダイアログは存在しない。画像は次の 2 経路でのみ入る:
+
+- ペースト (`Cmd/Ctrl + V`) — 先頭の `image/*` クリップボード item
+- ウィンドウへのドラッグ&ドロップ — 先頭の `image/*` ファイル
+
+`src/lib/useImageLoader.ts` がグローバルな `paste` / `dragover` / `dragleave` / `drop` リスナを所有し、`LoadedImage`（HTMLImageElement + 自然サイズ + source）を 1 つ発行する。`tauri.conf.json` で `"dragDropEnabled": false` を設定しており、Tauri のネイティブドロップを抑制して Web レイヤで処理している。
+
+### キーボードショートカット
+
+`CanvasArea.tsx` の `keydown` リスナが管理（テキスト入力にフォーカスが当たっている時はネイティブ textarea の編集を尊重するため bail out する）:
+
+- `Cmd/Ctrl + Z` → undo
+- `Cmd/Ctrl + Shift + Z` → redo
+- `Delete` / `Backspace` → 選択中シェイプの削除（選択モード時のみ）
+
+## 規約
+
+- **フォーマッタは `deno fmt`（Prettier ではない）。** 設定は `deno.json`（lineWidth 100、スペース 2、ダブルクォート、セミコロンあり）。コミット前に `pnpm fmt:check` を回すこと。
+- **ESLint v10 flat config**（`eslint.config.js`）。`tseslint.configs.strict` + `stylistic` に `react-hooks` の recommended を加えた構成。`tsconfig.json` で `noUncheckedIndexedAccess` と `noUnusedLocals` を有効にしているため、配列インデックスの結果は `T | undefined` として扱う必要がある。
+- **テスト**は Vitest + jsdom + `@testing-library/react` + `@testing-library/jest-dom`（`src/test/setup.ts` で自動 import）。`vitest.config.ts` で `globals: true` を有効化しているため `describe` / `it` / `expect` の import 不要。純粋モジュール（`drawingGesture`、`imageFit`、`canvasStore` など）は単体テスト、React コンポーネントは Testing Library でテストする。
+- **`src/` 内の import** は長い相対パスではなく `@/` エイリアスを使うこと。
+- **色プリセット**は `src/types/tool.ts` の `COLOR_PRESETS` / `colorHex` に集約されている。コンポーネント内に hex 文字列をハードコードしないこと。
+- **外部依存はプラットフォーム機能で代替できる場合は追加しない。** プロジェクト方針に従い、ブラウザ / Node / Konva で済むものはライブラリ追加を避ける。
+
+## Tauri 統合の注意点
+
+- 開発 URL は `http://localhost:1420` 固定（`vite.config.ts` の `strictPort: true` と `tauri.conf.json` が対応）。片方だけ変更しないこと。
+- `src-tauri/capabilities/default.json` は `core:default` + `opener:default` しか許可していない。Rust 側コマンドやプラグインを追加する場合は capability の更新も必要。怠るとフロントの `invoke` が Tauri の ACL で拒否される。
+- フロントは `dist/` にビルドされ、`tauri.conf.json` の `frontendDist` 設定で `../dist` から提供される。
