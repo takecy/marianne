@@ -12,3 +12,17 @@ export const COLOR_PRESETS = [
 ] as const;
 
 export type ColorPresetName = (typeof COLOR_PRESETS)[number]["name"];
+
+const COLOR_HEX_MAP: Record<ColorPresetName, string> = {
+  red: "#ef4444",
+  blue: "#3b82f6",
+  green: "#22c55e",
+  yellow: "#eab308",
+  pink: "#ec4899",
+  black: "#0f172a",
+  white: "#f8fafc",
+};
+
+export function colorHex(name: ColorPresetName): string {
+  return COLOR_HEX_MAP[name];
+}
