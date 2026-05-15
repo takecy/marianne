@@ -3,6 +3,7 @@ import { COLOR_PRESETS, TOOL_KINDS } from "@/types/tool";
 import styles from "./Toolbar.module.css";
 
 const TOOL_LABELS: Record<ToolKind, string> = {
+  select: "選択",
   arrow: "矢印",
   rect: "四角",
   text: "テキスト",

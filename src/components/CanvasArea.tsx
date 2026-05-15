@@ -1,6 +1,7 @@
+import type Konva from "konva";
 import type { KonvaEventObject } from "konva/lib/Node";
-import { useEffect, useRef, useState } from "react";
-import { Arrow, Image as KonvaImage, Layer, Rect, Stage, Text } from "react-konva";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Arrow, Image as KonvaImage, Layer, Rect, Stage, Transformer } from "react-konva";
 import {
   clampToImage,
   fitContain,
@@ -11,12 +12,24 @@ import {
 import type { FitRect, Point, Size as FitSize } from "@/lib/imageFit";
 import { finalizeDraft, moveDraft, startDraft } from "@/lib/drawingGesture";
 import type { LoadedImage } from "@/types/image";
-import type { DraftShape, Shape, TextShape } from "@/types/shape";
+import type {
+  ArrowShape,
+  DraftShape,
+  MosaicShape,
+  RectShape,
+  Shape,
+  TextShape,
+} from "@/types/shape";
 import type { ColorPresetName, ToolKind } from "@/types/tool";
 import { colorHex } from "@/types/tool";
-import { MOSAIC_NATURAL_PIXEL_SIZE, MosaicNode } from "./MosaicNode";
+import { SelectableShape } from "./SelectableShape";
 import { TextInputOverlay } from "./TextInputOverlay";
 import styles from "./CanvasArea.module.css";
+
+type RectPatch = Partial<Omit<RectShape, "id" | "type">>;
+type TextPatch = Partial<Omit<TextShape, "id" | "type">>;
+type ArrowPatch = Partial<Omit<ArrowShape, "id" | "type">>;
+type MosaicPatch = Partial<Omit<MosaicShape, "id" | "type">>;
 
 interface CanvasAreaProps {
   image: LoadedImage | null;
@@ -24,99 +37,31 @@ interface CanvasAreaProps {
   shapes: Shape[];
   activeTool: ToolKind;
   activeColor: ColorPresetName;
+  selectedShapeId: string | null;
   onShapeAdded: (shape: Shape) => void;
+  onSelectShape: (id: string | null) => void;
+  onDeleteShape: (id: string) => void;
+  onUpdateRect: (id: string, patch: RectPatch) => void;
+  onUpdateText: (id: string, patch: TextPatch) => void;
+  onUpdateArrow: (id: string, patch: ArrowPatch) => void;
+  onUpdateMosaic: (id: string, patch: MosaicPatch) => void;
 }
+
+const RESIZE_ANCHORS: readonly string[] = [
+  "top-left",
+  "top-center",
+  "top-right",
+  "middle-left",
+  "middle-right",
+  "bottom-left",
+  "bottom-center",
+  "bottom-right",
+];
 
 function getStagePointer(event: KonvaEventObject<MouseEvent>): Point | null {
   const stage = event.target.getStage();
   const pos = stage?.getPointerPosition();
   return pos ? { x: pos.x, y: pos.y } : null;
-}
-
-function renderShape(
-  shape: Shape,
-  fit: FitRect,
-  imageSize: FitSize,
-  image: LoadedImage | null,
-) {
-  const { scaleX, scaleY } = imageToScreenScale(fit, imageSize);
-  if (shape.type === "rect") {
-    const hex = colorHex(shape.color);
-    const topLeft = imageToScreen({ x: shape.x, y: shape.y }, fit, imageSize);
-    return (
-      <Rect
-        key={shape.id}
-        x={topLeft.x}
-        y={topLeft.y}
-        width={shape.width * scaleX}
-        height={shape.height * scaleY}
-        stroke={hex}
-        strokeWidth={4}
-        listening={false}
-      />
-    );
-  }
-  if (shape.type === "text") {
-    const hex = colorHex(shape.color);
-    const topLeft = imageToScreen({ x: shape.x, y: shape.y }, fit, imageSize);
-    const fontScale = Math.min(scaleX, scaleY);
-    return (
-      <Text
-        key={shape.id}
-        x={topLeft.x}
-        y={topLeft.y}
-        text={shape.text}
-        fontSize={24 * fontScale}
-        fontFamily="sans-serif"
-        fill={hex}
-        listening={false}
-      />
-    );
-  }
-  if (shape.type === "mosaic") {
-    if (!image) {
-      return null;
-    }
-    const topLeft = imageToScreen({ x: shape.x, y: shape.y }, fit, imageSize);
-    // Konva filter operates on cached canvas (screen) pixels, so scale the
-    // natural-pixel target to keep block size constant in image coords.
-    const pixelSize = MOSAIC_NATURAL_PIXEL_SIZE * Math.min(scaleX, scaleY);
-    return (
-      <MosaicNode
-        key={shape.id}
-        image={image.element}
-        screenX={topLeft.x}
-        screenY={topLeft.y}
-        screenWidth={shape.width * scaleX}
-        screenHeight={shape.height * scaleY}
-        cropX={shape.x}
-        cropY={shape.y}
-        cropWidth={shape.width}
-        cropHeight={shape.height}
-        pixelSize={pixelSize}
-      />
-    );
-  }
-  // arrow
-  const hex = colorHex(shape.color);
-  const from = imageToScreen({ x: shape.fromX, y: shape.fromY }, fit, imageSize);
-  const to = imageToScreen({ x: shape.toX, y: shape.toY }, fit, imageSize);
-  return (
-    <Arrow
-      key={shape.id}
-      points={[from.x, from.y, to.x, to.y]}
-      stroke={hex}
-      strokeWidth={4}
-      fill={hex}
-      pointerLength={14}
-      pointerWidth={14}
-      shadowBlur={6}
-      shadowColor="rgba(0,0,0,0.45)"
-      shadowOffsetX={1}
-      shadowOffsetY={2}
-      listening={false}
-    />
-  );
 }
 
 function renderDraft(draft: DraftShape, fit: FitRect, imageSize: FitSize) {
@@ -147,8 +92,6 @@ function renderDraft(draft: DraftShape, fit: FitRect, imageSize: FitSize) {
     const w = Math.abs(draft.width);
     const h = Math.abs(draft.height);
     const topLeft = imageToScreen({ x: left, y: top }, fit, imageSize);
-    // Lightweight preview during drag; full Pixelate caching happens after
-    // mouse up (see MosaicNode) to avoid per-frame cache thrashing.
     return (
       <Rect
         x={topLeft.x}
@@ -163,7 +106,6 @@ function renderDraft(draft: DraftShape, fit: FitRect, imageSize: FitSize) {
       />
     );
   }
-  // arrow
   const hex = colorHex(draft.color);
   const from = imageToScreen({ x: draft.fromX, y: draft.fromY }, fit, imageSize);
   const to = imageToScreen({ x: draft.toX, y: draft.toY }, fit, imageSize);
@@ -186,11 +128,29 @@ function renderDraft(draft: DraftShape, fit: FitRect, imageSize: FitSize) {
 }
 
 export function CanvasArea(props: CanvasAreaProps) {
-  const { image, isDraggingOver, shapes, activeTool, activeColor, onShapeAdded } = props;
+  const {
+    image,
+    isDraggingOver,
+    shapes,
+    activeTool,
+    activeColor,
+    selectedShapeId,
+    onShapeAdded,
+    onSelectShape,
+    onDeleteShape,
+    onUpdateRect,
+    onUpdateText,
+    onUpdateArrow,
+    onUpdateMosaic,
+  } = props;
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [size, setSize] = useState({ width: 0, height: 0 });
   const [draft, setDraft] = useState<DraftShape | null>(null);
   const [textInput, setTextInput] = useState<Point | null>(null);
+  const nodeMap = useRef<Map<string, Konva.Node>>(new Map());
+  const transformerRef = useRef<Konva.Transformer | null>(null);
+
+  const isSelectMode = activeTool === "select";
 
   useEffect(() => {
     const el = containerRef.current;
@@ -207,8 +167,6 @@ export function CanvasArea(props: CanvasAreaProps) {
   }, []);
 
   // Cancel any in-flight draft/text input when the tool or image changes.
-  // This is the "store previous prop value" pattern from the React 19 docs:
-  // https://react.dev/learn/you-might-not-need-an-effect#adjusting-some-state-when-a-prop-changes
 
   const prevToolRef = useRef(activeTool);
 
@@ -227,10 +185,64 @@ export function CanvasArea(props: CanvasAreaProps) {
     }
   }
 
+  const registerNode = useCallback((id: string, node: Konva.Node | null) => {
+    if (node) {
+      nodeMap.current.set(id, node);
+    } else {
+      nodeMap.current.delete(id);
+    }
+  }, []);
+
+  // Attach Transformer to the currently selected shape's node.
+  useEffect(() => {
+    const transformer = transformerRef.current;
+    if (!transformer) {
+      return;
+    }
+    if (isSelectMode && selectedShapeId) {
+      const node = nodeMap.current.get(selectedShapeId);
+      transformer.nodes(node ? [node] : []);
+    } else {
+      transformer.nodes([]);
+    }
+    transformer.getLayer()?.batchDraw();
+  }, [isSelectMode, selectedShapeId, shapes]);
+
+  // Delete / Backspace key removes the selected shape (select mode only).
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (textInput !== null) {
+        return;
+      }
+      if (!isSelectMode) {
+        return;
+      }
+      if (!selectedShapeId) {
+        return;
+      }
+      if (e.key === "Delete" || e.key === "Backspace") {
+        e.preventDefault();
+        onDeleteShape(selectedShapeId);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [isSelectMode, selectedShapeId, textInput, onDeleteShape]);
+
   const imageSize: FitSize | null = image
     ? { width: image.naturalWidth, height: image.naturalHeight }
     : null;
   const fit: FitRect | null = imageSize ? fitContain(imageSize, size) : null;
+
+  const selectedShape = useMemo(
+    () => shapes.find((shape) => shape.id === selectedShapeId) ?? null,
+    [shapes, selectedShapeId],
+  );
+
+  const enabledAnchors =
+    selectedShape && (selectedShape.type === "rect" || selectedShape.type === "mosaic")
+      ? RESIZE_ANCHORS
+      : [];
 
   const handleMouseDown = (event: KonvaEventObject<MouseEvent>) => {
     if (textInput !== null) {
@@ -239,6 +251,15 @@ export function CanvasArea(props: CanvasAreaProps) {
     if (!image || !fit || !imageSize) {
       return;
     }
+
+    // In select mode: clicking blank canvas deselects, clicking a shape is handled by the shape itself.
+    if (isSelectMode) {
+      if (event.target === event.target.getStage()) {
+        onSelectShape(null);
+      }
+      return;
+    }
+
     const screen = getStagePointer(event);
     if (!screen) {
       return;
@@ -328,10 +349,33 @@ export function CanvasArea(props: CanvasAreaProps) {
                 )
                 : null}
             </Layer>
-            <Layer listening={false}>
+            <Layer listening={isSelectMode}>
               {fit && imageSize
-                ? shapes.map((shape) => renderShape(shape, fit, imageSize, image))
+                ? shapes.map((shape) => (
+                  <SelectableShape
+                    key={shape.id}
+                    shape={shape}
+                    fit={fit}
+                    imageSize={imageSize}
+                    image={image}
+                    isSelectMode={isSelectMode}
+                    onSelect={onSelectShape}
+                    onUpdateRect={onUpdateRect}
+                    onUpdateText={onUpdateText}
+                    onUpdateArrow={onUpdateArrow}
+                    onUpdateMosaic={onUpdateMosaic}
+                    registerNode={registerNode}
+                  />
+                ))
                 : null}
+              <Transformer
+                ref={transformerRef}
+                rotateEnabled={false}
+                flipEnabled={false}
+                enabledAnchors={enabledAnchors as string[]}
+                boundBoxFunc={(oldBox, newBox) =>
+                  newBox.width >= 8 && newBox.height >= 8 ? newBox : oldBox}
+              />
             </Layer>
             <Layer listening={false}>
               {draft && fit && imageSize ? renderDraft(draft, fit, imageSize) : null}
