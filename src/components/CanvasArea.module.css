@@ -1,0 +1,8 @@
+.canvasArea {
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  background: #e2e8f0;
+  position: relative;
+  overflow: hidden;
+}
