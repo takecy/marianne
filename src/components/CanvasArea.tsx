@@ -14,6 +14,7 @@ import type { LoadedImage } from "@/types/image";
 import type { DraftShape, Shape, TextShape } from "@/types/shape";
 import type { ColorPresetName, ToolKind } from "@/types/tool";
 import { colorHex } from "@/types/tool";
+import { MOSAIC_NATURAL_PIXEL_SIZE, MosaicNode } from "./MosaicNode";
 import { TextInputOverlay } from "./TextInputOverlay";
 import styles from "./CanvasArea.module.css";
 
@@ -32,10 +33,15 @@ function getStagePointer(event: KonvaEventObject<MouseEvent>): Point | null {
   return pos ? { x: pos.x, y: pos.y } : null;
 }
 
-function renderShape(shape: Shape, fit: FitRect, imageSize: FitSize) {
-  const hex = colorHex(shape.color);
+function renderShape(
+  shape: Shape,
+  fit: FitRect,
+  imageSize: FitSize,
+  image: LoadedImage | null,
+) {
   const { scaleX, scaleY } = imageToScreenScale(fit, imageSize);
   if (shape.type === "rect") {
+    const hex = colorHex(shape.color);
     const topLeft = imageToScreen({ x: shape.x, y: shape.y }, fit, imageSize);
     return (
       <Rect
@@ -51,6 +57,7 @@ function renderShape(shape: Shape, fit: FitRect, imageSize: FitSize) {
     );
   }
   if (shape.type === "text") {
+    const hex = colorHex(shape.color);
     const topLeft = imageToScreen({ x: shape.x, y: shape.y }, fit, imageSize);
     const fontScale = Math.min(scaleX, scaleY);
     return (
@@ -66,6 +73,32 @@ function renderShape(shape: Shape, fit: FitRect, imageSize: FitSize) {
       />
     );
   }
+  if (shape.type === "mosaic") {
+    if (!image) {
+      return null;
+    }
+    const topLeft = imageToScreen({ x: shape.x, y: shape.y }, fit, imageSize);
+    // Konva filter operates on cached canvas (screen) pixels, so scale the
+    // natural-pixel target to keep block size constant in image coords.
+    const pixelSize = MOSAIC_NATURAL_PIXEL_SIZE * Math.min(scaleX, scaleY);
+    return (
+      <MosaicNode
+        key={shape.id}
+        image={image.element}
+        screenX={topLeft.x}
+        screenY={topLeft.y}
+        screenWidth={shape.width * scaleX}
+        screenHeight={shape.height * scaleY}
+        cropX={shape.x}
+        cropY={shape.y}
+        cropWidth={shape.width}
+        cropHeight={shape.height}
+        pixelSize={pixelSize}
+      />
+    );
+  }
+  // arrow
+  const hex = colorHex(shape.color);
   const from = imageToScreen({ x: shape.fromX, y: shape.fromY }, fit, imageSize);
   const to = imageToScreen({ x: shape.toX, y: shape.toY }, fit, imageSize);
   return (
@@ -87,9 +120,9 @@ function renderShape(shape: Shape, fit: FitRect, imageSize: FitSize) {
 }
 
 function renderDraft(draft: DraftShape, fit: FitRect, imageSize: FitSize) {
-  const hex = colorHex(draft.color);
   const { scaleX, scaleY } = imageToScreenScale(fit, imageSize);
   if (draft.type === "rect") {
+    const hex = colorHex(draft.color);
     const left = Math.min(draft.x, draft.x + draft.width);
     const top = Math.min(draft.y, draft.y + draft.height);
     const w = Math.abs(draft.width);
@@ -108,6 +141,30 @@ function renderDraft(draft: DraftShape, fit: FitRect, imageSize: FitSize) {
       />
     );
   }
+  if (draft.type === "mosaic") {
+    const left = Math.min(draft.x, draft.x + draft.width);
+    const top = Math.min(draft.y, draft.y + draft.height);
+    const w = Math.abs(draft.width);
+    const h = Math.abs(draft.height);
+    const topLeft = imageToScreen({ x: left, y: top }, fit, imageSize);
+    // Lightweight preview during drag; full Pixelate caching happens after
+    // mouse up (see MosaicNode) to avoid per-frame cache thrashing.
+    return (
+      <Rect
+        x={topLeft.x}
+        y={topLeft.y}
+        width={w * scaleX}
+        height={h * scaleY}
+        fill="rgba(15, 23, 42, 0.35)"
+        stroke="#0f172a"
+        strokeWidth={1}
+        dash={[4, 4]}
+        listening={false}
+      />
+    );
+  }
+  // arrow
+  const hex = colorHex(draft.color);
   const from = imageToScreen({ x: draft.fromX, y: draft.fromY }, fit, imageSize);
   const to = imageToScreen({ x: draft.toX, y: draft.toY }, fit, imageSize);
   return (
@@ -152,9 +209,6 @@ export function CanvasArea(props: CanvasAreaProps) {
   // Cancel any in-flight draft/text input when the tool or image changes.
   // This is the "store previous prop value" pattern from the React 19 docs:
   // https://react.dev/learn/you-might-not-need-an-effect#adjusting-some-state-when-a-prop-changes
-  // It updates state during render to derive in-flight state from prop changes
-  // without an Effect. The react-hooks v7 plugin's `react-hooks/refs` rule is
-  // overly conservative here, so we suppress it for this controlled use case.
 
   const prevToolRef = useRef(activeTool);
 
@@ -190,15 +244,13 @@ export function CanvasArea(props: CanvasAreaProps) {
       return;
     }
     const imagePoint = clampToImage(screenToImage(screen, fit, imageSize), imageSize);
-    if (activeTool === "rect" || activeTool === "arrow") {
+    if (activeTool === "rect" || activeTool === "arrow" || activeTool === "mosaic") {
       setDraft(startDraft(activeTool, activeColor, imagePoint));
       return;
     }
     if (activeTool === "text") {
       setTextInput(imagePoint);
-      return;
     }
-    // mosaic: implemented in Phase 4
   };
 
   const handleMouseMove = (event: KonvaEventObject<MouseEvent>) => {
@@ -277,7 +329,9 @@ export function CanvasArea(props: CanvasAreaProps) {
                 : null}
             </Layer>
             <Layer listening={false}>
-              {fit && imageSize ? shapes.map((shape) => renderShape(shape, fit, imageSize)) : null}
+              {fit && imageSize
+                ? shapes.map((shape) => renderShape(shape, fit, imageSize, image))
+                : null}
             </Layer>
             <Layer listening={false}>
               {draft && fit && imageSize ? renderDraft(draft, fit, imageSize) : null}

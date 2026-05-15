@@ -76,3 +76,40 @@ describe("drawingGesture - arrow", () => {
     expect(finalizeDraft(draft, fixedId)).toBeNull();
   });
 });
+
+describe("drawingGesture - mosaic", () => {
+  it("startDraft creates a zero-size mosaic without a color field", () => {
+    const draft = startDraft("mosaic", "red", { x: 30, y: 40 });
+    expect(draft).toEqual({
+      type: "mosaic",
+      x: 30,
+      y: 40,
+      width: 0,
+      height: 0,
+    });
+    expect(draft).not.toHaveProperty("color");
+  });
+
+  it("moveDraft updates width and height for a mosaic draft", () => {
+    const draft = moveDraft(startDraft("mosaic", "blue", { x: 0, y: 0 }), { x: 80, y: 50 });
+    expect(draft).toMatchObject({ type: "mosaic", width: 80, height: 50 });
+  });
+
+  it("finalizeDraft returns a MosaicShape with id and normalised bounds, no color", () => {
+    const draft = moveDraft(startDraft("mosaic", "black", { x: 100, y: 200 }), { x: 50, y: 150 });
+    const shape = finalizeDraft(draft, fixedId);
+    expect(shape).toEqual({
+      id: "id-1",
+      type: "mosaic",
+      x: 50,
+      y: 150,
+      width: 50,
+      height: 50,
+    });
+  });
+
+  it("finalizeDraft returns null for a mosaic smaller than MIN_MOSAIC_DIM", () => {
+    const draft = moveDraft(startDraft("mosaic", "red", { x: 0, y: 0 }), { x: 3, y: 3 });
+    expect(finalizeDraft(draft, fixedId)).toBeNull();
+  });
+});

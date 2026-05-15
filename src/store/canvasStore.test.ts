@@ -34,14 +34,22 @@ describe("canvasStore", () => {
     useCanvasStore.getState().addShape(sampleRect("a"));
     useCanvasStore.getState().updateShape("a", { color: "blue" });
     const updated = useCanvasStore.getState().shapes[0];
-    expect(updated?.color).toBe("blue");
     expect(updated?.type).toBe("rect");
+    // Narrow to RectShape to access the `color` field safely.
+    if (updated?.type === "rect") {
+      expect(updated.color).toBe("blue");
+    }
   });
 
   it("updateShape is a no-op when the id is unknown", () => {
     useCanvasStore.getState().addShape(sampleRect("a"));
     useCanvasStore.getState().updateShape("missing", { color: "blue" });
-    expect(useCanvasStore.getState().shapes[0]?.color).toBe("red");
+    const shape = useCanvasStore.getState().shapes[0];
+    if (shape?.type === "rect") {
+      expect(shape.color).toBe("red");
+    } else {
+      throw new Error("expected shape to be a rect");
+    }
   });
 
   it("clearShapes empties the array", () => {
