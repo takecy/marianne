@@ -136,6 +136,7 @@ export function SelectableShape(props: SelectableShapeProps) {
         fill={colorHex(shape.color)}
         stroke={TEXT_STROKE_COLOR}
         strokeWidth={TEXT_STROKE_WIDTH * fontScale}
+        lineJoin="round"
         fillAfterStrokeEnabled
         shadowColor={TEXT_SHADOW_COLOR}
         shadowBlur={TEXT_SHADOW_BLUR * fontScale}

@@ -38,7 +38,7 @@ export const TEXT_FONT_STYLE = "bold";
 // Skitch-style. Width is in image-natural pixels; on-canvas rendering scales
 // by the image-to-screen ratio just like fontSize.
 export const TEXT_STROKE_WIDTH = 14;
-export const TEXT_STROKE_COLOR = "#000000";
+export const TEXT_STROKE_COLOR = "rgba(0, 0, 0, 0.75)";
 
 // Drop shadow under text glyphs. Larger than the arrow shape's shadow because
 // outlined text needs a more pronounced drop shadow to read as "Skitch-style".

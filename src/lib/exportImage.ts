@@ -47,6 +47,7 @@ function buildShapeNode(shape: Shape, image: LoadedImage): Konva.Shape {
       fill: colorHex(shape.color),
       stroke: TEXT_STROKE_COLOR,
       strokeWidth: TEXT_STROKE_WIDTH,
+      lineJoin: "round",
       fillAfterStrokeEnabled: true,
       shadowColor: TEXT_SHADOW_COLOR,
       shadowBlur: TEXT_SHADOW_BLUR,
