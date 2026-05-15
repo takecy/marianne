@@ -299,6 +299,10 @@ export function CanvasArea(props: CanvasAreaProps) {
       return;
     }
     if (activeTool === "text") {
+      // Prevent the browser from shifting focus on mousedown's downstream
+      // mouseup/click. Without this, the freshly mounted textarea is blurred
+      // immediately and the overlay disappears before the user can type.
+      event.evt.preventDefault();
       setTextInput(imagePoint);
     }
   };
