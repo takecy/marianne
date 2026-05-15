@@ -1,6 +1,12 @@
 import { useCallback, useState } from "react";
 import { CanvasArea } from "./components/CanvasArea";
 import { Toolbar } from "./components/Toolbar";
+import {
+  copyImageToClipboard,
+  downloadBlob,
+  exportToBlob,
+  generateExportFilename,
+} from "./lib/exportImage";
 import { useImageLoader } from "./lib/useImageLoader";
 import { useCanvasStore } from "./store/canvasStore";
 import type { LoadedImage } from "./types/image";
@@ -41,6 +47,30 @@ function App() {
     onError: handleImageError,
   });
 
+  const handleExportToFile = useCallback(async () => {
+    if (!image) {
+      return;
+    }
+    try {
+      const blob = await exportToBlob(image, shapes);
+      downloadBlob(blob, generateExportFilename());
+    } catch (error) {
+      console.error("Export to file failed:", error);
+    }
+  }, [image, shapes]);
+
+  // Synchronous start: passing the Promise<Blob> directly to ClipboardItem preserves
+  // the transient user activation that WebKit/WKWebView requires for clipboard.write.
+  const handleExportToClipboard = useCallback(() => {
+    if (!image) {
+      return;
+    }
+    const blobPromise = exportToBlob(image, shapes);
+    copyImageToClipboard(blobPromise).catch((error) => {
+      console.error("Copy to clipboard failed:", error);
+    });
+  }, [image, shapes]);
+
   return (
     <div className={styles.appShell}>
       <Toolbar
@@ -49,6 +79,8 @@ function App() {
         activeColor={activeColor}
         onColorChange={setActiveColor}
         disabled={image === null}
+        onExportToFile={handleExportToFile}
+        onExportToClipboard={handleExportToClipboard}
       />
       <CanvasArea
         image={image}
