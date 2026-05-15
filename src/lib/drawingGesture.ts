@@ -1,11 +1,12 @@
-import type { ArrowShape, DraftShape, RectShape, Shape } from "@/types/shape";
+import type { ArrowShape, DraftShape, MosaicShape, RectShape, Shape } from "@/types/shape";
 import type { ColorPresetName } from "@/types/tool";
 
 const MIN_RECT_DIM = 2;
 const MIN_ARROW_LENGTH = 4;
+const MIN_MOSAIC_DIM = 4;
 
 export function startDraft(
-  tool: "rect" | "arrow",
+  tool: "rect" | "arrow" | "mosaic",
   color: ColorPresetName,
   point: { x: number; y: number },
 ): DraftShape {
@@ -19,18 +20,29 @@ export function startDraft(
       height: 0,
     };
   }
+  if (tool === "arrow") {
+    return {
+      type: "arrow",
+      color,
+      fromX: point.x,
+      fromY: point.y,
+      toX: point.x,
+      toY: point.y,
+    };
+  }
+  // mosaic: color is accepted in the signature for call-site uniformity but
+  // intentionally not stored on the resulting shape.
   return {
-    type: "arrow",
-    color,
-    fromX: point.x,
-    fromY: point.y,
-    toX: point.x,
-    toY: point.y,
+    type: "mosaic",
+    x: point.x,
+    y: point.y,
+    width: 0,
+    height: 0,
   };
 }
 
 export function moveDraft(draft: DraftShape, point: { x: number; y: number }): DraftShape {
-  if (draft.type === "rect") {
+  if (draft.type === "rect" || draft.type === "mosaic") {
     return {
       ...draft,
       width: point.x - draft.x,
@@ -66,6 +78,24 @@ export function finalizeDraft(
       height,
     };
     return rect;
+  }
+  if (draft.type === "mosaic") {
+    const width = Math.abs(draft.width);
+    const height = Math.abs(draft.height);
+    if (width < MIN_MOSAIC_DIM || height < MIN_MOSAIC_DIM) {
+      return null;
+    }
+    const x = Math.min(draft.x, draft.x + draft.width);
+    const y = Math.min(draft.y, draft.y + draft.height);
+    const mosaic: MosaicShape = {
+      id: idGen(),
+      type: "mosaic",
+      x,
+      y,
+      width,
+      height,
+    };
+    return mosaic;
   }
   const dx = draft.toX - draft.fromX;
   const dy = draft.toY - draft.fromY;
