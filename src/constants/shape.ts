@@ -28,7 +28,7 @@ export const ARROW_HEAD_LENGTH = 80;
 // Default font size for text shapes (in image-natural pixels). On-canvas
 // rendering multiplies by the image-to-screen scale; the input overlay uses
 // the same number directly as CSS pixels.
-export const TEXT_FONT_SIZE = 72;
+export const TEXT_FONT_SIZE = 48;
 
 // Minimum font size when resizing text (image-natural pixels). Below this the
 // resize is rejected and the node position is reset to the shape's stored
