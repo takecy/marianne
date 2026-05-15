@@ -36,22 +36,24 @@ function buildShapeNode(shape: Shape, image: LoadedImage): Konva.Shape {
     });
   }
   if (shape.type === "text") {
+    const fontSize = shape.fontSize ?? TEXT_FONT_SIZE;
+    const fontSizeRatio = fontSize / TEXT_FONT_SIZE;
     return new Konva.Text({
       x: shape.x,
       y: shape.y,
       text: shape.text,
-      fontSize: TEXT_FONT_SIZE,
+      fontSize,
       fontStyle: TEXT_FONT_STYLE,
       fontFamily: "sans-serif",
       fill: colorHex(shape.color),
       stroke: textStrokeColorFor(shape.color),
-      strokeWidth: TEXT_STROKE_WIDTH,
+      strokeWidth: TEXT_STROKE_WIDTH * fontSizeRatio,
       lineJoin: "round",
       fillAfterStrokeEnabled: true,
       shadowColor: TEXT_SHADOW_COLOR,
-      shadowBlur: TEXT_SHADOW_BLUR,
-      shadowOffsetX: TEXT_SHADOW_OFFSET_X,
-      shadowOffsetY: TEXT_SHADOW_OFFSET_Y,
+      shadowBlur: TEXT_SHADOW_BLUR * fontSizeRatio,
+      shadowOffsetX: TEXT_SHADOW_OFFSET_X * fontSizeRatio,
+      shadowOffsetY: TEXT_SHADOW_OFFSET_Y * fontSizeRatio,
       listening: false,
     });
   }

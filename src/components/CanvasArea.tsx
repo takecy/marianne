@@ -69,6 +69,13 @@ const RESIZE_ANCHORS: readonly string[] = [
   "bottom-right",
 ];
 
+const TEXT_RESIZE_ANCHORS: readonly string[] = [
+  "top-left",
+  "top-right",
+  "bottom-left",
+  "bottom-right",
+];
+
 function getStagePointer(event: KonvaEventObject<MouseEvent>): Point | null {
   const stage = event.target.getStage();
   const pos = stage?.getPointerPosition();
@@ -283,10 +290,13 @@ export function CanvasArea(props: CanvasAreaProps) {
     [shapes, selectedShapeId],
   );
 
-  const enabledAnchors =
-    selectedShape && (selectedShape.type === "rect" || selectedShape.type === "mosaic")
-      ? RESIZE_ANCHORS
-      : [];
+  const enabledAnchors = !selectedShape
+    ? []
+    : selectedShape.type === "text"
+    ? TEXT_RESIZE_ANCHORS
+    : selectedShape.type === "rect" || selectedShape.type === "mosaic"
+    ? RESIZE_ANCHORS
+    : [];
 
   const handleMouseDown = (event: KonvaEventObject<MouseEvent>) => {
     if (textInput !== null) {
@@ -420,6 +430,7 @@ export function CanvasArea(props: CanvasAreaProps) {
                 ref={transformerRef}
                 rotateEnabled={false}
                 flipEnabled={false}
+                keepRatio={selectedShape?.type === "text"}
                 enabledAnchors={enabledAnchors as string[]}
                 boundBoxFunc={(oldBox, newBox) =>
                   newBox.width >= 8 && newBox.height >= 8 ? newBox : oldBox}

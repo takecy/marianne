@@ -15,6 +15,7 @@ import {
   ARROW_TAIL_HALF_WIDTH,
   SHAPE_STROKE_WIDTH,
   TEXT_FONT_SIZE,
+  TEXT_FONT_SIZE_MIN,
   TEXT_FONT_STYLE,
   TEXT_SHADOW_BLUR,
   TEXT_SHADOW_COLOR,
@@ -117,6 +118,8 @@ export function SelectableShape(props: SelectableShapeProps) {
   if (shape.type === "text") {
     const topLeft = imageToScreen({ x: shape.x, y: shape.y }, fit, imageSize);
     const fontScale = Math.min(imgScaleX, imgScaleY);
+    const baseFontSize = shape.fontSize ?? TEXT_FONT_SIZE;
+    const fontSizeRatio = baseFontSize / TEXT_FONT_SIZE;
     return (
       <Text
         ref={(node) => {
@@ -129,18 +132,18 @@ export function SelectableShape(props: SelectableShapeProps) {
         x={topLeft.x}
         y={topLeft.y}
         text={shape.text}
-        fontSize={TEXT_FONT_SIZE * fontScale}
+        fontSize={baseFontSize * fontScale}
         fontStyle={TEXT_FONT_STYLE}
         fontFamily="sans-serif"
         fill={colorHex(shape.color)}
         stroke={textStrokeColorFor(shape.color)}
-        strokeWidth={TEXT_STROKE_WIDTH * fontScale}
+        strokeWidth={TEXT_STROKE_WIDTH * fontSizeRatio * fontScale}
         lineJoin="round"
         fillAfterStrokeEnabled
         shadowColor={TEXT_SHADOW_COLOR}
-        shadowBlur={TEXT_SHADOW_BLUR * fontScale}
-        shadowOffsetX={TEXT_SHADOW_OFFSET_X * fontScale}
-        shadowOffsetY={TEXT_SHADOW_OFFSET_Y * fontScale}
+        shadowBlur={TEXT_SHADOW_BLUR * fontSizeRatio * fontScale}
+        shadowOffsetX={TEXT_SHADOW_OFFSET_X * fontSizeRatio * fontScale}
+        shadowOffsetY={TEXT_SHADOW_OFFSET_Y * fontSizeRatio * fontScale}
         onDragEnd={(event: KonvaEventObject<DragEvent>) => {
           const imgPt = screenToImage(
             { x: event.target.x(), y: event.target.y() },
@@ -148,6 +151,31 @@ export function SelectableShape(props: SelectableShapeProps) {
             imageSize,
           );
           onUpdateText(shape.id, { x: imgPt.x, y: imgPt.y });
+        }}
+        onTransformEnd={(event: KonvaEventObject<Event>) => {
+          const node = event.target as Konva.Text;
+          // keepRatio: true so scaleX === scaleY.
+          const scale = node.scaleX();
+          const newFontSize = baseFontSize * scale;
+          if (newFontSize < TEXT_FONT_SIZE_MIN) {
+            // Below threshold: reset scale AND restore node x/y from shape
+            // values so Konva.Transformer's transient position write does
+            // not leak into the next render.
+            node.scaleX(1);
+            node.scaleY(1);
+            const shapeScreen = imageToScreen({ x: shape.x, y: shape.y }, fit, imageSize);
+            node.x(shapeScreen.x);
+            node.y(shapeScreen.y);
+            return;
+          }
+          const imgPt = screenToImage({ x: node.x(), y: node.y() }, fit, imageSize);
+          onUpdateText(shape.id, {
+            x: imgPt.x,
+            y: imgPt.y,
+            fontSize: newFontSize,
+          });
+          node.scaleX(1);
+          node.scaleY(1);
         }}
       />
     );
