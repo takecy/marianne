@@ -1,50 +1,52 @@
 # marianne
 
-Skitch風 画像注釈ローカルデスクトップアプリ（MVP）
+**English** | [日本語](./README_ja.md)
 
-完全オフラインで動作する、画像への注釈（アノテーション）に特化した軽量・高速なデスクトップアプリ。機密情報を含むスクリーンショットを安全に扱えるよう、外部サーバーへのアップロードは一切行わない。
+A Skitch-style local desktop app for image annotation (MVP).
 
-参照: [Issue #1](https://github.com/takecy/marianne/issues/1)
+A lightweight, fast desktop app focused on annotating images, designed to run fully offline. It never uploads to any external server, so screenshots that contain sensitive information stay on your machine.
 
-## 技術スタック
+Reference: [Issue #1](https://github.com/takecy/marianne/issues/1)
 
-- **デスクトップフレームワーク:** [Tauri v2](https://v2.tauri.app/)（Rust ベース）
-- **フロントエンド:** React 19 + TypeScript + Vite
-- **描画エンジン:** [react-konva](https://konvajs.org/docs/react/)（Konva.js の React ラッパー）
-- **テスト:** Vitest + Testing Library
-- **Lint:** ESLint v10（flat config）
-- **フォーマット:** `deno fmt`
+## Tech stack
 
-## 前提
+- **Desktop framework:** [Tauri v2](https://v2.tauri.app/) (Rust-based)
+- **Frontend:** React 19 + TypeScript + Vite
+- **Drawing engine:** [react-konva](https://konvajs.org/docs/react/) (React wrapper for Konva.js)
+- **Testing:** Vitest + Testing Library
+- **Lint:** ESLint v10 (flat config)
+- **Formatter:** `deno fmt`
 
-開発前に以下のツールを用意してください。
+## Prerequisites
 
-| ツール         | 要件                                                           |
-| -------------- | -------------------------------------------------------------- |
-| Node.js        | ESLint v10 公式 engine 要件 `^20.19.0 \|\| ^22.13.0 \|\| >=24` |
-| Rust toolchain | `rustup` で stable をインストール                              |
-| Xcode CLT      | macOS バンドル生成用                                           |
-| pnpm           | 9 系以上                                                       |
-| deno           | フォーマッタとして使用                                         |
-| gh CLI         | PR 作成                                                        |
+Install the following before development:
 
-## セットアップ
+| Tool           | Requirement                                                       |
+| -------------- | ----------------------------------------------------------------- |
+| Node.js        | ESLint v10 engine requirement: `^20.19.0 \|\| ^22.13.0 \|\| >=24` |
+| Rust toolchain | Install stable via `rustup`                                       |
+| Xcode CLT      | Required for producing macOS bundles                              |
+| pnpm           | 9 or later                                                        |
+| deno           | Used as the formatter                                             |
+| gh CLI         | For opening pull requests                                         |
+
+## Setup
 
 ```sh
 pnpm install
 ```
 
-## 開発
+## Development
 
 ```sh
-# Tauri デスクトップアプリを起動（HMR 付き）
+# Launch the Tauri desktop app with HMR
 pnpm tauri dev
 
-# Vite フロントエンドのみ起動（ブラウザで動作確認）
+# Launch only the Vite frontend (for in-browser checks)
 pnpm dev
 ```
 
-## 検証コマンド
+## Verification commands
 
 ```sh
 pnpm typecheck      # tsc --noEmit
@@ -55,12 +57,12 @@ pnpm test           # Vitest (watch)
 pnpm test:run       # Vitest (single run)
 ```
 
-## ビルド
+## Build
 
 ```sh
-pnpm tauri build    # macOS バンドルを src-tauri/target/release/bundle に出力
+pnpm tauri build    # Emits the macOS bundle under src-tauri/target/release/bundle
 ```
 
-## ライセンス
+## License
 
 [MIT](./LICENSE)
