@@ -57,4 +57,27 @@ describe("Toolbar", () => {
     await user.click(screen.getByRole("button", { name: "テキスト" }));
     expect(onToolChange).toHaveBeenCalledWith("text");
   });
+
+  it("disables all buttons and suppresses callbacks when disabled is true", async () => {
+    const user = userEvent.setup();
+    const onToolChange = vi.fn();
+    const onColorChange = vi.fn();
+    render(
+      <Toolbar
+        activeTool="arrow"
+        onToolChange={onToolChange}
+        activeColor="red"
+        onColorChange={onColorChange}
+        disabled
+      />,
+    );
+
+    expect(screen.getByRole("button", { name: "矢印" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "red" })).toBeDisabled();
+
+    await user.click(screen.getByRole("button", { name: "テキスト" }));
+    expect(onToolChange).not.toHaveBeenCalled();
+    await user.click(screen.getByRole("button", { name: "blue" }));
+    expect(onColorChange).not.toHaveBeenCalled();
+  });
 });

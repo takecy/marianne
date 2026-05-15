@@ -14,10 +14,11 @@ interface ToolbarProps {
   onToolChange: (next: ToolKind) => void;
   activeColor: ColorPresetName;
   onColorChange: (next: ColorPresetName) => void;
+  disabled?: boolean;
 }
 
 export function Toolbar(props: ToolbarProps) {
-  const { activeTool, onToolChange, activeColor, onColorChange } = props;
+  const { activeTool, onToolChange, activeColor, onColorChange, disabled = false } = props;
 
   return (
     <header className={styles.toolbar} aria-label="ツールバー">
@@ -30,6 +31,7 @@ export function Toolbar(props: ToolbarProps) {
               ? `${styles.toolButton} ${styles.toolButtonActive}`
               : styles.toolButton}
             aria-pressed={tool === activeTool}
+            disabled={disabled}
             onClick={() => onToolChange(tool)}
           >
             {TOOL_LABELS[tool]}
@@ -47,6 +49,7 @@ export function Toolbar(props: ToolbarProps) {
             aria-pressed={preset.name === activeColor}
             aria-label={preset.name}
             style={{ backgroundColor: preset.hex }}
+            disabled={disabled}
             onClick={() => onColorChange(preset.name)}
           />
         ))}
