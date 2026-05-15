@@ -6,7 +6,7 @@ import { imageToScreen, imageToScreenScale, screenToImage } from "@/lib/imageFit
 import type { FitRect, Size as FitSize } from "@/lib/imageFit";
 import type { LoadedImage } from "@/types/image";
 import type { ArrowShape, MosaicShape, RectShape, Shape, TextShape } from "@/types/shape";
-import { colorHex } from "@/types/tool";
+import { colorHex, textStrokeColorFor } from "@/types/tool";
 import {
   ARROW_HEAD_HALF_WIDTH,
   ARROW_HEAD_LENGTH,
@@ -20,7 +20,6 @@ import {
   TEXT_SHADOW_COLOR,
   TEXT_SHADOW_OFFSET_X,
   TEXT_SHADOW_OFFSET_Y,
-  TEXT_STROKE_COLOR,
   TEXT_STROKE_WIDTH,
 } from "@/constants/shape";
 import { computeArrowPolygon } from "@/lib/arrowGeometry";
@@ -134,7 +133,7 @@ export function SelectableShape(props: SelectableShapeProps) {
         fontStyle={TEXT_FONT_STYLE}
         fontFamily="sans-serif"
         fill={colorHex(shape.color)}
-        stroke={TEXT_STROKE_COLOR}
+        stroke={textStrokeColorFor(shape.color)}
         strokeWidth={TEXT_STROKE_WIDTH * fontScale}
         lineJoin="round"
         fillAfterStrokeEnabled

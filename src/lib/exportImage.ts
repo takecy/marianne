@@ -13,13 +13,12 @@ import {
   TEXT_SHADOW_COLOR,
   TEXT_SHADOW_OFFSET_X,
   TEXT_SHADOW_OFFSET_Y,
-  TEXT_STROKE_COLOR,
   TEXT_STROKE_WIDTH,
 } from "@/constants/shape";
 import { computeArrowPolygon } from "@/lib/arrowGeometry";
 import type { LoadedImage } from "@/types/image";
 import type { Shape } from "@/types/shape";
-import { colorHex } from "@/types/tool";
+import { colorHex, textStrokeColorFor } from "@/types/tool";
 
 const MOSAIC_EXPORT_FLAG = "isMosaicExport";
 
@@ -45,7 +44,7 @@ function buildShapeNode(shape: Shape, image: LoadedImage): Konva.Shape {
       fontStyle: TEXT_FONT_STYLE,
       fontFamily: "sans-serif",
       fill: colorHex(shape.color),
-      stroke: TEXT_STROKE_COLOR,
+      stroke: textStrokeColorFor(shape.color),
       strokeWidth: TEXT_STROKE_WIDTH,
       lineJoin: "round",
       fillAfterStrokeEnabled: true,

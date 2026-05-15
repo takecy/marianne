@@ -31,14 +31,20 @@ export const ARROW_HEAD_LENGTH = 80;
 export const TEXT_FONT_SIZE = 72;
 
 // Default font style for text shapes. Konva accepts the same keywords as CSS
-// font-style/weight; the input overlay maps this to CSS font-weight.
-export const TEXT_FONT_STYLE = "bold";
+// font-style/weight (including numeric weights like "900"); the input overlay
+// maps this to CSS font-weight.
+export const TEXT_FONT_STYLE = "900";
 
-// Black outline around text glyphs to make them readable on any background.
+// Outline around text glyphs to make them readable on any background.
 // Skitch-style. Width is in image-natural pixels; on-canvas rendering scales
 // by the image-to-screen ratio just like fontSize.
+//
+// Two outline colors are exposed — dark text colors (red / blue / black) read
+// better with a white outline, while light text colors use the black outline.
+// The mapping lives in `textStrokeColorFor` (src/types/tool.ts).
 export const TEXT_STROKE_WIDTH = 14;
-export const TEXT_STROKE_COLOR = "rgba(0, 0, 0, 0.75)";
+export const TEXT_STROKE_COLOR_BLACK = "rgba(0, 0, 0, 0.75)";
+export const TEXT_STROKE_COLOR_WHITE = "rgba(255, 255, 255, 0.85)";
 
 // Drop shadow under text glyphs. Larger than the arrow shape's shadow because
 // outlined text needs a more pronounced drop shadow to read as "Skitch-style".
