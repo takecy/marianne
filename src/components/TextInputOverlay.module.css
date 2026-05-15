@@ -6,7 +6,9 @@
   border: 1px dashed #94a3b8;
   border-radius: 0.25rem;
   font-family: sans-serif;
-  font-size: 24px;
+  font-size: 72px;
+  font-weight: 900;
+  text-shadow: 5px 5px 10px rgba(0, 0, 0, 0.45);
   line-height: 1.2;
   resize: none;
   outline: none;

@@ -1,8 +1,24 @@
 import Konva from "konva";
 import { MOSAIC_NATURAL_PIXEL_SIZE } from "@/components/MosaicNode";
+import {
+  ARROW_HEAD_HALF_WIDTH,
+  ARROW_HEAD_LENGTH,
+  ARROW_NECK_HALF_WIDTH,
+  ARROW_NECK_LENGTH,
+  ARROW_TAIL_HALF_WIDTH,
+  SHAPE_STROKE_WIDTH,
+  TEXT_FONT_SIZE,
+  TEXT_FONT_STYLE,
+  TEXT_SHADOW_BLUR,
+  TEXT_SHADOW_COLOR,
+  TEXT_SHADOW_OFFSET_X,
+  TEXT_SHADOW_OFFSET_Y,
+  TEXT_STROKE_WIDTH,
+} from "@/constants/shape";
+import { computeArrowPolygon } from "@/lib/arrowGeometry";
 import type { LoadedImage } from "@/types/image";
 import type { Shape } from "@/types/shape";
-import { colorHex } from "@/types/tool";
+import { colorHex, textStrokeColorFor } from "@/types/tool";
 
 const MOSAIC_EXPORT_FLAG = "isMosaicExport";
 
@@ -14,7 +30,8 @@ function buildShapeNode(shape: Shape, image: LoadedImage): Konva.Shape {
       width: shape.width,
       height: shape.height,
       stroke: colorHex(shape.color),
-      strokeWidth: 4,
+      strokeWidth: SHAPE_STROKE_WIDTH,
+      lineJoin: "round",
       listening: false,
     });
   }
@@ -23,20 +40,37 @@ function buildShapeNode(shape: Shape, image: LoadedImage): Konva.Shape {
       x: shape.x,
       y: shape.y,
       text: shape.text,
-      fontSize: 24,
+      fontSize: TEXT_FONT_SIZE,
+      fontStyle: TEXT_FONT_STYLE,
       fontFamily: "sans-serif",
       fill: colorHex(shape.color),
+      stroke: textStrokeColorFor(shape.color),
+      strokeWidth: TEXT_STROKE_WIDTH,
+      lineJoin: "round",
+      fillAfterStrokeEnabled: true,
+      shadowColor: TEXT_SHADOW_COLOR,
+      shadowBlur: TEXT_SHADOW_BLUR,
+      shadowOffsetX: TEXT_SHADOW_OFFSET_X,
+      shadowOffsetY: TEXT_SHADOW_OFFSET_Y,
       listening: false,
     });
   }
   if (shape.type === "arrow") {
-    return new Konva.Arrow({
-      points: [shape.fromX, shape.fromY, shape.toX, shape.toY],
-      stroke: colorHex(shape.color),
-      strokeWidth: 4,
+    const polygon = computeArrowPolygon(
+      { x: shape.fromX, y: shape.fromY },
+      { x: shape.toX, y: shape.toY },
+      {
+        tailHalfWidth: ARROW_TAIL_HALF_WIDTH,
+        neckHalfWidth: ARROW_NECK_HALF_WIDTH,
+        headHalfWidth: ARROW_HEAD_HALF_WIDTH,
+        neckLength: ARROW_NECK_LENGTH,
+        headLength: ARROW_HEAD_LENGTH,
+      },
+    );
+    return new Konva.Line({
+      points: polygon,
+      closed: true,
       fill: colorHex(shape.color),
-      pointerLength: 14,
-      pointerWidth: 14,
       shadowBlur: 6,
       shadowColor: "rgba(0,0,0,0.45)",
       shadowOffsetX: 1,

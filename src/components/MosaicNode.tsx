@@ -5,7 +5,7 @@ import { Image as KonvaImage } from "react-konva";
 
 // Target pixel block size measured in image natural coordinates.
 // CanvasArea converts to cached-canvas (screen) units via imageToScreenScale.
-export const MOSAIC_NATURAL_PIXEL_SIZE = 16;
+export const MOSAIC_NATURAL_PIXEL_SIZE = 24;
 
 interface MosaicNodeProps {
   image: HTMLImageElement;

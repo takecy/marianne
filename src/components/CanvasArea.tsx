@@ -1,7 +1,7 @@
 import type Konva from "konva";
 import type { KonvaEventObject } from "konva/lib/Node";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Arrow, Image as KonvaImage, Layer, Rect, Stage, Transformer } from "react-konva";
+import { Image as KonvaImage, Layer, Line, Rect, Stage, Transformer } from "react-konva";
 import {
   clampToImage,
   fitContain,
@@ -22,6 +22,15 @@ import type {
 } from "@/types/shape";
 import type { ColorPresetName, ToolKind } from "@/types/tool";
 import { colorHex } from "@/types/tool";
+import {
+  ARROW_HEAD_HALF_WIDTH,
+  ARROW_HEAD_LENGTH,
+  ARROW_NECK_HALF_WIDTH,
+  ARROW_NECK_LENGTH,
+  ARROW_TAIL_HALF_WIDTH,
+  SHAPE_STROKE_WIDTH,
+} from "@/constants/shape";
+import { computeArrowPolygon } from "@/lib/arrowGeometry";
 import { SelectableShape } from "./SelectableShape";
 import { TextInputOverlay } from "./TextInputOverlay";
 import styles from "./CanvasArea.module.css";
@@ -82,7 +91,8 @@ function renderDraft(draft: DraftShape, fit: FitRect, imageSize: FitSize) {
         width={w * scaleX}
         height={h * scaleY}
         stroke={hex}
-        strokeWidth={4}
+        strokeWidth={SHAPE_STROKE_WIDTH}
+        lineJoin="round"
         listening={false}
         opacity={0.7}
       />
@@ -111,18 +121,23 @@ function renderDraft(draft: DraftShape, fit: FitRect, imageSize: FitSize) {
   const hex = colorHex(draft.color);
   const from = imageToScreen({ x: draft.fromX, y: draft.fromY }, fit, imageSize);
   const to = imageToScreen({ x: draft.toX, y: draft.toY }, fit, imageSize);
+  const arrowScale = Math.min(scaleX, scaleY);
+  const polygon = computeArrowPolygon(from, to, {
+    tailHalfWidth: ARROW_TAIL_HALF_WIDTH * arrowScale,
+    neckHalfWidth: ARROW_NECK_HALF_WIDTH * arrowScale,
+    headHalfWidth: ARROW_HEAD_HALF_WIDTH * arrowScale,
+    neckLength: ARROW_NECK_LENGTH * arrowScale,
+    headLength: ARROW_HEAD_LENGTH * arrowScale,
+  });
   return (
-    <Arrow
-      points={[from.x, from.y, to.x, to.y]}
-      stroke={hex}
-      strokeWidth={4}
+    <Line
+      points={polygon}
+      closed
       fill={hex}
-      pointerLength={14}
-      pointerWidth={14}
-      shadowBlur={6}
+      shadowBlur={6 * arrowScale}
       shadowColor="rgba(0,0,0,0.45)"
-      shadowOffsetX={1}
-      shadowOffsetY={2}
+      shadowOffsetX={1 * arrowScale}
+      shadowOffsetY={2 * arrowScale}
       listening={false}
       opacity={0.7}
     />

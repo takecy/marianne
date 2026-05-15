@@ -10,6 +10,7 @@ import {
 import { useImageLoader } from "./lib/useImageLoader";
 import { useCanvasStore } from "./store/canvasStore";
 import type { LoadedImage } from "./types/image";
+import type { Shape } from "./types/shape";
 import type { ColorPresetName, ToolKind } from "./types/tool";
 import styles from "./App.module.css";
 
@@ -40,6 +41,18 @@ function App() {
       setImage(loaded);
     },
     [clearShapes],
+  );
+
+  // After a shape is placed, return to the select tool so the user can
+  // immediately adjust position/size without an extra toolbar click.
+  // Text cancellation does NOT trigger this — it routes through onCancel
+  // in TextInputOverlay and never calls onShapeAdded.
+  const handleShapeAdded = useCallback(
+    (shape: Shape) => {
+      addShape(shape);
+      setActiveTool("select");
+    },
+    [addShape],
   );
 
   const handleImageError = useCallback((message: string) => {
@@ -97,7 +110,7 @@ function App() {
         activeTool={activeTool}
         activeColor={activeColor}
         selectedShapeId={selectedShapeId}
-        onShapeAdded={addShape}
+        onShapeAdded={handleShapeAdded}
         onSelectShape={selectShape}
         onDeleteShape={deleteShape}
         onUpdateRect={updateRect}
