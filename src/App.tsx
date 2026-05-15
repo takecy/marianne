@@ -8,12 +8,19 @@ import type { ColorPresetName, ToolKind } from "./types/tool";
 import styles from "./App.module.css";
 
 function App() {
-  const [activeTool, setActiveTool] = useState<ToolKind>("arrow");
+  const [activeTool, setActiveTool] = useState<ToolKind>("select");
   const [activeColor, setActiveColor] = useState<ColorPresetName>("red");
   const [image, setImage] = useState<LoadedImage | null>(null);
 
   const shapes = useCanvasStore((s) => s.shapes);
+  const selectedShapeId = useCanvasStore((s) => s.selectedShapeId);
   const addShape = useCanvasStore((s) => s.addShape);
+  const selectShape = useCanvasStore((s) => s.selectShape);
+  const deleteShape = useCanvasStore((s) => s.deleteShape);
+  const updateRect = useCanvasStore((s) => s.updateRect);
+  const updateText = useCanvasStore((s) => s.updateText);
+  const updateArrow = useCanvasStore((s) => s.updateArrow);
+  const updateMosaic = useCanvasStore((s) => s.updateMosaic);
   const clearShapes = useCanvasStore((s) => s.clearShapes);
 
   const handleImageLoaded = useCallback(
@@ -49,7 +56,14 @@ function App() {
         shapes={shapes}
         activeTool={activeTool}
         activeColor={activeColor}
+        selectedShapeId={selectedShapeId}
         onShapeAdded={addShape}
+        onSelectShape={selectShape}
+        onDeleteShape={deleteShape}
+        onUpdateRect={updateRect}
+        onUpdateText={updateText}
+        onUpdateArrow={updateArrow}
+        onUpdateMosaic={updateMosaic}
       />
     </div>
   );

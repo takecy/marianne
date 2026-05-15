@@ -3,16 +3,17 @@ import userEvent from "@testing-library/user-event";
 import { Toolbar } from "./Toolbar";
 
 describe("Toolbar", () => {
-  it("renders all 4 tool buttons and 7 color presets", () => {
+  it("renders all 5 tool buttons and 7 color presets", () => {
     render(
       <Toolbar
-        activeTool="arrow"
+        activeTool="select"
         onToolChange={vi.fn()}
         activeColor="red"
         onColorChange={vi.fn()}
       />,
     );
 
+    expect(screen.getByRole("button", { name: "選択" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "矢印" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "四角" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "テキスト" })).toBeInTheDocument();

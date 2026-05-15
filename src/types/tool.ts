@@ -1,4 +1,4 @@
-export const TOOL_KINDS = ["arrow", "rect", "text", "mosaic"] as const;
+export const TOOL_KINDS = ["select", "arrow", "rect", "text", "mosaic"] as const;
 export type ToolKind = (typeof TOOL_KINDS)[number];
 
 export const COLOR_PRESETS = [
