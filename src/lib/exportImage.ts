@@ -32,6 +32,7 @@ function buildShapeNode(shape: Shape, image: LoadedImage): Konva.Shape {
       height: shape.height,
       stroke: colorHex(shape.color),
       strokeWidth: SHAPE_STROKE_WIDTH,
+      lineJoin: "round",
       listening: false,
     });
   }

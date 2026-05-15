@@ -92,6 +92,7 @@ function renderDraft(draft: DraftShape, fit: FitRect, imageSize: FitSize) {
         height={h * scaleY}
         stroke={hex}
         strokeWidth={SHAPE_STROKE_WIDTH}
+        lineJoin="round"
         listening={false}
         opacity={0.7}
       />

@@ -86,6 +86,7 @@ export function SelectableShape(props: SelectableShapeProps) {
         height={shape.height * imgScaleY}
         stroke={colorHex(shape.color)}
         strokeWidth={SHAPE_STROKE_WIDTH}
+        lineJoin="round"
         onDragEnd={(event: KonvaEventObject<DragEvent>) => {
           const node = event.target;
           const imgPt = screenToImage({ x: node.x(), y: node.y() }, fit, imageSize);
