@@ -45,6 +45,8 @@ interface CanvasAreaProps {
   onUpdateText: (id: string, patch: TextPatch) => void;
   onUpdateArrow: (id: string, patch: ArrowPatch) => void;
   onUpdateMosaic: (id: string, patch: MosaicPatch) => void;
+  onUndo: () => void;
+  onRedo: () => void;
 }
 
 const RESIZE_ANCHORS: readonly string[] = [
@@ -142,6 +144,8 @@ export function CanvasArea(props: CanvasAreaProps) {
     onUpdateText,
     onUpdateArrow,
     onUpdateMosaic,
+    onUndo,
+    onRedo,
   } = props;
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [size, setSize] = useState({ width: 0, height: 0 });
@@ -208,12 +212,37 @@ export function CanvasArea(props: CanvasAreaProps) {
     transformer.getLayer()?.batchDraw();
   }, [isSelectMode, selectedShapeId, shapes]);
 
-  // Delete / Backspace key removes the selected shape (select mode only).
+  // Keyboard shortcuts:
+  // - Cmd/Ctrl + Z         => undo
+  // - Cmd/Ctrl + Shift + Z => redo
+  // - Delete / Backspace   => remove selected shape (select-mode only)
+  // We bail out when text input is active or when focus is in an editable field
+  // so the browser's native textarea undo (and key bindings) keeps working.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (textInput !== null) {
         return;
       }
+      const target = e.target as HTMLElement | null;
+      if (
+        target &&
+        (target.tagName === "INPUT" ||
+          target.tagName === "TEXTAREA" ||
+          target.isContentEditable)
+      ) {
+        return;
+      }
+
+      if ((e.metaKey || e.ctrlKey) && (e.key === "z" || e.key === "Z")) {
+        e.preventDefault();
+        if (e.shiftKey) {
+          onRedo();
+        } else {
+          onUndo();
+        }
+        return;
+      }
+
       if (!isSelectMode) {
         return;
       }
@@ -227,7 +256,7 @@ export function CanvasArea(props: CanvasAreaProps) {
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [isSelectMode, selectedShapeId, textInput, onDeleteShape]);
+  }, [isSelectMode, selectedShapeId, textInput, onDeleteShape, onUndo, onRedo]);
 
   const imageSize: FitSize | null = image
     ? { width: image.naturalWidth, height: image.naturalHeight }

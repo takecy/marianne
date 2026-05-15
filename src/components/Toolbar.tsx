@@ -18,6 +18,10 @@ interface ToolbarProps {
   disabled?: boolean;
   onExportToFile?: () => void;
   onExportToClipboard?: () => void;
+  onUndo?: () => void;
+  onRedo?: () => void;
+  canUndo?: boolean;
+  canRedo?: boolean;
 }
 
 export function Toolbar(props: ToolbarProps) {
@@ -29,6 +33,10 @@ export function Toolbar(props: ToolbarProps) {
     disabled = false,
     onExportToFile,
     onExportToClipboard,
+    onUndo,
+    onRedo,
+    canUndo = false,
+    canRedo = false,
   } = props;
 
   return (
@@ -64,6 +72,26 @@ export function Toolbar(props: ToolbarProps) {
             onClick={() => onColorChange(preset.name)}
           />
         ))}
+      </div>
+      <div className={styles.historyGroup} role="group" aria-label="履歴">
+        <button
+          type="button"
+          className={styles.historyButton}
+          disabled={disabled || !canUndo}
+          onClick={onUndo}
+          aria-label="戻る"
+        >
+          戻る
+        </button>
+        <button
+          type="button"
+          className={styles.historyButton}
+          disabled={disabled || !canRedo}
+          onClick={onRedo}
+          aria-label="進む"
+        >
+          進む
+        </button>
       </div>
       <div className={styles.spacer} aria-hidden />
       <div className={styles.exportGroup} role="group" aria-label="書き出し">
