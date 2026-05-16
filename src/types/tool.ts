@@ -5,7 +5,7 @@ export type ToolKind = (typeof TOOL_KINDS)[number];
 
 export const TOOL_SHORTCUTS: Record<ToolKind, string> = {
   select: "v",
-  arrow: "l",
+  arrow: "a",
   rect: "r",
   text: "t",
   mosaic: "m",
