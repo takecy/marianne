@@ -13,11 +13,11 @@ describe("Toolbar", () => {
       />,
     );
 
-    expect(screen.getByRole("button", { name: "選択" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "矢印" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "四角" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "テキスト" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "モザイク" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /^選択/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /^矢印/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /^四角/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /^テキスト/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /^モザイク/ })).toBeInTheDocument();
 
     const colorGroup = screen.getByRole("group", { name: "色" });
     expect(colorGroup.querySelectorAll("button")).toHaveLength(8);
@@ -33,11 +33,11 @@ describe("Toolbar", () => {
       />,
     );
 
-    expect(screen.getByRole("button", { name: "四角" })).toHaveAttribute(
+    expect(screen.getByRole("button", { name: /^四角/ })).toHaveAttribute(
       "aria-pressed",
       "true",
     );
-    expect(screen.getByRole("button", { name: "矢印" })).toHaveAttribute(
+    expect(screen.getByRole("button", { name: /^矢印/ })).toHaveAttribute(
       "aria-pressed",
       "false",
     );
@@ -55,7 +55,7 @@ describe("Toolbar", () => {
       />,
     );
 
-    await user.click(screen.getByRole("button", { name: "テキスト" }));
+    await user.click(screen.getByRole("button", { name: /^テキスト/ }));
     expect(onToolChange).toHaveBeenCalledWith("text");
   });
 
@@ -77,12 +77,12 @@ describe("Toolbar", () => {
       />,
     );
 
-    expect(screen.getByRole("button", { name: "矢印" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: /^矢印/ })).toBeDisabled();
     expect(screen.getByRole("button", { name: "red" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "保存" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "コピー" })).toBeDisabled();
 
-    await user.click(screen.getByRole("button", { name: "テキスト" }));
+    await user.click(screen.getByRole("button", { name: /^テキスト/ }));
     expect(onToolChange).not.toHaveBeenCalled();
     await user.click(screen.getByRole("button", { name: "blue" }));
     expect(onColorChange).not.toHaveBeenCalled();

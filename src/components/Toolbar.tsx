@@ -1,5 +1,5 @@
 import type { ColorPresetName, ToolKind } from "@/types/tool";
-import { COLOR_PRESETS, TOOL_KINDS } from "@/types/tool";
+import { COLOR_PRESETS, TOOL_KINDS, TOOL_SHORTCUTS } from "@/types/tool";
 import styles from "./Toolbar.module.css";
 
 const TOOL_LABELS: Record<ToolKind, string> = {
@@ -50,10 +50,11 @@ export function Toolbar(props: ToolbarProps) {
               ? `${styles.toolButton} ${styles.toolButtonActive}`
               : styles.toolButton}
             aria-pressed={tool === activeTool}
+            aria-keyshortcuts={TOOL_SHORTCUTS[tool]}
             disabled={disabled}
             onClick={() => onToolChange(tool)}
           >
-            {TOOL_LABELS[tool]}
+            {TOOL_LABELS[tool]} ({TOOL_SHORTCUTS[tool]})
           </button>
         ))}
       </div>

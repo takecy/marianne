@@ -1,5 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import { beforeAll, vi } from "vitest";
+import type { LoadedImage } from "@/types/image";
 import type { Shape } from "@/types/shape";
 import { CanvasArea } from "./CanvasArea";
 
@@ -61,6 +62,7 @@ function renderCanvas(
   overrides: Partial<Parameters<typeof CanvasArea>[0]> = {},
 ) {
   const handlers = {
+    onToolChange: vi.fn(),
     onShapeAdded: vi.fn(),
     onSelectShape: vi.fn(),
     onDeleteShape: vi.fn(),
@@ -86,6 +88,15 @@ function renderCanvas(
     />,
   );
   return handlers;
+}
+
+function makeLoadedImage(): LoadedImage {
+  return {
+    element: new Image(),
+    naturalWidth: 100,
+    naturalHeight: 100,
+    source: "paste",
+  };
 }
 
 describe("CanvasArea keyboard shortcuts", () => {
@@ -141,5 +152,47 @@ describe("CanvasArea keyboard shortcuts", () => {
   it("renders the empty-state hint when no image is loaded", () => {
     renderCanvas();
     expect(screen.getByText("画像を読み込み")).toBeInTheDocument();
+  });
+});
+
+describe("CanvasArea tool shortcuts", () => {
+  it("switches to the text tool when 't' is pressed", () => {
+    const { onToolChange } = renderCanvas({ image: makeLoadedImage() });
+    window.dispatchEvent(new KeyboardEvent("keydown", { key: "t" }));
+    expect(onToolChange).toHaveBeenCalledWith("text");
+  });
+
+  it("switches to the select tool when 'v' is pressed", () => {
+    const { onToolChange } = renderCanvas({
+      image: makeLoadedImage(),
+      activeTool: "rect",
+    });
+    window.dispatchEvent(new KeyboardEvent("keydown", { key: "v" }));
+    expect(onToolChange).toHaveBeenCalledWith("select");
+  });
+
+  it("ignores tool shortcuts when a modifier key is held (Cmd+t stays free)", () => {
+    const { onToolChange } = renderCanvas({ image: makeLoadedImage() });
+    window.dispatchEvent(new KeyboardEvent("keydown", { key: "t", metaKey: true }));
+    window.dispatchEvent(new KeyboardEvent("keydown", { key: "t", ctrlKey: true }));
+    window.dispatchEvent(new KeyboardEvent("keydown", { key: "t", altKey: true }));
+    window.dispatchEvent(new KeyboardEvent("keydown", { key: "t", shiftKey: true }));
+    expect(onToolChange).not.toHaveBeenCalled();
+  });
+
+  it("does not switch tools while focus is in a textarea (native typing wins)", () => {
+    const { onToolChange } = renderCanvas({ image: makeLoadedImage() });
+    const textarea = document.createElement("textarea");
+    document.body.appendChild(textarea);
+    textarea.focus();
+    textarea.dispatchEvent(new KeyboardEvent("keydown", { key: "t", bubbles: true }));
+    textarea.remove();
+    expect(onToolChange).not.toHaveBeenCalled();
+  });
+
+  it("ignores tool shortcuts when no image is loaded (mirrors Toolbar's disabled state)", () => {
+    const { onToolChange } = renderCanvas({ image: null });
+    window.dispatchEvent(new KeyboardEvent("keydown", { key: "t" }));
+    expect(onToolChange).not.toHaveBeenCalled();
   });
 });

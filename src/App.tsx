@@ -133,6 +133,7 @@ function App() {
         activeTool={activeTool}
         activeColor={activeColor}
         selectedShapeId={selectedShapeId}
+        onToolChange={setActiveTool}
         onShapeAdded={handleShapeAdded}
         onSelectShape={selectShape}
         onDeleteShape={deleteShape}
