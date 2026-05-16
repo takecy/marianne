@@ -22,6 +22,14 @@ describe("fitContain", () => {
     expect(rect).toEqual({ x: 0, y: 0, width: 400, height: 200 });
   });
 
+  it("does not upscale a small image inside a larger container (1:1 with centering)", () => {
+    const rect = fitContain({ width: 400, height: 300 }, { width: 800, height: 600 });
+    expect(rect.width).toBe(400);
+    expect(rect.height).toBe(300);
+    expect(rect.x).toBe(200);
+    expect(rect.y).toBe(150);
+  });
+
   it("returns a zero rect when image or container has zero/negative size", () => {
     expect(fitContain({ width: 0, height: 100 }, { width: 100, height: 100 })).toEqual({
       x: 0,

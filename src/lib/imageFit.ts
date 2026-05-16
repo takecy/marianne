@@ -19,7 +19,11 @@ export function fitContain(image: Size, container: Size): FitRect {
   if (image.width <= 0 || image.height <= 0 || container.width <= 0 || container.height <= 0) {
     return { x: 0, y: 0, width: 0, height: 0 };
   }
-  const ratio = Math.min(container.width / image.width, container.height / image.height);
+  // Cap the ratio at 1 so a container larger than the image leaves the image
+  // at its natural size (centered with padding) instead of upscaling. The
+  // window auto-resize feature relies on this so min-clamped small windows
+  // still show the image 1:1.
+  const ratio = Math.min(container.width / image.width, container.height / image.height, 1);
   const width = image.width * ratio;
   const height = image.height * ratio;
   const x = (container.width - width) / 2;

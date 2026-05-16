@@ -1,4 +1,6 @@
 .actionBar {
+  /* Occupied height = flex 44 + border 1 = 45.
+     Keep src/lib/windowResize.ts UI_CHROME.actionBarHeight in sync. */
   flex: 0 0 44px;
   display: flex;
   align-items: center;

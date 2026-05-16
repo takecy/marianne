@@ -1,4 +1,6 @@
 .sidebar {
+  /* Occupied width = flex 64 + padding 10*2 + border 1 = 85.
+     Keep src/lib/windowResize.ts UI_CHROME.sidebarWidth in sync. */
   flex: 0 0 64px;
   display: flex;
   flex-direction: column;
