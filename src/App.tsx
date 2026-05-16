@@ -28,11 +28,6 @@ function App() {
   );
   const [image, setImage] = useState<LoadedImage | null>(null);
 
-  const handleColorChange = useCallback((name: ColorPresetName) => {
-    setActiveColor(name);
-    saveLastSelectedColor(name);
-  }, []);
-
   const shapes = useCanvasStore((s) => s.shapes);
   const selectedShapeId = useCanvasStore((s) => s.selectedShapeId);
   const addShape = useCanvasStore((s) => s.addShape);
@@ -42,6 +37,7 @@ function App() {
   const updateText = useCanvasStore((s) => s.updateText);
   const updateArrow = useCanvasStore((s) => s.updateArrow);
   const updateMosaic = useCanvasStore((s) => s.updateMosaic);
+  const setSelectedShapeColor = useCanvasStore((s) => s.setSelectedShapeColor);
   const clearShapes = useCanvasStore((s) => s.clearShapes);
   const copyShape = useCanvasStore((s) => s.copyShape);
   const pasteShape = useCanvasStore((s) => s.pasteShape);
@@ -50,6 +46,15 @@ function App() {
   const redo = useCanvasStore((s) => s.redo);
   const canUndo = useCanvasStore((s) => s.past.length > 0);
   const canRedo = useCanvasStore((s) => s.future.length > 0);
+
+  // When a shape is selected, repaint it with the chosen color before updating
+  // the active color used for new shapes. The store call is a no-op for mosaic,
+  // when no shape is selected, or when the color is unchanged.
+  const handleColorChange = useCallback((name: ColorPresetName) => {
+    setSelectedShapeColor(name);
+    setActiveColor(name);
+    saveLastSelectedColor(name);
+  }, [setSelectedShapeColor]);
 
   const handleImageLoaded = useCallback(
     (loaded: LoadedImage) => {

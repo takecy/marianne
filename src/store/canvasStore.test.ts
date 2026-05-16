@@ -241,6 +241,84 @@ describe("canvasStore", () => {
     expect(useCanvasStore.getState().past.length).toBe(pastLengthBefore);
   });
 
+  // --- setSelectedShapeColor ---
+
+  it("setSelectedShapeColor updates the color of a selected rect", () => {
+    useCanvasStore.getState().addShape(sampleRect("a"));
+    useCanvasStore.getState().selectShape("a");
+    useCanvasStore.getState().setSelectedShapeColor("blue");
+    const shape = useCanvasStore.getState().shapes[0];
+    if (shape?.type === "rect") {
+      expect(shape.color).toBe("blue");
+    } else {
+      throw new Error("expected shape to remain a rect");
+    }
+  });
+
+  it("setSelectedShapeColor updates the color of a selected text", () => {
+    useCanvasStore.getState().addShape(sampleText("t"));
+    useCanvasStore.getState().selectShape("t");
+    useCanvasStore.getState().setSelectedShapeColor("green");
+    const shape = useCanvasStore.getState().shapes[0];
+    if (shape?.type === "text") {
+      expect(shape.color).toBe("green");
+    } else {
+      throw new Error("expected shape to remain a text");
+    }
+  });
+
+  it("setSelectedShapeColor updates the color of a selected arrow", () => {
+    useCanvasStore.getState().addShape(sampleArrow("a"));
+    useCanvasStore.getState().selectShape("a");
+    useCanvasStore.getState().setSelectedShapeColor("yellow");
+    const shape = useCanvasStore.getState().shapes[0];
+    if (shape?.type === "arrow") {
+      expect(shape.color).toBe("yellow");
+    } else {
+      throw new Error("expected shape to remain an arrow");
+    }
+  });
+
+  it("setSelectedShapeColor is a silent no-op for a selected mosaic", () => {
+    useCanvasStore.getState().addShape(sampleMosaic("m"));
+    useCanvasStore.getState().selectShape("m");
+    const shapesBefore = useCanvasStore.getState().shapes;
+    const pastBefore = useCanvasStore.getState().past.length;
+    useCanvasStore.getState().setSelectedShapeColor("blue");
+    const state = useCanvasStore.getState();
+    expect(state.shapes).toBe(shapesBefore);
+    expect(state.past.length).toBe(pastBefore);
+  });
+
+  it("setSelectedShapeColor is a no-op when nothing is selected", () => {
+    useCanvasStore.getState().addShape(sampleRect("a"));
+    const shapesBefore = useCanvasStore.getState().shapes;
+    const pastBefore = useCanvasStore.getState().past.length;
+    useCanvasStore.getState().setSelectedShapeColor("blue");
+    const state = useCanvasStore.getState();
+    expect(state.shapes).toBe(shapesBefore);
+    expect(state.past.length).toBe(pastBefore);
+  });
+
+  it("setSelectedShapeColor is a no-op when re-applying the same color", () => {
+    useCanvasStore.getState().addShape(sampleRect("a"));
+    useCanvasStore.getState().selectShape("a");
+    const shapesBefore = useCanvasStore.getState().shapes;
+    const pastBefore = useCanvasStore.getState().past.length;
+    useCanvasStore.getState().setSelectedShapeColor("red");
+    const state = useCanvasStore.getState();
+    expect(state.shapes).toBe(shapesBefore);
+    expect(state.past.length).toBe(pastBefore);
+  });
+
+  it("setSelectedShapeColor pushes onto past when the color actually changes", () => {
+    useCanvasStore.getState().addShape(sampleRect("a"));
+    useCanvasStore.getState().selectShape("a");
+    const pastBefore = useCanvasStore.getState().past.length;
+    useCanvasStore.getState().setSelectedShapeColor("blue");
+    expect(useCanvasStore.getState().past.length).toBe(pastBefore + 1);
+  });
+
   it("undo clears the selectedShapeId for safety", () => {
     useCanvasStore.getState().addShape(sampleRect("a"));
     useCanvasStore.getState().selectShape("a");
