@@ -125,7 +125,7 @@ export function Toolbar(props: ToolbarProps) {
               aria-live="polite"
               title={updateErrorMessage}
             >
-              ⚠ {updateErrorMessage}
+              ⚠ Failed
             </span>
           )}
           <button

@@ -251,7 +251,8 @@ describe("Toolbar", () => {
     expect(screen.getByRole("button", { name: "更新を確認" })).not.toBeDisabled();
   });
 
-  it("renders updateErrorMessage inline next to the button", () => {
+  it("renders a short inline failure indicator with the full message in title", () => {
+    const full = "Could not fetch a valid release JSON from the remote";
     render(
       <Toolbar
         activeTool="select"
@@ -259,13 +260,16 @@ describe("Toolbar", () => {
         activeColor="red"
         onColorChange={vi.fn()}
         onCheckForUpdates={vi.fn()}
-        updateErrorMessage="Could not fetch a valid release JSON from the remote"
+        updateErrorMessage={full}
       />,
     );
-    // The message appears as a status element (role="status") near the button.
-    expect(screen.getByRole("status")).toHaveTextContent(
-      "Could not fetch a valid release JSON from the remote",
-    );
+    // Visible label is the compact "⚠ Failed" so toolbar width stays stable
+    // regardless of how long the underlying error is.
+    const status = screen.getByRole("status");
+    expect(status).toHaveTextContent("⚠ Failed");
+    expect(status).not.toHaveTextContent(full);
+    // Full text is preserved on hover via the title attribute.
+    expect(status).toHaveAttribute("title", full);
     // Button remains usable so the user can retry.
     expect(screen.getByRole("button", { name: "更新を確認" })).not.toBeDisabled();
   });
