@@ -75,13 +75,13 @@ pnpm build:dmg      # 配布用 dmg を src-tauri/target/release/bundle/dmg/ か
 ```sh
 # direnv (推奨): リポジトリ直下に .envrc を作成（.gitignore 済）
 export TAURI_SIGNING_PRIVATE_KEY="$(cat ~/.tauri/marianne.key)"
-export TAURI_SIGNING_PRIVATE_KEY_PASSWORD=""
+export TAURI_SIGNING_PRIVATE_KEY_PASSWORD="<1password-に保管した強いパスフレーズ>"
 ```
 
 ```sh
 # または直接シェルに export してから build を実行
 export TAURI_SIGNING_PRIVATE_KEY="$(cat ~/.tauri/marianne.key)"
-export TAURI_SIGNING_PRIVATE_KEY_PASSWORD=""
+export TAURI_SIGNING_PRIVATE_KEY_PASSWORD="<1password-に保管した強いパスフレーズ>"
 pnpm install:local
 ```
 
@@ -151,10 +151,10 @@ pnpm install:local
 
 リリースを動かす前に、リポジトリの Settings → Secrets で以下を登録する:
 
-| Name                                 | Value                                          |
-| ------------------------------------ | ---------------------------------------------- |
-| `TAURI_SIGNING_PRIVATE_KEY`          | `~/.tauri/marianne.key` の中身全文             |
-| `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` | 鍵生成時のパスフレーズ（空でも空文字列で登録） |
+| Name                                 | Value                                                            |
+| ------------------------------------ | ---------------------------------------------------------------- |
+| `TAURI_SIGNING_PRIVATE_KEY`          | `~/.tauri/marianne.key` の中身全文                               |
+| `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` | 鍵生成時のパスフレーズ（最低 32 文字以上のランダム文字列を推奨） |
 
 > 1 つのワークフロー内で完結する設計のため、`GITHUB_TOKEN` のクロスワークフロー起動制限を回避する PAT は不要。
 

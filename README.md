@@ -75,13 +75,13 @@ Supply it locally with one of:
 ```sh
 # direnv (recommended): create .envrc in the repo root (already gitignored)
 export TAURI_SIGNING_PRIVATE_KEY="$(cat ~/.tauri/marianne.key)"
-export TAURI_SIGNING_PRIVATE_KEY_PASSWORD=""
+export TAURI_SIGNING_PRIVATE_KEY_PASSWORD="<strong-passphrase-stored-in-1password>"
 ```
 
 ```sh
 # or export inline before running a build
 export TAURI_SIGNING_PRIVATE_KEY="$(cat ~/.tauri/marianne.key)"
-export TAURI_SIGNING_PRIVATE_KEY_PASSWORD=""
+export TAURI_SIGNING_PRIVATE_KEY_PASSWORD="<strong-passphrase-stored-in-1password>"
 pnpm install:local
 ```
 
@@ -151,10 +151,10 @@ Releases are fully automated by a single GitHub Actions workflow at `.github/wor
 
 Register these in Settings → Secrets before the workflow can complete:
 
-| Name                                 | Value                                                                       |
-| ------------------------------------ | --------------------------------------------------------------------------- |
-| `TAURI_SIGNING_PRIVATE_KEY`          | Full contents of `~/.tauri/marianne.key`                                    |
-| `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` | Passphrase used to generate the key (empty string is fine if no passphrase) |
+| Name                                 | Value                                                                          |
+| ------------------------------------ | ------------------------------------------------------------------------------ |
+| `TAURI_SIGNING_PRIVATE_KEY`          | Full contents of `~/.tauri/marianne.key`                                       |
+| `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` | Passphrase used to generate the key (use a strong 32+ character random string) |
 
 > The single-workflow design means everything runs within one workflow run, so the default `GITHUB_TOKEN` is enough — no PAT is needed to chain workflows.
 
