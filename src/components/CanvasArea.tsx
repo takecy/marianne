@@ -57,6 +57,7 @@ interface CanvasAreaProps {
   onUpdateMosaic: (id: string, patch: MosaicPatch) => void;
   onUndo: () => void;
   onRedo: () => void;
+  onExportToFile: () => void;
 }
 
 const RESIZE_ANCHORS: readonly string[] = [
@@ -191,6 +192,7 @@ export function CanvasArea(props: CanvasAreaProps) {
     onUpdateMosaic,
     onUndo,
     onRedo,
+    onExportToFile,
   } = props;
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [size, setSize] = useState({ width: 0, height: 0 });
@@ -262,6 +264,7 @@ export function CanvasArea(props: CanvasAreaProps) {
   }, [isSelectMode, selectedShapeId, shapes]);
 
   // Keyboard shortcuts:
+  // - Cmd/Ctrl + Shift + S => export to file (opens native save dialog)
   // - Cmd/Ctrl + Z         => undo
   // - Cmd/Ctrl + Shift + Z => redo
   // - Delete / Backspace   => remove selected shape (select-mode only)
@@ -279,6 +282,16 @@ export function CanvasArea(props: CanvasAreaProps) {
           target.tagName === "TEXTAREA" ||
           target.isContentEditable)
       ) {
+        return;
+      }
+
+      if (
+        (e.metaKey || e.ctrlKey) &&
+        e.shiftKey &&
+        (e.key === "s" || e.key === "S")
+      ) {
+        e.preventDefault();
+        onExportToFile();
         return;
       }
 
@@ -305,7 +318,15 @@ export function CanvasArea(props: CanvasAreaProps) {
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [isSelectMode, selectedShapeId, textInput, onDeleteShape, onUndo, onRedo]);
+  }, [
+    isSelectMode,
+    selectedShapeId,
+    textInput,
+    onDeleteShape,
+    onUndo,
+    onRedo,
+    onExportToFile,
+  ]);
 
   const imageSize: FitSize | null = image
     ? { width: image.naturalWidth, height: image.naturalHeight }

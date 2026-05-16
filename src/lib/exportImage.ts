@@ -1,4 +1,6 @@
 import Konva from "konva";
+import { save } from "@tauri-apps/plugin-dialog";
+import { writeFile } from "@tauri-apps/plugin-fs";
 import { MOSAIC_NATURAL_PIXEL_SIZE } from "@/components/MosaicNode";
 import {
   ARROW_HEAD_HALF_WIDTH,
@@ -161,16 +163,36 @@ export async function exportToBlob(image: LoadedImage, shapes: Shape[]): Promise
   }
 }
 
-export function downloadBlob(blob: Blob, filename: string): void {
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = filename;
-  a.style.display = "none";
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 0);
+// Builds the default file name shown in the native save dialog.
+// Prefers `<basename>_annotated.png` derived from the source file when the
+// image was loaded via Tauri drag-drop or the browser-fallback drop, and
+// falls back to the timestamped form for clipboard pastes without a name.
+export function defaultExportFileName(image: LoadedImage, now?: Date): string {
+  if (image.sourceFileName) {
+    const dot = image.sourceFileName.lastIndexOf(".");
+    const stem = dot > 0 ? image.sourceFileName.slice(0, dot) : image.sourceFileName;
+    return `${stem}_annotated.png`;
+  }
+  return generateExportFilename(now);
+}
+
+// Opens the Tauri native save dialog seeded with `defaultPath`, writes the
+// PNG bytes via tauri-plugin-fs, and returns the chosen path (or null if
+// the user cancelled the dialog).
+export async function saveBlobToFile(
+  blob: Blob,
+  defaultPath: string,
+): Promise<string | null> {
+  const target = await save({
+    defaultPath,
+    filters: [{ name: "PNG", extensions: ["png"] }],
+  });
+  if (!target) {
+    return null;
+  }
+  const bytes = new Uint8Array(await blob.arrayBuffer());
+  await writeFile(target, bytes);
+  return target;
 }
 
 export function copyImageToClipboard(blobPromise: Promise<Blob>): Promise<void> {

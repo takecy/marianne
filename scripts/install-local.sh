@@ -9,7 +9,7 @@ if [ "$(uname)" != "Darwin" ]; then
   exit 1
 fi
 
-APP_NAME="marianne.app"
+APP_NAME="Marianne.app"
 SRC="src-tauri/target/release/bundle/macos/${APP_NAME}"
 DEST="/Applications/${APP_NAME}"
 
