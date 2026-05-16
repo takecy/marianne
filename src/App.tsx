@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { dirname, join } from "@tauri-apps/api/path";
 import { ActionBar } from "./components/ActionBar";
 import { CanvasArea } from "./components/CanvasArea";
+import { ConfirmDialog } from "./components/ConfirmDialog";
 import { Sidebar, type UpdateButtonState } from "./components/Sidebar";
 import { UpdateModal } from "./components/UpdateModal";
 import {
@@ -17,6 +18,7 @@ import {
   saveLastSelectedColor,
 } from "./lib/settingsStorage";
 import { useImageLoader } from "./lib/useImageLoader";
+import { useQuitConfirm } from "./lib/useQuitConfirm";
 import { useUpdater } from "./lib/useUpdater";
 import { useCanvasStore } from "./store/canvasStore";
 import type { LoadedImage } from "./types/image";
@@ -133,6 +135,16 @@ function App() {
     dismiss: dismissUpdate,
   } = useUpdater({ autoCheckOnMount: true });
 
+  // Cmd+Q / tray "Quit Marianne" / Dock Quit confirmation. The hook
+  // listens for `quit-requested` from the Rust side and shows the dialog
+  // only when there are unsaved shapes; otherwise it confirms quit
+  // immediately so the user does not see a needless dialog flash.
+  const {
+    state: quitState,
+    confirmQuit,
+    cancelQuit,
+  } = useQuitConfirm({ hasUnsavedShapes: shapes.length > 0 });
+
   const handleExportToFile = useCallback(async () => {
     if (!image || isEditingText) {
       return;
@@ -233,6 +245,15 @@ function App() {
         hasUnsavedShapes={shapes.length > 0}
         onInstall={() => void installUpdate()}
         onDismiss={dismissUpdate}
+      />
+      <ConfirmDialog
+        open={quitState.kind === "confirming"}
+        title="未保存の注釈があります"
+        message="編集中の注釈は保存されません。本当に終了しますか?"
+        confirmLabel="終了する"
+        destructive
+        onConfirm={() => void confirmQuit()}
+        onCancel={cancelQuit}
       />
     </div>
   );
