@@ -22,11 +22,55 @@ permissions:
 jobs:
   tagging:
     runs-on: ubuntu-latest
-    timeout-minutes: 2
+    # Bumped from 2 to 10 minutes because the cargo-edit install + cargo
+    # set-version step can take a minute on a cold runner, and we also do
+    # a node-based JSON rewrite + commit + tag push in the same job.
+    timeout-minutes: 10
     steps:
-      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
+      # checkout with a PAT (NOT GITHUB_TOKEN). Tags pushed via the default
+      # GITHUB_TOKEN do not chain-trigger `on: push: tags` workflows by
+      # design[1], so release.yaml would never fire. PAT pushes bypass that
+      # restriction. The PAT needs `contents:write` on this repo.
+      # [1] https://docs.github.com/en/actions/security-guides/automatic-token-authentication#using-the-github_token-in-a-workflow
+      - name: Checkout
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
+        with:
+          token: ${{ secrets.PAT_FOR_TAG_PUSH }}
+          fetch-depth: 0
 
-      - name: Bump version and push tag
+      # Required before any `git commit` on a runner; otherwise commit
+      # fails with "Author identity unknown".
+      - name: Configure git identity
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      # `cargo set-version` (used by scripts/bump-version.sh) lives in the
+      # cargo-edit crate. install-action ships a prebuilt binary so this
+      # is a few-second download, not a from-source cargo install.
+      - name: Install cargo-edit
+        uses: taiki-e/install-action@v2  # TODO: pin to commit SHA before merge
+        with:
+          tool: cargo-edit
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4.3.0
+        with:
+          version: 9
+
+      - name: Setup Node.js
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
+        with:
+          node-version: '24'
+          cache: 'pnpm'
+
+      # dry_run: true. The action computes the next version but does NOT
+      # push a tag. We push the tag ourselves AFTER the version bump
+      # commit lands, so the tag points at a tree that already has the
+      # new version in package.json / tauri.conf.json / Cargo.toml.
+      # Without dry_run the tag would land on the pre-bump tree and the
+      # updater would compare against an outdated `latest.json`.
+      - name: Compute next version
         id: tag_version
         uses: mathieudutour/github-tag-action@a22cf08638b34d5badda920f9daf6e72c477b07b # v6.2
         with:
@@ -34,3 +78,28 @@ jobs:
           release_branches: ${{ inputs.release_branches }}
           tag_prefix: "v"
           default_bump: ${{ inputs.bump_version }}
+          dry_run: true
+
+      # Export to GITHUB_ENV so subsequent run-steps can use `$NEW_VERSION`
+      # in plain shell. Reading `${{ steps.tag_version.outputs.new_version }}`
+      # directly in a shell pipeline is brittle and was the source of an
+      # "empty version" bug in an earlier draft of this workflow.
+      - name: Export new version to env
+        run: echo "NEW_VERSION=${{ steps.tag_version.outputs.new_version }}" >> "$GITHUB_ENV"
+
+      - name: Bump version in all manifests
+        run: ./scripts/bump-version.sh "$NEW_VERSION"
+
+      - name: Commit and push bumped manifests
+        run: |
+          git add package.json src-tauri/tauri.conf.json src-tauri/Cargo.toml src-tauri/Cargo.lock
+          git commit -m "chore: bump version to v$NEW_VERSION"
+          git push
+
+      # Push the tag last, after the bump commit has landed. release.yaml
+      # is triggered by this tag push (because the checkout above used a
+      # PAT, not GITHUB_TOKEN).
+      - name: Push release tag
+        run: |
+          git tag "v$NEW_VERSION"
+          git push origin "v$NEW_VERSION"
