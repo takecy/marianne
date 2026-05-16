@@ -20,6 +20,7 @@ import {
 import { useImageLoader } from "./lib/useImageLoader";
 import { useQuitConfirm } from "./lib/useQuitConfirm";
 import { useUpdater } from "./lib/useUpdater";
+import { applyWindowSizeForImage } from "./lib/windowResize";
 import { useCanvasStore } from "./store/canvasStore";
 import type { LoadedImage } from "./types/image";
 import type { Shape } from "./types/shape";
@@ -60,6 +61,15 @@ function App() {
       }
     };
   }, []);
+
+  // Auto-resize the window to fit the loaded image 1:1 inside the canvas.
+  // Depending on `image` (object identity) — not just dimensions — ensures the
+  // window snaps back and re-centers even when the user reloads the same-sized
+  // image after manually resizing the window.
+  useEffect(() => {
+    if (!image) return;
+    void applyWindowSizeForImage(image.naturalWidth, image.naturalHeight);
+  }, [image]);
 
   const shapes = useCanvasStore((s) => s.shapes);
   const selectedShapeId = useCanvasStore((s) => s.selectedShapeId);
