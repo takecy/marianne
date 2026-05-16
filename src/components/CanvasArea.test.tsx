@@ -70,6 +70,9 @@ function renderCanvas(
     onUpdateText: vi.fn(),
     onUpdateArrow: vi.fn(),
     onUpdateMosaic: vi.fn(),
+    onCopyShape: vi.fn(),
+    onPasteShape: vi.fn(),
+    onAfterPaste: vi.fn(),
     onUndo: vi.fn(),
     onRedo: vi.fn(),
     onExportToFile: vi.fn(),
@@ -83,6 +86,7 @@ function renderCanvas(
       activeTool="select"
       activeColor="red"
       selectedShapeId={null}
+      hasClipboardShape={false}
       {...handlers}
       {...overrides}
     />,
@@ -194,5 +198,86 @@ describe("CanvasArea tool shortcuts", () => {
     const { onToolChange } = renderCanvas({ image: null });
     window.dispatchEvent(new KeyboardEvent("keydown", { key: "t" }));
     expect(onToolChange).not.toHaveBeenCalled();
+  });
+});
+
+describe("CanvasArea copy/paste shortcuts", () => {
+  it("invokes onCopyShape on Cmd+C when a shape is selected in select mode", () => {
+    const { onCopyShape } = renderCanvas({
+      image: makeLoadedImage(),
+      activeTool: "select",
+      selectedShapeId: "shape-1",
+    });
+    window.dispatchEvent(new KeyboardEvent("keydown", { key: "c", metaKey: true }));
+    expect(onCopyShape).toHaveBeenCalledWith("shape-1");
+  });
+
+  it("also accepts Ctrl+C for non-mac platforms", () => {
+    const { onCopyShape } = renderCanvas({
+      image: makeLoadedImage(),
+      activeTool: "select",
+      selectedShapeId: "shape-1",
+    });
+    window.dispatchEvent(new KeyboardEvent("keydown", { key: "c", ctrlKey: true }));
+    expect(onCopyShape).toHaveBeenCalledWith("shape-1");
+  });
+
+  it("does not copy when not in select mode (e.g. rect tool active)", () => {
+    const { onCopyShape } = renderCanvas({
+      image: makeLoadedImage(),
+      activeTool: "rect",
+      selectedShapeId: "shape-1",
+    });
+    window.dispatchEvent(new KeyboardEvent("keydown", { key: "c", metaKey: true }));
+    expect(onCopyShape).not.toHaveBeenCalled();
+  });
+
+  it("does not copy when nothing is selected", () => {
+    const { onCopyShape } = renderCanvas({
+      image: makeLoadedImage(),
+      activeTool: "select",
+      selectedShapeId: null,
+    });
+    window.dispatchEvent(new KeyboardEvent("keydown", { key: "c", metaKey: true }));
+    expect(onCopyShape).not.toHaveBeenCalled();
+  });
+
+  it("invokes onPasteShape and onAfterPaste on Cmd+V when clipboard has a shape", () => {
+    const { onPasteShape, onAfterPaste } = renderCanvas({
+      image: makeLoadedImage(),
+      hasClipboardShape: true,
+    });
+    window.dispatchEvent(new KeyboardEvent("keydown", { key: "v", metaKey: true }));
+    expect(onPasteShape).toHaveBeenCalledWith({ width: 100, height: 100 });
+    expect(onAfterPaste).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not paste when the clipboard is empty (lets useImageLoader handle it)", () => {
+    const { onPasteShape, onAfterPaste } = renderCanvas({
+      image: makeLoadedImage(),
+      hasClipboardShape: false,
+    });
+    window.dispatchEvent(new KeyboardEvent("keydown", { key: "v", metaKey: true }));
+    expect(onPasteShape).not.toHaveBeenCalled();
+    expect(onAfterPaste).not.toHaveBeenCalled();
+  });
+
+  it("does not paste when no image is loaded", () => {
+    const { onPasteShape } = renderCanvas({
+      image: null,
+      hasClipboardShape: true,
+    });
+    window.dispatchEvent(new KeyboardEvent("keydown", { key: "v", metaKey: true }));
+    expect(onPasteShape).not.toHaveBeenCalled();
+  });
+
+  it("paste works regardless of the active tool (not gated on select mode)", () => {
+    const { onPasteShape } = renderCanvas({
+      image: makeLoadedImage(),
+      activeTool: "rect",
+      hasClipboardShape: true,
+    });
+    window.dispatchEvent(new KeyboardEvent("keydown", { key: "v", metaKey: true }));
+    expect(onPasteShape).toHaveBeenCalledTimes(1);
   });
 });

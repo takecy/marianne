@@ -1,4 +1,6 @@
 import { create } from "zustand";
+import type { Size } from "@/lib/imageFit";
+import { cloneShapeForPaste } from "@/lib/shapeClipboard";
 import type { ArrowShape, MosaicShape, RectShape, Shape, TextShape } from "@/types/shape";
 
 const HISTORY_LIMIT = 50;
@@ -13,6 +15,7 @@ interface CanvasState {
   selectedShapeId: string | null;
   past: Shape[][];
   future: Shape[][];
+  clipboardShape: Shape | null;
   addShape: (shape: Shape) => void;
   updateRect: (id: string, patch: RectPatch) => void;
   updateText: (id: string, patch: TextPatch) => void;
@@ -21,6 +24,8 @@ interface CanvasState {
   deleteShape: (id: string) => void;
   selectShape: (id: string | null) => void;
   clearShapes: () => void;
+  copyShape: (id: string) => void;
+  pasteShape: (imageSize: Size) => void;
   undo: () => void;
   redo: () => void;
 }
@@ -66,6 +71,7 @@ export const useCanvasStore = create<CanvasState>((set) => ({
   selectedShapeId: null,
   past: [],
   future: [],
+  clipboardShape: null,
   addShape: (shape) => set((state) => withHistory(state, [...state.shapes, shape])),
   updateRect: (id, patch) =>
     set((state) => withHistory(state, patchByType(state.shapes, id, "rect", patch))),
@@ -85,6 +91,30 @@ export const useCanvasStore = create<CanvasState>((set) => ({
     }),
   selectShape: (id) => set({ selectedShapeId: id }),
   clearShapes: () => set({ shapes: [], selectedShapeId: null, past: [], future: [] }),
+  copyShape: (id) =>
+    set((state) => {
+      const shape = state.shapes.find((s) => s.id === id);
+      if (!shape) {
+        return state;
+      }
+      return { clipboardShape: shape };
+    }),
+  // Atomic paste: append the cloned shape, select it, and update
+  // clipboardShape to the new shape so the next paste staircases off
+  // the latest position (Figma-like behaviour).
+  pasteShape: (imageSize) =>
+    set((state) => {
+      if (state.clipboardShape === null) {
+        return state;
+      }
+      const cloned = cloneShapeForPaste(state.clipboardShape, imageSize);
+      const history = withHistory(state, [...state.shapes, cloned]);
+      return {
+        ...history,
+        selectedShapeId: cloned.id,
+        clipboardShape: cloned,
+      };
+    }),
   undo: () =>
     set((state) => {
       const previous = state.past[state.past.length - 1];

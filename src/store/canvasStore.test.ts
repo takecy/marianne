@@ -50,7 +50,13 @@ function sampleMosaic(id: string): MosaicShape {
 
 describe("canvasStore", () => {
   beforeEach(() => {
-    useCanvasStore.setState({ shapes: [], selectedShapeId: null, past: [], future: [] });
+    useCanvasStore.setState({
+      shapes: [],
+      selectedShapeId: null,
+      past: [],
+      future: [],
+      clipboardShape: null,
+    });
   });
 
   it("starts with an empty shapes array, no selection, and empty history", () => {
@@ -241,5 +247,81 @@ describe("canvasStore", () => {
     expect(useCanvasStore.getState().selectedShapeId).toBe("a");
     useCanvasStore.getState().undo();
     expect(useCanvasStore.getState().selectedShapeId).toBeNull();
+  });
+
+  // --- copy / paste ---
+
+  const IMAGE_SIZE = { width: 1000, height: 800 };
+
+  it("copyShape stores the matched shape into clipboardShape", () => {
+    useCanvasStore.getState().addShape(sampleRect("a"));
+    useCanvasStore.getState().copyShape("a");
+    const clipboard = useCanvasStore.getState().clipboardShape;
+    expect(clipboard?.id).toBe("a");
+    expect(clipboard?.type).toBe("rect");
+  });
+
+  it("copyShape on an unknown id is a no-op", () => {
+    useCanvasStore.getState().addShape(sampleRect("a"));
+    useCanvasStore.getState().copyShape("missing");
+    expect(useCanvasStore.getState().clipboardShape).toBeNull();
+  });
+
+  it("copyShape does not push to history", () => {
+    useCanvasStore.getState().addShape(sampleRect("a"));
+    const pastBefore = useCanvasStore.getState().past.length;
+    useCanvasStore.getState().copyShape("a");
+    expect(useCanvasStore.getState().past.length).toBe(pastBefore);
+  });
+
+  it("pasteShape with an empty clipboard is a no-op", () => {
+    useCanvasStore.getState().pasteShape(IMAGE_SIZE);
+    const state = useCanvasStore.getState();
+    expect(state.shapes).toEqual([]);
+    expect(state.selectedShapeId).toBeNull();
+  });
+
+  it("pasteShape appends a cloned shape with a new id and selects it", () => {
+    useCanvasStore.getState().addShape(sampleRect("a"));
+    useCanvasStore.getState().copyShape("a");
+    useCanvasStore.getState().pasteShape(IMAGE_SIZE);
+    const state = useCanvasStore.getState();
+    expect(state.shapes.length).toBe(2);
+    const pasted = state.shapes[1];
+    expect(pasted?.id).not.toBe("a");
+    expect(state.selectedShapeId).toBe(pasted?.id);
+  });
+
+  it("pasteShape pushes the prior shapes onto past for undo", () => {
+    useCanvasStore.getState().addShape(sampleRect("a"));
+    useCanvasStore.getState().copyShape("a");
+    const pastBefore = useCanvasStore.getState().past.length;
+    useCanvasStore.getState().pasteShape(IMAGE_SIZE);
+    expect(useCanvasStore.getState().past.length).toBe(pastBefore + 1);
+  });
+
+  it("pasteShape updates clipboardShape to the freshly pasted shape (staircase)", () => {
+    useCanvasStore.getState().addShape(sampleRect("a"));
+    useCanvasStore.getState().copyShape("a");
+    useCanvasStore.getState().pasteShape(IMAGE_SIZE);
+    const firstPasted = useCanvasStore.getState().clipboardShape;
+    useCanvasStore.getState().pasteShape(IMAGE_SIZE);
+    const secondPasted = useCanvasStore.getState().clipboardShape;
+    if (firstPasted?.type !== "rect" || secondPasted?.type !== "rect") {
+      throw new Error("expected rect clipboard entries");
+    }
+    expect(secondPasted.x).toBeGreaterThan(firstPasted.x);
+    expect(secondPasted.y).toBeGreaterThan(firstPasted.y);
+  });
+
+  it("undo after pasteShape removes the pasted shape and resets selection", () => {
+    useCanvasStore.getState().addShape(sampleRect("a"));
+    useCanvasStore.getState().copyShape("a");
+    useCanvasStore.getState().pasteShape(IMAGE_SIZE);
+    expect(useCanvasStore.getState().shapes.length).toBe(2);
+    useCanvasStore.getState().undo();
+    const state = useCanvasStore.getState();
+    expect(state.shapes.map((s) => s.id)).toEqual(["a"]);
+    expect(state.selectedShapeId).toBeNull();
   });
 });
