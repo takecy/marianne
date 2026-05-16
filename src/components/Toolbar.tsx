@@ -16,6 +16,10 @@ interface ToolbarProps {
   activeColor: ColorPresetName;
   onColorChange: (next: ColorPresetName) => void;
   disabled?: boolean;
+  // Extra disable signal for export-only buttons (save / copy). Used while
+  // a text shape is being edited inline so users cannot export a stage
+  // that has the live text hidden behind a textarea overlay.
+  exportDisabled?: boolean;
   onExportToFile?: () => void;
   onExportToClipboard?: () => void;
   onUndo?: () => void;
@@ -31,6 +35,7 @@ export function Toolbar(props: ToolbarProps) {
     activeColor,
     onColorChange,
     disabled = false,
+    exportDisabled = false,
     onExportToFile,
     onExportToClipboard,
     onUndo,
@@ -99,7 +104,7 @@ export function Toolbar(props: ToolbarProps) {
         <button
           type="button"
           className={styles.exportButton}
-          disabled={disabled}
+          disabled={disabled || exportDisabled}
           onClick={onExportToFile}
         >
           保存
@@ -107,7 +112,7 @@ export function Toolbar(props: ToolbarProps) {
         <button
           type="button"
           className={styles.exportButton}
-          disabled={disabled}
+          disabled={disabled || exportDisabled}
           onClick={onExportToClipboard}
         >
           コピー

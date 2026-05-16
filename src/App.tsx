@@ -27,6 +27,10 @@ function App() {
     () => loadLastSelectedColor() ?? "red",
   );
   const [image, setImage] = useState<LoadedImage | null>(null);
+  // Driven by CanvasArea via onEditingTextChange. Used to disable export
+  // buttons in the Toolbar while a text shape is being inline-edited so
+  // the exported PNG does not capture a hidden text node.
+  const [isEditingText, setIsEditingText] = useState(false);
 
   const shapes = useCanvasStore((s) => s.shapes);
   const selectedShapeId = useCanvasStore((s) => s.selectedShapeId);
@@ -93,7 +97,7 @@ function App() {
   });
 
   const handleExportToFile = useCallback(async () => {
-    if (!image) {
+    if (!image || isEditingText) {
       return;
     }
     try {
@@ -111,19 +115,19 @@ function App() {
     } catch (error) {
       console.error("Export to file failed:", error);
     }
-  }, [image, shapes]);
+  }, [image, isEditingText, shapes]);
 
   // Synchronous start: passing the Promise<Blob> directly to ClipboardItem preserves
   // the transient user activation that WebKit/WKWebView requires for clipboard.write.
   const handleExportToClipboard = useCallback(() => {
-    if (!image) {
+    if (!image || isEditingText) {
       return;
     }
     const blobPromise = exportToBlob(image, shapes);
     copyImageToClipboard(blobPromise).catch((error) => {
       console.error("Copy to clipboard failed:", error);
     });
-  }, [image, shapes]);
+  }, [image, isEditingText, shapes]);
 
   return (
     <div className={styles.appShell}>
@@ -133,6 +137,7 @@ function App() {
         activeColor={activeColor}
         onColorChange={handleColorChange}
         disabled={image === null}
+        exportDisabled={isEditingText}
         onExportToFile={handleExportToFile}
         onExportToClipboard={handleExportToClipboard}
         onUndo={undo}
@@ -162,6 +167,7 @@ function App() {
         onUndo={undo}
         onRedo={redo}
         onExportToFile={handleExportToFile}
+        onEditingTextChange={setIsEditingText}
       />
     </div>
   );

@@ -30,6 +30,7 @@ import {
   ARROW_NECK_LENGTH,
   ARROW_TAIL_HALF_WIDTH,
   SHAPE_STROKE_WIDTH,
+  TEXT_FONT_SIZE,
 } from "@/constants/shape";
 import { computeArrowPolygon } from "@/lib/arrowGeometry";
 import { SelectableShape } from "./SelectableShape";
@@ -63,6 +64,7 @@ interface CanvasAreaProps {
   onUndo: () => void;
   onRedo: () => void;
   onExportToFile: () => void;
+  onEditingTextChange?: (isEditing: boolean) => void;
 }
 
 const RESIZE_ANCHORS: readonly string[] = [
@@ -203,11 +205,13 @@ export function CanvasArea(props: CanvasAreaProps) {
     onUndo,
     onRedo,
     onExportToFile,
+    onEditingTextChange,
   } = props;
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [size, setSize] = useState({ width: 0, height: 0 });
   const [draft, setDraft] = useState<DraftShape | null>(null);
   const [textInput, setTextInput] = useState<Point | null>(null);
+  const [editingTextId, setEditingTextId] = useState<string | null>(null);
   const nodeMap = useRef<Map<string, Konva.Node>>(new Map());
   const transformerRef = useRef<Konva.Transformer | null>(null);
   const themeMode = useThemeMode();
@@ -248,6 +252,9 @@ export function CanvasArea(props: CanvasAreaProps) {
     if (textInput !== null) {
       setTextInput(null);
     }
+    if (editingTextId !== null) {
+      setEditingTextId(null);
+    }
   }
 
   const registerNode = useCallback((id: string, node: Konva.Node | null) => {
@@ -258,20 +265,46 @@ export function CanvasArea(props: CanvasAreaProps) {
     }
   }, []);
 
-  // Attach Transformer to the currently selected shape's node.
+  // Attach Transformer to the currently selected shape's node. Suppress
+  // attachment while the same shape is being text-edited so the resize
+  // handles do not overlap the textarea overlay.
   useEffect(() => {
     const transformer = transformerRef.current;
     if (!transformer) {
       return;
     }
-    if (isSelectMode && selectedShapeId) {
+    if (isSelectMode && selectedShapeId && selectedShapeId !== editingTextId) {
       const node = nodeMap.current.get(selectedShapeId);
       transformer.nodes(node ? [node] : []);
     } else {
       transformer.nodes([]);
     }
     transformer.getLayer()?.batchDraw();
-  }, [isSelectMode, selectedShapeId, shapes]);
+  }, [isSelectMode, selectedShapeId, editingTextId, shapes]);
+
+  // Clear editingTextId during render if the target shape vanished from
+  // `shapes` (e.g. after undo replays an older snapshot that did not
+  // include it). We follow the same render-time pattern used for the
+  // tool/image cleanup block above so the React Hooks set-state-in-effect
+  // lint passes; the React docs call this "Adjusting state based on
+  // prior state". Without this, isEditingText would remain true forever
+  // and the Toolbar export would stay disabled.
+  if (editingTextId !== null) {
+    const stillExists = shapes.some(
+      (s) => s.id === editingTextId && s.type === "text",
+    );
+    if (!stillExists) {
+      setEditingTextId(null);
+    }
+  }
+
+  // Propagate editing state to the parent so the Toolbar can gate export.
+  // This is a true side effect (calling an external callback), so the
+  // useEffect-based path is correct here even though the lint rule would
+  // also fire on a setState inside this effect — there is none.
+  useEffect(() => {
+    onEditingTextChange?.(editingTextId !== null);
+  }, [editingTextId, onEditingTextChange]);
 
   // Keyboard shortcuts:
   // - Cmd/Ctrl + Shift + S => export to file (opens native save dialog)
@@ -283,7 +316,7 @@ export function CanvasArea(props: CanvasAreaProps) {
   // so the browser's native textarea undo (and key bindings) keeps working.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (textInput !== null) {
+      if (textInput !== null || editingTextId !== null) {
         return;
       }
       const target = e.target as HTMLElement | null;
@@ -381,6 +414,7 @@ export function CanvasArea(props: CanvasAreaProps) {
     isSelectMode,
     selectedShapeId,
     textInput,
+    editingTextId,
     image,
     hasClipboardShape,
     onToolChange,
@@ -488,6 +522,33 @@ export function CanvasArea(props: CanvasAreaProps) {
     setTextInput(null);
   };
 
+  const handleStartEditText = useCallback((id: string) => {
+    setEditingTextId(id);
+  }, []);
+
+  // Confirm an edit: apply the new text only if it differs from the
+  // current value. Empty input is treated as "cancel" (preserve original)
+  // — this is intentional and matches the create-flow's empty-string
+  // semantics, so users cannot accidentally blank out a placed shape.
+  const confirmEditText = (newText: string) => {
+    if (editingTextId === null) {
+      return;
+    }
+    if (newText.length === 0) {
+      setEditingTextId(null);
+      return;
+    }
+    const target = shapes.find((s) => s.id === editingTextId);
+    if (target?.type === "text" && target.text !== newText) {
+      onUpdateText(editingTextId, { text: newText });
+    }
+    setEditingTextId(null);
+  };
+
+  const cancelEditText = () => {
+    setEditingTextId(null);
+  };
+
   const className = isDraggingOver
     ? `${styles.canvasArea} ${styles.canvasAreaDragging}`
     : styles.canvasArea;
@@ -495,6 +556,19 @@ export function CanvasArea(props: CanvasAreaProps) {
   const textInputScreen = textInput && fit && imageSize
     ? imageToScreen(textInput, fit, imageSize)
     : null;
+
+  const editingShape: TextShape | null = editingTextId
+    ? (shapes.find((s): s is TextShape => s.id === editingTextId && s.type === "text") ?? null)
+    : null;
+  const editingScreen = editingShape && fit && imageSize
+    ? imageToScreen({ x: editingShape.x, y: editingShape.y }, fit, imageSize)
+    : null;
+  const editingFontSize = editingShape && fit && imageSize
+    ? (() => {
+      const { scaleX, scaleY } = imageToScreenScale(fit, imageSize);
+      return (editingShape.fontSize ?? TEXT_FONT_SIZE) * Math.min(scaleX, scaleY);
+    })()
+    : undefined;
 
   return (
     <div ref={containerRef} className={className} aria-label="キャンバス">
@@ -531,7 +605,9 @@ export function CanvasArea(props: CanvasAreaProps) {
                     image={image}
                     isSelectMode={isSelectMode}
                     isSelected={shape.id === selectedShapeId}
+                    isEditing={shape.id === editingTextId}
                     onSelect={onSelectShape}
+                    onStartEditText={handleStartEditText}
                     onUpdateRect={onUpdateRect}
                     onUpdateText={onUpdateText}
                     onUpdateArrow={onUpdateArrow}
@@ -566,6 +642,23 @@ export function CanvasArea(props: CanvasAreaProps) {
             color={activeColor}
             onConfirm={confirmText}
             onCancel={cancelText}
+          />
+        )
+        : editingShape && editingScreen
+        ? (
+          // `key` forces remount when the edited shape changes so the
+          // overlay's internal `useState(initialText)` is re-initialized.
+          // Without it, switching to another text via double-click would
+          // leak the previous value into the new edit session.
+          <TextInputOverlay
+            key={editingShape.id}
+            x={editingScreen.x}
+            y={editingScreen.y}
+            color={editingShape.color}
+            initialText={editingShape.text}
+            fontSize={editingFontSize}
+            onConfirm={confirmEditText}
+            onCancel={cancelEditText}
           />
         )
         : null}
