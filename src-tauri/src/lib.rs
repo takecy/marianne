@@ -1,7 +1,7 @@
 use tauri::{
     menu::{MenuBuilder, MenuItemBuilder},
     tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
-    AppHandle, Manager, Runtime,
+    AppHandle, Manager, Runtime, WindowEvent,
 };
 
 #[tauri::command]
@@ -58,6 +58,18 @@ pub fn run() {
                 .build(app)?;
 
             Ok(())
+        })
+        // Close button on the main window hides instead of quitting so the
+        // tray icon can later restore the window with in-flight edits intact.
+        // Cmd+Q and the tray "Quit Marianne" action go through ExitRequested
+        // instead, so they are unaffected.
+        .on_window_event(|window, event| {
+            if let WindowEvent::CloseRequested { api, .. } = event {
+                if window.label() == "main" {
+                    api.prevent_close();
+                    let _ = window.hide();
+                }
+            }
         })
         .invoke_handler(tauri::generate_handler![greet])
         .run(tauri::generate_context!())
