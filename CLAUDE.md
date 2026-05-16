@@ -113,6 +113,6 @@ copyImageToClipboard(blobPromise); // Promise<Blob> をそのまま ClipboardIte
 2. **公開鍵 (`plugins.updater.pubkey`) は固定**: 既に配布したアプリは埋め込んだ pubkey でしか署名検証しない。途中で鍵を差し替えると既存ユーザー全員が永遠に更新できなくなる。秘密鍵 `~/.tauri/marianne.key` は 1Password 等にバックアップ必須。
 3. **`.tauri/` / `*.key` / `*.key.pub` / `.envrc` / `.env*` はコミット禁止**: `.gitignore` 済。
 4. **ローカル build に signing env が必要**: `createUpdaterArtifacts: true` 設定のため、`pnpm tauri build` / `install:local` / `build:dmg` 実行時に `TAURI_SIGNING_PRIVATE_KEY` + `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` env が無いと署名フェーズで落ちる。direnv 等で供給する。
-5. **`tagging.yaml` は PAT が前提**: `mathieudutour/github-tag-action` を `dry_run: true` で実行 → bump-version.sh で 3 ファイル更新 → 自前で tag push、というフロー。checkout で `secrets.PAT_FOR_TAG_PUSH` を使わないと tag push が `release.yaml` を連鎖発火しない（GitHub 仕様）。
-6. **`release.yaml` の `releaseDraft: false` / `prerelease: false` は必須**: updater endpoint が `releases/latest/download/latest.json` を見るため、draft / prerelease のリリースだと 404 になり全ユーザーで更新が失敗する。
+5. **リリースは `tagging-release.yaml` の `workflow_dispatch` 経由のみ**: `tagging` (ubuntu) → `release` (macos-14, `needs: tagging`) の 2 ジョブ構成で 1 ワークフロー内で完結する。`GITHUB_TOKEN` だけで動くため PAT は不要。**手動の `git push origin vX.Y.Z` は禁忌** — bump-version.sh による 3 ファイル同期 + tauri-action の署名フローを通っていないタグはリリースとして成立せず updater が空振りする。
+6. **`tagging-release.yaml` の `releaseDraft: false` / `prerelease: false` は必須**: updater endpoint が `releases/latest/download/latest.json` を見るため、draft / prerelease のリリースだと 404 になり全ユーザーで更新が失敗する。
 7. **`relaunch()` は `await update.downloadAndInstall(...)` の解決後にのみ呼ぶ**: progress callback の `Finished` イベントは download 完了の signal であって install 完了ではない。callback 内で `relaunch()` を呼ぶと install が中断される。詳細は `src/lib/useUpdater.ts` のコメント参照。

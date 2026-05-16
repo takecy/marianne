@@ -130,29 +130,33 @@ pnpm install:local
 
 ## リリース手順 (メンテナー向け)
 
-リリースは GitHub Actions で完結する。
+リリースは GitHub Actions の単一ワークフロー `.github/workflows/tagging-release.yaml` で完結する。
 
-1. リポジトリの **Actions → Bump version → Run workflow** を実行
+1. リポジトリの **Actions → Tag and Release → Run workflow** を実行
    - `bump_version` を選択 (patch / minor / major)。Conventional Commits が検出された場合はそちらが優先される
-2. ワークフローが自動で以下を実施:
+2. **`tagging` ジョブ** (ubuntu-latest) が以下を実施:
    - 次バージョンを `dry_run` で算出
    - `scripts/bump-version.sh` で `package.json` / `tauri.conf.json` / `Cargo.toml` を 1 コミットで同期
    - main に commit + push
    - `vX.Y.Z` タグを push
-3. タグ push をトリガーに **Release** ワークフローが macos-14 (Apple Silicon) で起動
+3. **`release` ジョブ** (macos-14、`needs: tagging`) が自動で続行:
+   - 直前にタグ付けされた commit を checkout
    - `pnpm tauri build --target aarch64-apple-darwin` で署名済みバンドル生成
    - `Marianne.app.tar.gz` + `.sig` + `latest.json` を GitHub Release に publish (draft なし、prerelease なし)
 4. 既存ユーザーは次回起動時に自動で `latest.json` を取得し、新バージョンを検出
+
+> **手動の `git push origin vX.Y.Z` は禁忌**: bump-version.sh による 3 ファイル同期と署名フローを通っていないタグはリリースとして成立しません。リリースは必ず上の Run workflow から実行してください。
 
 ### 必要な GitHub Secrets
 
 リリースを動かす前に、リポジトリの Settings → Secrets で以下を登録する:
 
-| Name                                 | Value                                                                                                  |
-| ------------------------------------ | ------------------------------------------------------------------------------------------------------ |
-| `TAURI_SIGNING_PRIVATE_KEY`          | `~/.tauri/marianne.key` の中身全文                                                                     |
-| `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` | 鍵生成時のパスフレーズ（空でも空文字列で登録）                                                         |
-| `PAT_FOR_TAG_PUSH`                   | `contents:write` 権限の Personal Access Token (これがないと tag push が release.yaml をトリガーしない) |
+| Name                                 | Value                                          |
+| ------------------------------------ | ---------------------------------------------- |
+| `TAURI_SIGNING_PRIVATE_KEY`          | `~/.tauri/marianne.key` の中身全文             |
+| `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` | 鍵生成時のパスフレーズ（空でも空文字列で登録） |
+
+> 1 つのワークフロー内で完結する設計のため、`GITHUB_TOKEN` のクロスワークフロー起動制限を回避する PAT は不要。
 
 ### 鍵管理
 

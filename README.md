@@ -130,29 +130,33 @@ The endpoint is fixed to `https://github.com/takecy/marianne/releases/latest/dow
 
 ## Release procedure (maintainers)
 
-Releases are fully automated by GitHub Actions.
+Releases are fully automated by a single GitHub Actions workflow at `.github/workflows/tagging-release.yaml`.
 
-1. Go to **Actions → Bump version → Run workflow** in this repository.
+1. Go to **Actions → Tag and Release → Run workflow** in this repository.
    - Pick `bump_version` (patch / minor / major). Conventional Commits detection takes precedence if applicable.
-2. The workflow:
+2. The **`tagging` job** (ubuntu-latest):
    - Computes the next version via `dry_run`.
    - Runs `scripts/bump-version.sh` to sync `package.json`, `tauri.conf.json`, and `Cargo.toml` in a single commit.
    - Pushes the bump commit to main.
    - Pushes the `vX.Y.Z` tag.
-3. The tag push triggers the **Release** workflow on macos-14 (Apple Silicon):
+3. The **`release` job** (macos-14, `needs: tagging`) runs automatically next:
+   - Checks out the just-tagged commit.
    - `pnpm tauri build --target aarch64-apple-darwin` produces signed bundles.
    - Publishes `Marianne.app.tar.gz`, `.sig`, and `latest.json` to a GitHub Release (not a draft, not a prerelease).
 4. Existing installations fetch `latest.json` on their next launch and prompt to update.
+
+> **Manual `git push origin vX.Y.Z` is unsafe**: a tag that did not go through `bump-version.sh` and the signing flow is not a valid release. Always cut releases via the Run workflow button above.
 
 ### Required GitHub Secrets
 
 Register these in Settings → Secrets before the workflow can complete:
 
-| Name                                 | Value                                                                                                                      |
-| ------------------------------------ | -------------------------------------------------------------------------------------------------------------------------- |
-| `TAURI_SIGNING_PRIVATE_KEY`          | Full contents of `~/.tauri/marianne.key`                                                                                   |
-| `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` | Passphrase used to generate the key (empty string is fine if no passphrase)                                                |
-| `PAT_FOR_TAG_PUSH`                   | Personal Access Token with `contents:write`. Without it, tag pushes from tagging.yaml will not chain-trigger release.yaml. |
+| Name                                 | Value                                                                       |
+| ------------------------------------ | --------------------------------------------------------------------------- |
+| `TAURI_SIGNING_PRIVATE_KEY`          | Full contents of `~/.tauri/marianne.key`                                    |
+| `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` | Passphrase used to generate the key (empty string is fine if no passphrase) |
+
+> The single-workflow design means everything runs within one workflow run, so the default `GITHUB_TOKEN` is enough — no PAT is needed to chain workflows.
 
 ### Key management
 
