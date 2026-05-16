@@ -124,7 +124,7 @@ fn show_main_window<R: Runtime>(app: &AppHandle<R>) {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    tauri::Builder::default()
+    let mut builder = tauri::Builder::default()
         // macOS Launch Services does not forward "Open With" paths via argv,
         // so we only restore the window here. File delivery is handled by the
         // `RunEvent::Opened` arm below.
@@ -134,6 +134,17 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_fs::init())
+        .plugin(tauri_plugin_process::init());
+
+    // Self-update plugin is desktop-only; mobile targets cannot build the
+    // updater crate, so the plugin registration mirrors the target cfg in
+    // Cargo.toml.
+    #[cfg(desktop)]
+    {
+        builder = builder.plugin(tauri_plugin_updater::Builder::new().build());
+    }
+
+    builder
         .manage(PendingOpenPaths::default())
         .setup(|app| {
             let show_item = MenuItemBuilder::with_id("show", "Show Marianne").build(app)?;

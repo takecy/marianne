@@ -34,3 +34,13 @@ src-tauri/gen/schemas
 
 # Built dmg bundles (output of `pnpm build:dmg`)
 dist-bundle
+
+# Tauri signer keys (must never be committed)
+.tauri
+*.key
+*.key.pub
+
+# Local env (Tauri signing env supply via direnv etc.)
+.envrc
+.env
+.env.local

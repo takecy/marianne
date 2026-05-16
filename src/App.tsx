@@ -1,7 +1,8 @@
 import { useCallback, useState } from "react";
 import { dirname, join } from "@tauri-apps/api/path";
 import { CanvasArea } from "./components/CanvasArea";
-import { Toolbar } from "./components/Toolbar";
+import { Toolbar, type UpdateButtonState } from "./components/Toolbar";
+import { UpdateModal } from "./components/UpdateModal";
 import {
   copyImageToClipboard,
   defaultExportFileName,
@@ -15,11 +16,24 @@ import {
   saveLastSelectedColor,
 } from "./lib/settingsStorage";
 import { useImageLoader } from "./lib/useImageLoader";
+import { useUpdater } from "./lib/useUpdater";
 import { useCanvasStore } from "./store/canvasStore";
 import type { LoadedImage } from "./types/image";
 import type { Shape } from "./types/shape";
 import type { ColorPresetName, ToolKind } from "./types/tool";
 import styles from "./App.module.css";
+
+function deriveUpdateButtonState(
+  kind: ReturnType<typeof useUpdater>["state"]["kind"],
+): UpdateButtonState {
+  if (kind === "checking") {
+    return "checking";
+  }
+  if (kind === "available" || kind === "downloading" || kind === "readyToInstall") {
+    return "available";
+  }
+  return "idle";
+}
 
 function App() {
   const [activeTool, setActiveTool] = useState<ToolKind>("select");
@@ -96,6 +110,16 @@ function App() {
     onError: handleImageError,
   });
 
+  // Updater runs in parallel with the image loader. Both subscribe their own
+  // listeners and never overlap. Auto-check on mount keeps the UI quiet
+  // unless the modal is needed.
+  const {
+    state: updateState,
+    checkForUpdates,
+    downloadAndInstall: installUpdate,
+    dismiss: dismissUpdate,
+  } = useUpdater({ autoCheckOnMount: true });
+
   const handleExportToFile = useCallback(async () => {
     if (!image || isEditingText) {
       return;
@@ -144,6 +168,9 @@ function App() {
         onRedo={redo}
         canUndo={canUndo}
         canRedo={canRedo}
+        onCheckForUpdates={() => void checkForUpdates()}
+        updateButtonState={deriveUpdateButtonState(updateState.kind)}
+        updateErrorMessage={updateState.kind === "error" ? updateState.message : undefined}
       />
       <CanvasArea
         image={image}
@@ -168,6 +195,12 @@ function App() {
         onRedo={redo}
         onExportToFile={handleExportToFile}
         onEditingTextChange={setIsEditingText}
+      />
+      <UpdateModal
+        state={updateState}
+        hasUnsavedShapes={shapes.length > 0}
+        onInstall={() => void installUpdate()}
+        onDismiss={dismissUpdate}
       />
     </div>
   );

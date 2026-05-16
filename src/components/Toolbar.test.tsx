@@ -182,4 +182,108 @@ describe("Toolbar", () => {
     expect(screen.getByRole("button", { name: "戻る" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "進む" })).toBeDisabled();
   });
+
+  it("does not render the 更新を確認 button when onCheckForUpdates is omitted", () => {
+    render(
+      <Toolbar
+        activeTool="select"
+        onToolChange={vi.fn()}
+        activeColor="red"
+        onColorChange={vi.fn()}
+      />,
+    );
+    expect(screen.queryByRole("button", { name: "更新を確認" })).not.toBeInTheDocument();
+  });
+
+  it("renders 更新を確認 button when onCheckForUpdates is provided and invokes the callback", async () => {
+    const user = userEvent.setup();
+    const onCheckForUpdates = vi.fn();
+    render(
+      <Toolbar
+        activeTool="select"
+        onToolChange={vi.fn()}
+        activeColor="red"
+        onColorChange={vi.fn()}
+        onCheckForUpdates={onCheckForUpdates}
+      />,
+    );
+    await user.click(screen.getByRole("button", { name: "更新を確認" }));
+    expect(onCheckForUpdates).toHaveBeenCalledTimes(1);
+  });
+
+  it("update button stays enabled even when toolbar disabled is true", () => {
+    render(
+      <Toolbar
+        activeTool="select"
+        onToolChange={vi.fn()}
+        activeColor="red"
+        onColorChange={vi.fn()}
+        disabled
+        onCheckForUpdates={vi.fn()}
+      />,
+    );
+    expect(screen.getByRole("button", { name: "更新を確認" })).not.toBeDisabled();
+  });
+
+  it("update button disables only when state is checking", () => {
+    const { rerender } = render(
+      <Toolbar
+        activeTool="select"
+        onToolChange={vi.fn()}
+        activeColor="red"
+        onColorChange={vi.fn()}
+        onCheckForUpdates={vi.fn()}
+        updateButtonState="checking"
+      />,
+    );
+    expect(screen.getByRole("button", { name: "更新を確認" })).toBeDisabled();
+
+    rerender(
+      <Toolbar
+        activeTool="select"
+        onToolChange={vi.fn()}
+        activeColor="red"
+        onColorChange={vi.fn()}
+        onCheckForUpdates={vi.fn()}
+        updateButtonState="available"
+      />,
+    );
+    expect(screen.getByRole("button", { name: "更新を確認" })).not.toBeDisabled();
+  });
+
+  it("renders a short inline failure indicator with the full message in title", () => {
+    const full = "Could not fetch a valid release JSON from the remote";
+    render(
+      <Toolbar
+        activeTool="select"
+        onToolChange={vi.fn()}
+        activeColor="red"
+        onColorChange={vi.fn()}
+        onCheckForUpdates={vi.fn()}
+        updateErrorMessage={full}
+      />,
+    );
+    // Visible label is the compact "⚠ Failed" so toolbar width stays stable
+    // regardless of how long the underlying error is.
+    const status = screen.getByRole("status");
+    expect(status).toHaveTextContent("⚠ Failed");
+    expect(status).not.toHaveTextContent(full);
+    // Full text is preserved on hover via the title attribute.
+    expect(status).toHaveAttribute("title", full);
+    // Button remains usable so the user can retry.
+    expect(screen.getByRole("button", { name: "更新を確認" })).not.toBeDisabled();
+  });
+
+  it("does not render the inline error when updateErrorMessage is undefined", () => {
+    render(
+      <Toolbar
+        activeTool="select"
+        onToolChange={vi.fn()}
+        activeColor="red"
+        onColorChange={vi.fn()}
+        onCheckForUpdates={vi.fn()}
+      />,
+    );
+    expect(screen.queryByRole("status")).not.toBeInTheDocument();
+  });
 });

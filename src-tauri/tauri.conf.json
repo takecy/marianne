@@ -24,7 +24,8 @@
   },
   "bundle": {
     "active": true,
-    "targets": "all",
+    "targets": ["app", "dmg"],
+    "createUpdaterArtifacts": true,
     "category": "GraphicsAndDesign",
     "macOS": {
       "minimumSystemVersion": "11.0"
@@ -45,5 +46,15 @@
         "rank": "Default"
       }
     ]
+  },
+  "plugins": {
+    "updater": {
+      "endpoints": [
+        "https://github.com/takecy/marianne/releases/latest/download/latest.json"
+      ],
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDZDNjA2MkQ3RkQ0QTJFRDcKUldUWExrcjkxMkpnYkhnMDhtbElpN3ozNGtCQkZxQXdMb1BuV1FSdjhTTUtMTzhlZWx3VlhWSUcK",
+      "dialog": false,
+      "windows": { "installMode": "passive" }
+    }
   }
 }
