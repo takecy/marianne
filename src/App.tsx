@@ -170,6 +170,7 @@ function App() {
         canRedo={canRedo}
         onCheckForUpdates={() => void checkForUpdates()}
         updateButtonState={deriveUpdateButtonState(updateState.kind)}
+        updateErrorMessage={updateState.kind === "error" ? updateState.message : undefined}
       />
       <CanvasArea
         image={image}
@@ -200,7 +201,6 @@ function App() {
         hasUnsavedShapes={shapes.length > 0}
         onInstall={() => void installUpdate()}
         onDismiss={dismissUpdate}
-        onRetry={() => void checkForUpdates()}
       />
     </div>
   );

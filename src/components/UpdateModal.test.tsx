@@ -25,17 +25,15 @@ function renderModal(
 ) {
   const onInstall = vi.fn();
   const onDismiss = vi.fn();
-  const onRetry = vi.fn();
   const view = render(
     <UpdateModal
       state={state}
       hasUnsavedShapes={opts.hasUnsavedShapes ?? false}
       onInstall={onInstall}
       onDismiss={onDismiss}
-      onRetry={onRetry}
     />,
   );
-  return { ...view, onInstall, onDismiss, onRetry };
+  return { ...view, onInstall, onDismiss };
 }
 
 describe("UpdateModal", () => {
@@ -108,18 +106,10 @@ describe("UpdateModal", () => {
     expect(screen.getByText(/0\.1\.1/)).toBeInTheDocument();
   });
 
-  it("shows retry button and message for error state", () => {
+  it("does NOT open for error state (failure surfaces in the toolbar instead)", () => {
     renderModal({ kind: "error", message: "network down" });
-    expect(screen.getByRole("dialog")).toBeInTheDocument();
-    expect(screen.getByText("network down")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "再試行" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "閉じる" })).toBeInTheDocument();
-  });
-
-  it("invokes onRetry when retry is clicked", async () => {
-    const user = userEvent.setup();
-    const { onRetry } = renderModal({ kind: "error", message: "network" });
-    await user.click(screen.getByRole("button", { name: "再試行" }));
-    expect(onRetry).toHaveBeenCalledTimes(1);
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    // Error message must not leak into the (closed) modal DOM as visible text.
+    expect(screen.queryByText("network down")).not.toBeInTheDocument();
   });
 });

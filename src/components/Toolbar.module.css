@@ -159,6 +159,19 @@
   line-height: 1;
 }
 
+.updateError {
+  /* Inline failure surface next to the update button. Truncate so a long
+     message does not push the toolbar; full text is exposed via title for
+     hover. The button itself acts as retry. */
+  font-size: 0.75rem;
+  color: var(--color-fg-muted, var(--color-fg));
+  opacity: 0.85;
+  max-width: 18rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .exportGroup {
   display: flex;
   gap: 0.5rem;

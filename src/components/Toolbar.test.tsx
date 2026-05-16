@@ -250,4 +250,36 @@ describe("Toolbar", () => {
     );
     expect(screen.getByRole("button", { name: "更新を確認" })).not.toBeDisabled();
   });
+
+  it("renders updateErrorMessage inline next to the button", () => {
+    render(
+      <Toolbar
+        activeTool="select"
+        onToolChange={vi.fn()}
+        activeColor="red"
+        onColorChange={vi.fn()}
+        onCheckForUpdates={vi.fn()}
+        updateErrorMessage="Could not fetch a valid release JSON from the remote"
+      />,
+    );
+    // The message appears as a status element (role="status") near the button.
+    expect(screen.getByRole("status")).toHaveTextContent(
+      "Could not fetch a valid release JSON from the remote",
+    );
+    // Button remains usable so the user can retry.
+    expect(screen.getByRole("button", { name: "更新を確認" })).not.toBeDisabled();
+  });
+
+  it("does not render the inline error when updateErrorMessage is undefined", () => {
+    render(
+      <Toolbar
+        activeTool="select"
+        onToolChange={vi.fn()}
+        activeColor="red"
+        onColorChange={vi.fn()}
+        onCheckForUpdates={vi.fn()}
+      />,
+    );
+    expect(screen.queryByRole("status")).not.toBeInTheDocument();
+  });
 });

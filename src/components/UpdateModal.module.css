@@ -65,12 +65,6 @@
   overflow-y: auto;
 }
 
-.errorBody {
-  margin: 0;
-  font-size: 0.875rem;
-  word-break: break-word;
-}
-
 .actions {
   display: flex;
   justify-content: flex-end;

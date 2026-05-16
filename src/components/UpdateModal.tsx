@@ -7,12 +7,15 @@ interface UpdateModalProps {
   hasUnsavedShapes: boolean;
   onInstall: () => void;
   onDismiss: () => void;
-  onRetry: () => void;
 }
 
+// `error` is intentionally excluded: failed update checks surface as inline
+// text on the Toolbar instead of a blocking dialog so the user can keep
+// editing while ignoring the failure. Retry is driven by the toolbar
+// button (which simply calls checkForUpdates again).
 function shouldOpen(state: UpdateState): boolean {
   return state.kind === "available" || state.kind === "downloading" ||
-    state.kind === "readyToInstall" || state.kind === "error";
+    state.kind === "readyToInstall";
 }
 
 function formatBytes(bytes: number): string {
@@ -26,7 +29,7 @@ function formatBytes(bytes: number): string {
 }
 
 export function UpdateModal(props: UpdateModalProps) {
-  const { state, hasUnsavedShapes, onInstall, onDismiss, onRetry } = props;
+  const { state, hasUnsavedShapes, onInstall, onDismiss } = props;
   const dialogRef = useRef<HTMLDialogElement>(null);
 
   useEffect(() => {
@@ -140,31 +143,6 @@ export function UpdateModal(props: UpdateModalProps) {
             <p className={styles.note}>
               {state.version} のインストール後、アプリが自動で再起動します。
             </p>
-          </>
-        )}
-
-        {state.kind === "error" && (
-          <>
-            <h2 id="update-modal-title" className={styles.title}>
-              更新に失敗しました
-            </h2>
-            <p className={styles.errorBody}>{state.message}</p>
-            <div className={styles.actions}>
-              <button
-                type="button"
-                className={styles.secondaryButton}
-                onClick={onDismiss}
-              >
-                閉じる
-              </button>
-              <button
-                type="button"
-                className={styles.primaryButton}
-                onClick={onRetry}
-              >
-                再試行
-              </button>
-            </div>
           </>
         )}
       </div>

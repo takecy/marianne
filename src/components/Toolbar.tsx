@@ -35,6 +35,10 @@ interface ToolbarProps {
   // updates even before loading an image. `checking` disables it briefly.
   onCheckForUpdates?: () => void;
   updateButtonState?: UpdateButtonState;
+  // Last update-check failure message. Shown inline next to the update
+  // button (not as a blocking modal) so the user can keep working. Clicking
+  // the button retries the check and clears the message.
+  updateErrorMessage?: string;
 }
 
 export function Toolbar(props: ToolbarProps) {
@@ -53,6 +57,7 @@ export function Toolbar(props: ToolbarProps) {
     canRedo = false,
     onCheckForUpdates,
     updateButtonState = "idle",
+    updateErrorMessage,
   } = props;
 
   return (
@@ -113,6 +118,16 @@ export function Toolbar(props: ToolbarProps) {
       <div className={styles.spacer} aria-hidden />
       {onCheckForUpdates && (
         <div className={styles.updateGroup} role="group" aria-label="更新">
+          {updateErrorMessage && (
+            <span
+              className={styles.updateError}
+              role="status"
+              aria-live="polite"
+              title={updateErrorMessage}
+            >
+              ⚠ {updateErrorMessage}
+            </span>
+          )}
           <button
             type="button"
             className={updateButtonState === "available"
@@ -121,7 +136,6 @@ export function Toolbar(props: ToolbarProps) {
             disabled={updateButtonState === "checking"}
             onClick={onCheckForUpdates}
             aria-label="更新を確認"
-            aria-live="polite"
           >
             {updateButtonState === "checking" ? "確認中…" : "更新を確認"}
             {updateButtonState === "available" && (
