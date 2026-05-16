@@ -3,6 +3,14 @@ import { TEXT_STROKE_COLOR_BLACK, TEXT_STROKE_COLOR_WHITE } from "@/constants/sh
 export const TOOL_KINDS = ["select", "arrow", "rect", "text", "mosaic"] as const;
 export type ToolKind = (typeof TOOL_KINDS)[number];
 
+export const TOOL_SHORTCUTS: Record<ToolKind, string> = {
+  select: "v",
+  arrow: "l",
+  rect: "r",
+  text: "t",
+  mosaic: "m",
+};
+
 export const COLOR_PRESETS = [
   { name: "red", hex: "#ef4444" },
   { name: "orange", hex: "#f97316" },

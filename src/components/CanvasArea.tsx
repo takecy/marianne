@@ -22,7 +22,7 @@ import type {
   TextShape,
 } from "@/types/shape";
 import type { ColorPresetName, ToolKind } from "@/types/tool";
-import { colorHex } from "@/types/tool";
+import { colorHex, TOOL_KINDS, TOOL_SHORTCUTS } from "@/types/tool";
 import {
   ARROW_HEAD_HALF_WIDTH,
   ARROW_HEAD_LENGTH,
@@ -48,6 +48,7 @@ interface CanvasAreaProps {
   activeTool: ToolKind;
   activeColor: ColorPresetName;
   selectedShapeId: string | null;
+  onToolChange: (next: ToolKind) => void;
   onShapeAdded: (shape: Shape) => void;
   onSelectShape: (id: string | null) => void;
   onDeleteShape: (id: string) => void;
@@ -183,6 +184,7 @@ export function CanvasArea(props: CanvasAreaProps) {
     activeTool,
     activeColor,
     selectedShapeId,
+    onToolChange,
     onShapeAdded,
     onSelectShape,
     onDeleteShape,
@@ -267,6 +269,7 @@ export function CanvasArea(props: CanvasAreaProps) {
   // - Cmd/Ctrl + Shift + S => export to file (opens native save dialog)
   // - Cmd/Ctrl + Z         => undo
   // - Cmd/Ctrl + Shift + Z => redo
+  // - v / l / r / t / m    => switch tool (select / arrow / rect / text / mosaic), ignored when no image
   // - Delete / Backspace   => remove selected shape (select-mode only)
   // We bail out when text input is active or when focus is in an editable field
   // so the browser's native textarea undo (and key bindings) keeps working.
@@ -305,6 +308,21 @@ export function CanvasArea(props: CanvasAreaProps) {
         return;
       }
 
+      // Tool switching via single-key shortcut. Modifier-less only so we never
+      // hijack Cmd+T / Shift+R / etc. and so a one-key match in TOOL_SHORTCUTS
+      // can win over later branches. Disabled while no image is loaded to
+      // match the Toolbar's disabled state.
+      if (!e.metaKey && !e.ctrlKey && !e.altKey && !e.shiftKey && image !== null) {
+        const pressed = e.key.toLowerCase();
+        for (const tool of TOOL_KINDS) {
+          if (TOOL_SHORTCUTS[tool] === pressed) {
+            e.preventDefault();
+            onToolChange(tool);
+            return;
+          }
+        }
+      }
+
       if (!isSelectMode) {
         return;
       }
@@ -322,6 +340,8 @@ export function CanvasArea(props: CanvasAreaProps) {
     isSelectMode,
     selectedShapeId,
     textInput,
+    image,
+    onToolChange,
     onDeleteShape,
     onUndo,
     onRedo,
