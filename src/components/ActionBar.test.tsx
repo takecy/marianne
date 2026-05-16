@@ -57,4 +57,33 @@ describe("ActionBar", () => {
     expect(screen.queryByRole("button", { name: "更新を確認" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /^選択/ })).not.toBeInTheDocument();
   });
+
+  it("renders idle copy state by default: copy icon, no success class, empty status", () => {
+    render(<ActionBar />);
+    const copyButton = screen.getByRole("button", { name: "コピー" });
+
+    // CSS Modules preserves the original class name as a substring of the
+    // transformed name (e.g. `_exportButtonSuccess_abc123`).
+    expect(copyButton.className).not.toMatch(/exportButtonSuccess/);
+    expect(copyButton).toHaveAttribute(
+      "title",
+      "クリップボードへコピー (Cmd/Ctrl+Shift+C)",
+    );
+    // CopyIcon uses rect + path; CheckIcon uses polyline. Scope the query to the
+    // copy button so SaveIcon's own polyline doesn't interfere.
+    expect(copyButton.querySelector("polyline")).toBeNull();
+    expect(copyButton.querySelector("rect")).not.toBeNull();
+    expect(screen.getByRole("status")).toHaveTextContent("");
+  });
+
+  it("renders success copy state: check icon, success class, announcement text", () => {
+    render(<ActionBar copyState="success" />);
+    const copyButton = screen.getByRole("button", { name: "コピー" });
+
+    expect(copyButton.className).toMatch(/exportButtonSuccess/);
+    expect(copyButton).toHaveAttribute("title", "コピーしました");
+    expect(copyButton.querySelector("polyline")).not.toBeNull();
+    expect(copyButton.querySelector("rect")).toBeNull();
+    expect(screen.getByRole("status")).toHaveTextContent("クリップボードへコピーしました");
+  });
 });

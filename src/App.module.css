@@ -23,6 +23,9 @@
   --color-text-input-bg-focus: rgba(255, 255, 255, 0.95);
   --color-mosaic-draft-fill: rgba(15, 23, 42, 0.35);
   --color-mosaic-draft-stroke: #0f172a;
+  --color-success-bg: #dcfce7;
+  --color-success-border: #86efac;
+  --color-success-fg: #166534;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -48,6 +51,9 @@
     --color-text-input-bg-focus: rgba(15, 23, 42, 0.95);
     --color-mosaic-draft-fill: rgba(241, 245, 249, 0.35);
     --color-mosaic-draft-stroke: #f1f5f9;
+    --color-success-bg: #14532d;
+    --color-success-border: #166534;
+    --color-success-fg: #bbf7d0;
   }
 }
 
