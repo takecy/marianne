@@ -66,6 +66,27 @@ pnpm build:dmg      # 配布用 dmg を src-tauri/target/release/bundle/dmg/ か
 
 **配布物は Apple Silicon (aarch64) Mac 専用**。Intel Mac / Universal binary は未提供。生成される dmg ファイル名は `Marianne_<version>_aarch64.dmg`（例: `dist-bundle/Marianne_0.1.0_aarch64.dmg`）。
 
+### 署名 env の供給（updater 用）
+
+`tauri.conf.json` で `createUpdaterArtifacts: true` を有効にしているため、`pnpm tauri build` / `pnpm install:local` / `pnpm build:dmg` の実行時に updater 用署名鍵が必要。**未設定だとビルドが署名フェーズで失敗する**。
+
+ローカルで supply するには以下のいずれか:
+
+```sh
+# direnv (推奨): リポジトリ直下に .envrc を作成（.gitignore 済）
+export TAURI_SIGNING_PRIVATE_KEY="$(cat ~/.tauri/marianne.key)"
+export TAURI_SIGNING_PRIVATE_KEY_PASSWORD=""
+```
+
+```sh
+# または直接シェルに export してから build を実行
+export TAURI_SIGNING_PRIVATE_KEY="$(cat ~/.tauri/marianne.key)"
+export TAURI_SIGNING_PRIVATE_KEY_PASSWORD=""
+pnpm install:local
+```
+
+CI では GitHub Secrets として登録した `TAURI_SIGNING_PRIVATE_KEY` / `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` が release.yaml に流れる。
+
 ## dmg からのインストール (macOS)
 
 配布された dmg ファイルから Marianne をインストールする手順（エンドユーザー向け）。
@@ -94,6 +115,50 @@ pnpm install:local
 > 本ビルドはコード署名なし。macOS 初回起動時に「開発元を確認できないため開けません」と警告される場合は、対象の `.app` を右クリック →「開く」を選ぶか、`xattr -dr com.apple.quarantine /Applications/Marianne.app` を一度実行する。
 
 要件: macOS 専用。Linux / Windows ではエラーで終了する。アプリ起動中に実行すると上書きに失敗する場合があるため、事前にアプリを終了しておく。
+
+## 自動アップデート
+
+エンドユーザーは何もしなくても新バージョンに追従できる。
+
+- 起動時に自動でアップデートを確認し、新バージョンが見つかるとモーダルで通知
+- Toolbar の「更新を確認」ボタンから手動チェックも可能
+- 「今すぐ更新」を選ぶとダウンロード → 自動インストール → アプリ再起動
+- **編集中の注釈は再起動で失われるため**、未保存のものがある場合はモーダルで警告される。先に保存してから更新するのを推奨
+- ネットワーク失敗・署名検証失敗などのエラーは Toolbar の更新ボタン横に `⚠ Failed` と小さく表示される（作業はブロックされない）。ホバーで詳細メッセージ。再試行は同じボタンを押すだけ
+
+配信エンドポイントは `https://github.com/takecy/marianne/releases/latest/download/latest.json` 固定。`releases/latest` を見るため、**draft / pre-release のリリースには反応しない**。
+
+## リリース手順 (メンテナー向け)
+
+リリースは GitHub Actions で完結する。
+
+1. リポジトリの **Actions → Bump version → Run workflow** を実行
+   - `bump_version` を選択 (patch / minor / major)。Conventional Commits が検出された場合はそちらが優先される
+2. ワークフローが自動で以下を実施:
+   - 次バージョンを `dry_run` で算出
+   - `scripts/bump-version.sh` で `package.json` / `tauri.conf.json` / `Cargo.toml` を 1 コミットで同期
+   - main に commit + push
+   - `vX.Y.Z` タグを push
+3. タグ push をトリガーに **Release** ワークフローが macos-14 (Apple Silicon) で起動
+   - `pnpm tauri build --target aarch64-apple-darwin` で署名済みバンドル生成
+   - `Marianne.app.tar.gz` + `.sig` + `latest.json` を GitHub Release に publish (draft なし、prerelease なし)
+4. 既存ユーザーは次回起動時に自動で `latest.json` を取得し、新バージョンを検出
+
+### 必要な GitHub Secrets
+
+リリースを動かす前に、リポジトリの Settings → Secrets で以下を登録する:
+
+| Name                                 | Value                                                                                                  |
+| ------------------------------------ | ------------------------------------------------------------------------------------------------------ |
+| `TAURI_SIGNING_PRIVATE_KEY`          | `~/.tauri/marianne.key` の中身全文                                                                     |
+| `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` | 鍵生成時のパスフレーズ（空でも空文字列で登録）                                                         |
+| `PAT_FOR_TAG_PUSH`                   | `contents:write` 権限の Personal Access Token (これがないと tag push が release.yaml をトリガーしない) |
+
+### 鍵管理
+
+- 秘密鍵 `~/.tauri/marianne.key` は **絶対にコミットしない** (`.gitignore` 済)
+- 1Password 等にバックアップ。紛失すると既存ユーザーが新リリースを検証できなくなる
+- `tauri.conf.json` の `pubkey` を変更すると、変更前にインストールしたユーザーのアップデートが拒否される。**鍵は固定運用**が前提
 
 ## ライセンス
 
