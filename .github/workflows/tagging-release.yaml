@@ -1,0 +1,180 @@
+name: Tag and Release
+
+# Single source of truth for cutting a release. Splits cleanly into a
+# cheap ubuntu `tagging` job (bump, commit, push, tag) and an
+# Apple-Silicon `release` job that builds + signs + publishes the
+# GitHub Release.
+#
+# Both jobs run inside the same workflow run, so the default
+# GITHUB_TOKEN can push the tag without GitHub's recursive-workflow
+# guard interfering — no PAT required. `needs: tagging` chains the
+# two and pipes the resolved tag name through job outputs.
+
+on:
+  workflow_dispatch:
+    inputs:
+      bump_version:
+        description: 'Version bump type (Conventional Commits auto-detection takes precedence)'
+        type: choice
+        default: patch
+        options:
+          - patch
+          - minor
+          - major
+      release_branches:
+        description: 'Branches allowed to be tagged (comma-separated, regex supported)'
+        type: string
+        default: main
+
+permissions:
+  contents: write
+
+jobs:
+  tagging:
+    runs-on: ubuntu-latest
+    # cargo-edit install + bump + commit + tag push fits comfortably in
+    # 10 minutes on a cold runner.
+    timeout-minutes: 10
+    outputs:
+      new_tag: ${{ steps.tag_version.outputs.new_tag }}
+      new_version: ${{ steps.tag_version.outputs.new_version }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
+        with:
+          fetch-depth: 0
+
+      # Required before any `git commit` on a runner; otherwise commit
+      # fails with "Author identity unknown".
+      - name: Configure git identity
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      # `cargo set-version` (used by scripts/bump-version.sh) lives in
+      # the cargo-edit crate. install-action ships a prebuilt binary so
+      # this is a few-second download, not a from-source cargo install.
+      # ubuntu-latest ships rustup + stable Rust by default, so `cargo`
+      # itself is already on PATH.
+      - name: Install cargo-edit
+        uses: taiki-e/install-action@3771e22aa892e03fd35585fae288baad1755695c # v2.78.2
+        with:
+          tool: cargo-edit
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4.3.0
+        with:
+          version: 9
+
+      - name: Setup Node.js
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
+        with:
+          node-version: '24'
+          cache: 'pnpm'
+
+      # dry_run: true. The action computes the next version but does
+      # NOT push a tag. We push the tag ourselves AFTER the version
+      # bump commit lands, so the tag points at a tree that already
+      # has the new version in package.json / tauri.conf.json /
+      # Cargo.toml. Without dry_run the tag would land on the pre-bump
+      # tree and the updater would compare against an outdated
+      # `latest.json`.
+      - name: Compute next version
+        id: tag_version
+        uses: mathieudutour/github-tag-action@a22cf08638b34d5badda920f9daf6e72c477b07b # v6.2
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          release_branches: ${{ inputs.release_branches }}
+          tag_prefix: "v"
+          default_bump: ${{ inputs.bump_version }}
+          dry_run: true
+
+      # Export to GITHUB_ENV so subsequent run-steps can use
+      # `$NEW_VERSION` in plain shell. Reading
+      # `${{ steps.tag_version.outputs.new_version }}` directly in a
+      # shell pipeline is brittle and was the source of an "empty
+      # version" bug in an earlier draft of this workflow.
+      - name: Export new version to env
+        run: echo "NEW_VERSION=${{ steps.tag_version.outputs.new_version }}" >> "$GITHUB_ENV"
+
+      - name: Bump version in all manifests
+        run: ./scripts/bump-version.sh "$NEW_VERSION"
+
+      - name: Commit and push bumped manifests
+        run: |
+          git add package.json src-tauri/tauri.conf.json src-tauri/Cargo.toml src-tauri/Cargo.lock
+          git commit -m "chore: bump version to v$NEW_VERSION"
+          git push
+
+      - name: Push release tag
+        run: |
+          git tag "v$NEW_VERSION"
+          git push origin "v$NEW_VERSION"
+
+  release:
+    needs: tagging
+    # macos-14 is GitHub's Apple Silicon runner; aarch64-apple-darwin
+    # cannot be cross-compiled from Intel runners with the current
+    # toolchain, and Marianne is published as Apple Silicon only.
+    runs-on: macos-14
+    timeout-minutes: 45
+    steps:
+      # Check out the tag the tagging job just pushed (NOT the branch
+      # HEAD) so a race with concurrent main pushes can never sneak
+      # extra commits into the released bundle. The tag points to the
+      # bump commit by construction.
+      - name: Checkout (at the new tag)
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
+        with:
+          ref: ${{ needs.tagging.outputs.new_tag }}
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4.3.0
+        with:
+          version: 9
+
+      - name: Setup Node.js
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
+        with:
+          node-version: '24'
+          cache: 'pnpm'
+
+      - name: Setup Rust toolchain
+        # dtolnay/rust-toolchain has no tags; the `stable` branch is
+        # the canonical entry point. Pinned to a specific commit on
+        # that branch to match the SHA-pin convention used elsewhere
+        # in this repo. Bump the SHA + comment when refreshing Rust.
+        uses: dtolnay/rust-toolchain@29eef336d9b2848a0b548edc03f92a220660cdb8 # stable
+        with:
+          targets: aarch64-apple-darwin
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # tauri-action builds the bundle, signs the updater artifact with
+      # TAURI_SIGNING_PRIVATE_KEY, and uploads the artifacts + latest.json
+      # to a GitHub Release tagged ${{ needs.tagging.outputs.new_tag }}.
+      #
+      # releaseDraft: false and prerelease: false are MANDATORY: the
+      # updater endpoint is `releases/latest/download/latest.json`,
+      # which only resolves draft=false AND prerelease=false. A draft
+      # or prerelease here makes the public-facing updater 404 on
+      # every check until the release is manually promoted.
+      - name: Build, sign, and publish release
+        uses: tauri-apps/tauri-action@84b9d35b5fc46c1e45415bdb6144030364f7ebc5 # v0.6.2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        with:
+          tagName: ${{ needs.tagging.outputs.new_tag }}
+          releaseName: 'Marianne ${{ needs.tagging.outputs.new_tag }}'
+          releaseBody: |
+            See [README](https://github.com/takecy/marianne/blob/main/README.md) for download and installation instructions.
+
+            **Apple Silicon (aarch64) Mac only.** Intel Macs are not supported.
+
+            Existing installations will auto-update on next launch.
+          releaseDraft: false
+          prerelease: false
+          args: --target aarch64-apple-darwin

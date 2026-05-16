@@ -66,6 +66,27 @@ pnpm build:dmg      # Copies the distributable dmg from src-tauri/target/release
 
 **The distributable is Apple Silicon (aarch64) only.** Intel Mac and Universal binaries are not provided. The output file name is `Marianne_<version>_aarch64.dmg` (e.g. `dist-bundle/Marianne_0.1.0_aarch64.dmg`).
 
+### Supplying the signing key (for the updater)
+
+`tauri.conf.json` enables `createUpdaterArtifacts: true`, so `pnpm tauri build` / `pnpm install:local` / `pnpm build:dmg` need the updater signing key. **Builds fail in the signing phase if the env is missing.**
+
+Supply it locally with one of:
+
+```sh
+# direnv (recommended): create .envrc in the repo root (already gitignored)
+export TAURI_SIGNING_PRIVATE_KEY="$(cat ~/.tauri/marianne.key)"
+export TAURI_SIGNING_PRIVATE_KEY_PASSWORD="<strong-passphrase-stored-in-1password>"
+```
+
+```sh
+# or export inline before running a build
+export TAURI_SIGNING_PRIVATE_KEY="$(cat ~/.tauri/marianne.key)"
+export TAURI_SIGNING_PRIVATE_KEY_PASSWORD="<strong-passphrase-stored-in-1password>"
+pnpm install:local
+```
+
+In CI these come from the `TAURI_SIGNING_PRIVATE_KEY` / `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` GitHub Secrets, wired into release.yaml.
+
 ## Installing from the dmg (macOS)
 
 Steps for end users who received a built dmg.
@@ -94,6 +115,54 @@ The script runs `pnpm tauri build`, removes any existing `/Applications/Marianne
 > The build is not codesigned. On first launch macOS may block it with "Marianne cannot be opened because the developer cannot be verified". Workaround: right-click the app and choose "Open", or run `xattr -dr com.apple.quarantine /Applications/Marianne.app` once.
 
 Requirements: macOS only. The script exits with an error on Linux / Windows. Quit the app before reinstalling — overwriting a running `.app` may fail.
+
+## Auto-update
+
+End users keep up with new releases without any manual steps.
+
+- The app checks for an update on launch and shows a modal when a newer version is found.
+- A "更新を確認" button in the toolbar triggers a manual check on demand.
+- Choosing "今すぐ更新" downloads → installs → relaunches the app.
+- **Unsaved annotations are lost on relaunch**, so the modal warns when shapes are present. Save first if you have work in progress.
+- Network or signature-verification failures surface as a small `⚠ Failed` next to the update button (non-blocking). Hover for the full error message. Retry by clicking the same button.
+
+The endpoint is fixed to `https://github.com/takecy/marianne/releases/latest/download/latest.json`. Because this URL resolves the `releases/latest` view, **draft and pre-release releases are ignored**.
+
+## Release procedure (maintainers)
+
+Releases are fully automated by a single GitHub Actions workflow at `.github/workflows/tagging-release.yaml`.
+
+1. Go to **Actions → Tag and Release → Run workflow** in this repository.
+   - Pick `bump_version` (patch / minor / major). Conventional Commits detection takes precedence if applicable.
+2. The **`tagging` job** (ubuntu-latest):
+   - Computes the next version via `dry_run`.
+   - Runs `scripts/bump-version.sh` to sync `package.json`, `tauri.conf.json`, and `Cargo.toml` in a single commit.
+   - Pushes the bump commit to main.
+   - Pushes the `vX.Y.Z` tag.
+3. The **`release` job** (macos-14, `needs: tagging`) runs automatically next:
+   - Checks out the just-tagged commit.
+   - `pnpm tauri build --target aarch64-apple-darwin` produces signed bundles.
+   - Publishes `Marianne.app.tar.gz`, `.sig`, and `latest.json` to a GitHub Release (not a draft, not a prerelease).
+4. Existing installations fetch `latest.json` on their next launch and prompt to update.
+
+> **Manual `git push origin vX.Y.Z` is unsafe**: a tag that did not go through `bump-version.sh` and the signing flow is not a valid release. Always cut releases via the Run workflow button above.
+
+### Required GitHub Secrets
+
+Register these in Settings → Secrets before the workflow can complete:
+
+| Name                                 | Value                                                                          |
+| ------------------------------------ | ------------------------------------------------------------------------------ |
+| `TAURI_SIGNING_PRIVATE_KEY`          | Full contents of `~/.tauri/marianne.key`                                       |
+| `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` | Passphrase used to generate the key (use a strong 32+ character random string) |
+
+> The single-workflow design means everything runs within one workflow run, so the default `GITHUB_TOKEN` is enough — no PAT is needed to chain workflows.
+
+### Key management
+
+- Never commit `~/.tauri/marianne.key` (`.gitignore` covers it).
+- Back up the private key + passphrase to 1Password or similar. Losing the key means existing installations can no longer verify any future release.
+- Rotating the `pubkey` in `tauri.conf.json` breaks updates for everyone who installed before the rotation. **Treat the key as fixed-for-life.**
 
 ## License
 

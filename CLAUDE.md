@@ -102,5 +102,17 @@ copyImageToClipboard(blobPromise); // Promise<Blob> をそのまま ClipboardIte
 ## Tauri 統合の注意点
 
 - 開発 URL は `http://localhost:1420` 固定（`vite.config.ts` の `strictPort: true` と `tauri.conf.json` が対応）。片方だけ変更しないこと。
-- `src-tauri/capabilities/default.json` は `core:default` + `opener:default` しか許可していない。Rust 側コマンドやプラグインを追加する場合は capability の更新も必要。怠るとフロントの `invoke` が Tauri の ACL で拒否される。
+- `src-tauri/capabilities/default.json` の permissions リストは現在 `core:default` / `opener:default` / `dialog:allow-save` / `fs:allow-write-file` / `fs:allow-read-file` / `updater:default` / `process:default`。Rust 側プラグインを追加するときは capability も同時に追加すること（怠ると `invoke` が ACL で拒否される）。
 - フロントは `dist/` にビルドされ、`tauri.conf.json` の `frontendDist` 設定で `../dist` から提供される。
+
+### セルフアップデートに関する不変条件
+
+`tauri-plugin-updater` を運用する上で、以下を破ると壊れる:
+
+1. **3 ファイルの version 同期**: `package.json` / `src-tauri/tauri.conf.json` / `src-tauri/Cargo.toml` の version は常に一致していること。updater は `tauri.conf.json` 内の version をローカル基準にしてリモートの `latest.json` と比較する。手動でバンプせず必ず `scripts/bump-version.sh` を使う（tagging.yaml も内部で呼ぶ）。
+2. **公開鍵 (`plugins.updater.pubkey`) は固定**: 既に配布したアプリは埋め込んだ pubkey でしか署名検証しない。途中で鍵を差し替えると既存ユーザー全員が永遠に更新できなくなる。秘密鍵 `~/.tauri/marianne.key` は 1Password 等にバックアップ必須。
+3. **`.tauri/` / `*.key` / `*.key.pub` / `.envrc` / `.env*` はコミット禁止**: `.gitignore` 済。
+4. **ローカル build に signing env が必要**: `createUpdaterArtifacts: true` 設定のため、`pnpm tauri build` / `install:local` / `build:dmg` 実行時に `TAURI_SIGNING_PRIVATE_KEY` + `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` env が無いと署名フェーズで落ちる。direnv 等で供給する。
+5. **リリースは `tagging-release.yaml` の `workflow_dispatch` 経由のみ**: `tagging` (ubuntu) → `release` (macos-14, `needs: tagging`) の 2 ジョブ構成で 1 ワークフロー内で完結する。`GITHUB_TOKEN` だけで動くため PAT は不要。**手動の `git push origin vX.Y.Z` は禁忌** — bump-version.sh による 3 ファイル同期 + tauri-action の署名フローを通っていないタグはリリースとして成立せず updater が空振りする。
+6. **`tagging-release.yaml` の `releaseDraft: false` / `prerelease: false` は必須**: updater endpoint が `releases/latest/download/latest.json` を見るため、draft / prerelease のリリースだと 404 になり全ユーザーで更新が失敗する。
+7. **`relaunch()` は `await update.downloadAndInstall(...)` の解決後にのみ呼ぶ**: progress callback の `Finished` イベントは download 完了の signal であって install 完了ではない。callback 内で `relaunch()` を呼ぶと install が中断される。詳細は `src/lib/useUpdater.ts` のコメント参照。
