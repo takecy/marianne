@@ -1,7 +1,7 @@
 use tauri::{
     menu::{MenuBuilder, MenuItemBuilder},
     tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
-    AppHandle, Manager, Runtime, WindowEvent,
+    AppHandle, Manager, RunEvent, Runtime, WindowEvent,
 };
 
 #[tauri::command]
@@ -72,6 +72,14 @@ pub fn run() {
             }
         })
         .invoke_handler(tauri::generate_handler![greet])
-        .run(tauri::generate_context!())
-        .expect("error while running tauri application");
+        .build(tauri::generate_context!())
+        .expect("error while running tauri application")
+        // macOS fires Reopen when the user clicks the Dock icon. When there
+        // are no visible windows (main window was hidden via close = hide),
+        // restore the main window so Dock click matches user expectation.
+        .run(|app, event| {
+            if let RunEvent::Reopen { has_visible_windows: false, .. } = event {
+                show_main_window(app);
+            }
+        });
 }
