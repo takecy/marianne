@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { dirname, join } from "@tauri-apps/api/path";
 import { ActionBar } from "./components/ActionBar";
 import { CanvasArea } from "./components/CanvasArea";
@@ -24,6 +24,8 @@ import type { Shape } from "./types/shape";
 import type { ColorPresetName, ToolKind } from "./types/tool";
 import styles from "./App.module.css";
 
+const COPY_FEEDBACK_DURATION_MS = 2000;
+
 function deriveUpdateButtonState(
   kind: ReturnType<typeof useUpdater>["state"]["kind"],
 ): UpdateButtonState {
@@ -46,6 +48,16 @@ function App() {
   // buttons in the Toolbar while a text shape is being inline-edited so
   // the exported PNG does not capture a hidden text node.
   const [isEditingText, setIsEditingText] = useState(false);
+  const [copyState, setCopyState] = useState<"idle" | "success">("idle");
+  const copyResetTimer = useRef<number | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (copyResetTimer.current !== null) {
+        window.clearTimeout(copyResetTimer.current);
+      }
+    };
+  }, []);
 
   const shapes = useCanvasStore((s) => s.shapes);
   const selectedShapeId = useCanvasStore((s) => s.selectedShapeId);
@@ -144,14 +156,27 @@ function App() {
 
   // Synchronous start: passing the Promise<Blob> directly to ClipboardItem preserves
   // the transient user activation that WebKit/WKWebView requires for clipboard.write.
+  // `.then()` after the synchronous write call is safe — the user gesture has already
+  // been consumed by the time the promise resolves.
   const handleExportToClipboard = useCallback(() => {
     if (!image || isEditingText) {
       return;
     }
     const blobPromise = exportToBlob(image, shapes);
-    copyImageToClipboard(blobPromise).catch((error) => {
-      console.error("Copy to clipboard failed:", error);
-    });
+    copyImageToClipboard(blobPromise)
+      .then(() => {
+        setCopyState("success");
+        if (copyResetTimer.current !== null) {
+          window.clearTimeout(copyResetTimer.current);
+        }
+        copyResetTimer.current = window.setTimeout(() => {
+          setCopyState("idle");
+          copyResetTimer.current = null;
+        }, COPY_FEEDBACK_DURATION_MS);
+      })
+      .catch((error) => {
+        console.error("Copy to clipboard failed:", error);
+      });
   }, [image, isEditingText, shapes]);
 
   return (
@@ -175,6 +200,7 @@ function App() {
           disabled={image === null || isEditingText}
           onExportToFile={handleExportToFile}
           onExportToClipboard={handleExportToClipboard}
+          copyState={copyState}
         />
         <CanvasArea
           image={image}
