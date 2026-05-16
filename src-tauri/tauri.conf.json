@@ -1,6 +1,6 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "marianne",
+  "productName": "Marianne",
   "version": "0.1.0",
   "identifier": "dev.takecy.marianne",
   "build": {
@@ -12,7 +12,7 @@
   "app": {
     "windows": [
       {
-        "title": "marianne",
+        "title": "Marianne",
         "width": 1280,
         "height": 800,
         "dragDropEnabled": true
