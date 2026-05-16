@@ -34,7 +34,11 @@ jobs:
           cache: 'pnpm'
 
       - name: Setup Rust toolchain
-        uses: dtolnay/rust-toolchain@stable  # TODO: pin to commit SHA before merge
+        # dtolnay/rust-toolchain has no tags; the `stable` branch is the
+        # canonical entry point. Pinned to a specific commit on that branch
+        # to match the SHA-pin convention used elsewhere in this repo.
+        # Bump the SHA + comment when refreshing Rust.
+        uses: dtolnay/rust-toolchain@29eef336d9b2848a0b548edc03f92a220660cdb8 # stable
         with:
           targets: aarch64-apple-darwin
 
@@ -51,7 +55,7 @@ jobs:
       # prerelease here makes the public-facing updater 404 on every
       # check until the release is manually promoted.
       - name: Build, sign, and publish release
-        uses: tauri-apps/tauri-action@v0  # TODO: pin to commit SHA before merge
+        uses: tauri-apps/tauri-action@84b9d35b5fc46c1e45415bdb6144030364f7ebc5 # v0.6.2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}

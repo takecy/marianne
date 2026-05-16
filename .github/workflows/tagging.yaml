@@ -49,7 +49,7 @@ jobs:
       # cargo-edit crate. install-action ships a prebuilt binary so this
       # is a few-second download, not a from-source cargo install.
       - name: Install cargo-edit
-        uses: taiki-e/install-action@v2  # TODO: pin to commit SHA before merge
+        uses: taiki-e/install-action@3771e22aa892e03fd35585fae288baad1755695c # v2.78.2
         with:
           tool: cargo-edit
 
