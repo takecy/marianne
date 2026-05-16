@@ -2,7 +2,9 @@ use std::path::{Path, PathBuf};
 use std::sync::Mutex;
 
 use tauri::{
+    image::Image,
     menu::{MenuBuilder, MenuItemBuilder},
+    path::BaseDirectory,
     tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
     AppHandle, Emitter, Manager, RunEvent, Runtime, Url, WindowEvent,
 };
@@ -155,8 +157,14 @@ pub fn run() {
                 .item(&quit_item)
                 .build()?;
 
+            let menubar_icon_path = app
+                .path()
+                .resolve("icons/menubar.png", BaseDirectory::Resource)?;
+            let menubar_icon = Image::from_path(&menubar_icon_path)?;
+
             let _tray = TrayIconBuilder::new()
-                .icon(app.default_window_icon().unwrap().clone())
+                .icon(menubar_icon)
+                .icon_as_template(true)
                 .menu(&menu)
                 .show_menu_on_left_click(false)
                 .on_menu_event(|app, event| match event.id.as_ref() {
