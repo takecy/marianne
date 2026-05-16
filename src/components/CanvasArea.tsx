@@ -269,7 +269,7 @@ export function CanvasArea(props: CanvasAreaProps) {
   // - Cmd/Ctrl + Shift + S => export to file (opens native save dialog)
   // - Cmd/Ctrl + Z         => undo
   // - Cmd/Ctrl + Shift + Z => redo
-  // - v / l / r / t / m    => switch tool (select / arrow / rect / text / mosaic), ignored when no image
+  // - v / a / r / t / m    => switch tool (select / arrow / rect / text / mosaic), ignored when no image
   // - Delete / Backspace   => remove selected shape (select-mode only)
   // We bail out when text input is active or when focus is in an editable field
   // so the browser's native textarea undo (and key bindings) keeps working.
