@@ -16,7 +16,8 @@
     "test": "vitest",
     "test:run": "vitest run",
     "test:ui": "vitest --ui",
-    "install:local": "scripts/install-local.sh"
+    "install:local": "scripts/install-local.sh",
+    "build:dmg": "scripts/build-dmg.sh"
   },
   "dependencies": {
     "@tauri-apps/api": "^2",

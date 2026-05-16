@@ -31,3 +31,6 @@ coverage
 # Rust / Tauri target
 src-tauri/target
 src-tauri/gen/schemas
+
+# Built dmg bundles (output of `pnpm build:dmg`)
+dist-bundle
