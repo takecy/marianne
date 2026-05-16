@@ -2,6 +2,7 @@ import { create } from "zustand";
 import type { Size } from "@/lib/imageFit";
 import { cloneShapeForPaste } from "@/lib/shapeClipboard";
 import type { ArrowShape, MosaicShape, RectShape, Shape, TextShape } from "@/types/shape";
+import type { ColorPresetName } from "@/types/tool";
 
 const HISTORY_LIMIT = 50;
 
@@ -21,6 +22,7 @@ interface CanvasState {
   updateText: (id: string, patch: TextPatch) => void;
   updateArrow: (id: string, patch: ArrowPatch) => void;
   updateMosaic: (id: string, patch: MosaicPatch) => void;
+  setSelectedShapeColor: (color: ColorPresetName) => void;
   deleteShape: (id: string) => void;
   selectShape: (id: string | null) => void;
   clearShapes: () => void;
@@ -81,6 +83,40 @@ export const useCanvasStore = create<CanvasState>((set) => ({
     set((state) => withHistory(state, patchByType(state.shapes, id, "arrow", patch))),
   updateMosaic: (id, patch) =>
     set((state) => withHistory(state, patchByType(state.shapes, id, "mosaic", patch))),
+  // Apply `color` to the currently selected shape (rect / text / arrow only).
+  // No-op when nothing is selected, the selected shape is a mosaic, or the
+  // requested color matches the shape's current color — this keeps the
+  // undo history clean for identical re-clicks.
+  setSelectedShapeColor: (color) =>
+    set((state) => {
+      const id = state.selectedShapeId;
+      if (id === null) {
+        return {};
+      }
+      const shape = state.shapes.find((s) => s.id === id);
+      if (shape === undefined) {
+        return {};
+      }
+      let next: Shape[] = state.shapes;
+      switch (shape.type) {
+        case "rect":
+          if (shape.color === color) return {};
+          next = patchByType(state.shapes, id, "rect", { color });
+          break;
+        case "text":
+          if (shape.color === color) return {};
+          next = patchByType(state.shapes, id, "text", { color });
+          break;
+        case "arrow":
+          if (shape.color === color) return {};
+          next = patchByType(state.shapes, id, "arrow", { color });
+          break;
+        case "mosaic":
+          // Mosaic shapes have no color field — silent no-op.
+          return {};
+      }
+      return withHistory(state, next);
+    }),
   deleteShape: (id) =>
     set((state) => {
       const next = state.shapes.filter((shape) => shape.id !== id);
