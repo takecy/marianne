@@ -1,7 +1,8 @@
 import { useCallback, useState } from "react";
 import { dirname, join } from "@tauri-apps/api/path";
+import { ActionBar } from "./components/ActionBar";
 import { CanvasArea } from "./components/CanvasArea";
-import { Toolbar, type UpdateButtonState } from "./components/Toolbar";
+import { Sidebar, type UpdateButtonState } from "./components/Sidebar";
 import { UpdateModal } from "./components/UpdateModal";
 import {
   copyImageToClipboard,
@@ -155,15 +156,12 @@ function App() {
 
   return (
     <div className={styles.appShell}>
-      <Toolbar
+      <Sidebar
         activeTool={activeTool}
         onToolChange={setActiveTool}
         activeColor={activeColor}
         onColorChange={handleColorChange}
         disabled={image === null}
-        exportDisabled={isEditingText}
-        onExportToFile={handleExportToFile}
-        onExportToClipboard={handleExportToClipboard}
         onUndo={undo}
         onRedo={redo}
         canUndo={canUndo}
@@ -172,30 +170,38 @@ function App() {
         updateButtonState={deriveUpdateButtonState(updateState.kind)}
         updateErrorMessage={updateState.kind === "error" ? updateState.message : undefined}
       />
-      <CanvasArea
-        image={image}
-        isDraggingOver={isDraggingOver}
-        shapes={shapes}
-        activeTool={activeTool}
-        activeColor={activeColor}
-        selectedShapeId={selectedShapeId}
-        hasClipboardShape={hasClipboardShape}
-        onToolChange={setActiveTool}
-        onShapeAdded={handleShapeAdded}
-        onSelectShape={selectShape}
-        onDeleteShape={deleteShape}
-        onUpdateRect={updateRect}
-        onUpdateText={updateText}
-        onUpdateArrow={updateArrow}
-        onUpdateMosaic={updateMosaic}
-        onCopyShape={copyShape}
-        onPasteShape={pasteShape}
-        onAfterPaste={handleAfterPaste}
-        onUndo={undo}
-        onRedo={redo}
-        onExportToFile={handleExportToFile}
-        onEditingTextChange={setIsEditingText}
-      />
+      <div className={styles.mainColumn}>
+        <ActionBar
+          disabled={image === null || isEditingText}
+          onExportToFile={handleExportToFile}
+          onExportToClipboard={handleExportToClipboard}
+        />
+        <CanvasArea
+          image={image}
+          isDraggingOver={isDraggingOver}
+          shapes={shapes}
+          activeTool={activeTool}
+          activeColor={activeColor}
+          selectedShapeId={selectedShapeId}
+          hasClipboardShape={hasClipboardShape}
+          onToolChange={setActiveTool}
+          onShapeAdded={handleShapeAdded}
+          onSelectShape={selectShape}
+          onDeleteShape={deleteShape}
+          onUpdateRect={updateRect}
+          onUpdateText={updateText}
+          onUpdateArrow={updateArrow}
+          onUpdateMosaic={updateMosaic}
+          onCopyShape={copyShape}
+          onPasteShape={pasteShape}
+          onAfterPaste={handleAfterPaste}
+          onUndo={undo}
+          onRedo={redo}
+          onExportToFile={handleExportToFile}
+          onExportToClipboard={handleExportToClipboard}
+          onEditingTextChange={setIsEditingText}
+        />
+      </div>
       <UpdateModal
         state={updateState}
         hasUnsavedShapes={shapes.length > 0}
