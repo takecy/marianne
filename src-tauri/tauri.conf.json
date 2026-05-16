@@ -26,6 +26,9 @@
     "active": true,
     "targets": "all",
     "category": "GraphicsAndDesign",
+    "macOS": {
+      "minimumSystemVersion": "11.0"
+    },
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",
