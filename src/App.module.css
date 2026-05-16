@@ -1,3 +1,56 @@
+:global(:root) {
+  /* Light theme tokens (default). Dark values are applied via
+     prefers-color-scheme override below. Tokens are semantic (role-based),
+     not literal color names, so dark mode is a simple value swap. */
+  --color-bg: #ffffff;
+  --color-fg: #0f172a;
+  --color-fg-muted: #475569;
+  --color-surface: #f8fafc;
+  --color-surface-raised: #ffffff;
+  --color-surface-hover: #f1f5f9;
+  --color-border-subtle: #e2e8f0;
+  --color-border-strong: #cbd5e1;
+  --color-border-dashed: #94a3b8;
+  --color-canvas-bg: #e2e8f0;
+  --color-canvas-drop: #dbeafe;
+  --color-accent: #2563eb;
+  --color-accent-hover: #1e40af;
+  --color-on-accent: #ffffff;
+  --color-active-bg: #0f172a;
+  --color-active-bg-hover: #1e293b;
+  --color-active-fg: #f8fafc;
+  --color-text-input-bg: rgba(255, 255, 255, 0.85);
+  --color-text-input-bg-focus: rgba(255, 255, 255, 0.95);
+  --color-mosaic-draft-fill: rgba(15, 23, 42, 0.35);
+  --color-mosaic-draft-stroke: #0f172a;
+}
+
+@media (prefers-color-scheme: dark) {
+  :global(:root) {
+    --color-bg: #0f172a;
+    --color-fg: #f1f5f9;
+    --color-fg-muted: #94a3b8;
+    --color-surface: #1e293b;
+    --color-surface-raised: #334155;
+    --color-surface-hover: #475569;
+    --color-border-subtle: #334155;
+    --color-border-strong: #475569;
+    --color-border-dashed: #64748b;
+    --color-canvas-bg: #1e293b;
+    --color-canvas-drop: #1e3a8a;
+    --color-accent: #3b82f6;
+    --color-accent-hover: #1d4ed8;
+    --color-on-accent: #ffffff;
+    --color-active-bg: #f1f5f9;
+    --color-active-bg-hover: #e2e8f0;
+    --color-active-fg: #0f172a;
+    --color-text-input-bg: rgba(15, 23, 42, 0.85);
+    --color-text-input-bg-focus: rgba(15, 23, 42, 0.95);
+    --color-mosaic-draft-fill: rgba(241, 245, 249, 0.35);
+    --color-mosaic-draft-stroke: #f1f5f9;
+  }
+}
+
 :global(html),
 :global(body),
 :global(#root) {
@@ -9,8 +62,8 @@
 
 :global(body) {
   font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  color: #0f172a;
-  background: #ffffff;
+  color: var(--color-fg);
+  background: var(--color-bg);
 }
 
 .appShell {

@@ -11,6 +11,7 @@ import {
 } from "@/lib/imageFit";
 import type { FitRect, Point, Size as FitSize } from "@/lib/imageFit";
 import { finalizeDraft, moveDraft, startDraft } from "@/lib/drawingGesture";
+import { useThemeMode } from "@/lib/useThemeMode";
 import type { LoadedImage } from "@/types/image";
 import type {
   ArrowShape,
@@ -82,7 +83,29 @@ function getStagePointer(event: KonvaEventObject<MouseEvent>): Point | null {
   return pos ? { x: pos.x, y: pos.y } : null;
 }
 
-function renderDraft(draft: DraftShape, fit: FitRect, imageSize: FitSize) {
+interface MosaicDraftColors {
+  fill: string;
+  stroke: string;
+}
+
+// Mosaic draft is the only Konva-rendered piece that can't pick up theme via
+// CSS variables, so colors are passed in from CanvasArea, which subscribes to
+// `prefers-color-scheme` through useThemeMode.
+const MOSAIC_DRAFT_COLORS_LIGHT: MosaicDraftColors = {
+  fill: "rgba(15, 23, 42, 0.35)",
+  stroke: "#0f172a",
+};
+const MOSAIC_DRAFT_COLORS_DARK: MosaicDraftColors = {
+  fill: "rgba(241, 245, 249, 0.35)",
+  stroke: "#f1f5f9",
+};
+
+function renderDraft(
+  draft: DraftShape,
+  fit: FitRect,
+  imageSize: FitSize,
+  mosaicDraftColors: MosaicDraftColors,
+) {
   const { scaleX, scaleY } = imageToScreenScale(fit, imageSize);
   if (draft.type === "rect") {
     const hex = colorHex(draft.color);
@@ -117,8 +140,8 @@ function renderDraft(draft: DraftShape, fit: FitRect, imageSize: FitSize) {
         y={topLeft.y}
         width={w * scaleX}
         height={h * scaleY}
-        fill="rgba(15, 23, 42, 0.35)"
-        stroke="#0f172a"
+        fill={mosaicDraftColors.fill}
+        stroke={mosaicDraftColors.stroke}
         strokeWidth={1}
         dash={[4, 4]}
         listening={false}
@@ -175,6 +198,10 @@ export function CanvasArea(props: CanvasAreaProps) {
   const [textInput, setTextInput] = useState<Point | null>(null);
   const nodeMap = useRef<Map<string, Konva.Node>>(new Map());
   const transformerRef = useRef<Konva.Transformer | null>(null);
+  const themeMode = useThemeMode();
+  const mosaicDraftColors = themeMode === "dark"
+    ? MOSAIC_DRAFT_COLORS_DARK
+    : MOSAIC_DRAFT_COLORS_LIGHT;
 
   const isSelectMode = activeTool === "select";
 
@@ -438,7 +465,9 @@ export function CanvasArea(props: CanvasAreaProps) {
               />
             </Layer>
             <Layer listening={false}>
-              {draft && fit && imageSize ? renderDraft(draft, fit, imageSize) : null}
+              {draft && fit && imageSize
+                ? renderDraft(draft, fit, imageSize, mosaicDraftColors)
+                : null}
             </Layer>
           </Stage>
         )
