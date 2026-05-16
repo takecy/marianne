@@ -87,10 +87,11 @@ export function useQuitConfirm(options: UseQuitConfirmOptions): UseQuitConfirmRe
       }
       unlistenFn = un;
       // Signal Rust that the listener is registered. Until this returns,
-      // the Rust ExitRequested handler falls through to a normal exit
-      // (cold-start safety net). Order matters: must be after `await
-      // listen` resolves so we cannot lose a `quit-requested` event
-      // between the RendererReady flag flip and the listener being live.
+      // the Rust quit handlers (Cmd+Q menu, tray Quit, ExitRequested) fall
+      // back to a direct exit so the user is never stuck (cold-start
+      // safety). Order matters: must be after `await listen` resolves so
+      // we cannot lose a `quit-requested` event between the RendererReady
+      // flag flip and the listener being live.
       try {
         await invoke("renderer_ready");
       } catch (err) {

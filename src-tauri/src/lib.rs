@@ -4,7 +4,7 @@ use std::sync::Mutex;
 
 use tauri::{
     image::Image,
-    menu::{MenuBuilder, MenuItemBuilder},
+    menu::{MenuBuilder, MenuItemBuilder, PredefinedMenuItem, SubmenuBuilder},
     path::BaseDirectory,
     tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
     AppHandle, Emitter, Manager, RunEvent, Runtime, Url, WindowEvent,
@@ -159,6 +159,24 @@ fn show_main_window<R: Runtime>(app: &AppHandle<R>) {
     }
 }
 
+/// Shared quit entry point used by the macOS Cmd+Q menu accelerator and the
+/// tray "Quit Marianne" item. Tauri v2 on macOS bypasses `RunEvent::ExitRequested`
+/// for the OS-level Cmd+Q keystroke (it goes through WKWebView → direct process
+/// termination), so we capture Cmd+Q via a custom application MenuItem instead
+/// and route both paths through here. If the renderer has not finished mounting
+/// the `quit-requested` listener yet, fall back to a direct exit so the user is
+/// never stuck with an unquittable app (cold-start safety, mirrors
+/// `PendingOpenPaths`).
+fn request_quit<R: Runtime>(app: &AppHandle<R>) {
+    let ready = app.state::<RendererReady>().0.load(Ordering::SeqCst);
+    if !ready {
+        app.exit(0);
+        return;
+    }
+    show_main_window(app);
+    let _ = app.emit("quit-requested", ());
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let mut builder = tauri::Builder::default()
@@ -188,7 +206,7 @@ pub fn run() {
         .setup(|app| {
             let show_item = MenuItemBuilder::with_id("show", "Show Marianne").build(app)?;
             let quit_item = MenuItemBuilder::with_id("quit", "Quit Marianne").build(app)?;
-            let menu = MenuBuilder::new(app)
+            let tray_menu = MenuBuilder::new(app)
                 .item(&show_item)
                 .separator()
                 .item(&quit_item)
@@ -202,11 +220,14 @@ pub fn run() {
             let _tray = TrayIconBuilder::new()
                 .icon(menubar_icon)
                 .icon_as_template(true)
-                .menu(&menu)
+                .menu(&tray_menu)
                 .show_menu_on_left_click(false)
                 .on_menu_event(|app, event| match event.id.as_ref() {
                     "show" => show_main_window(app),
-                    "quit" => app.exit(0),
+                    // Route the tray Quit through the same handler the
+                    // Cmd+Q application menu uses so both paths show the
+                    // unsaved-shapes confirmation dialog.
+                    "quit" => request_quit(app),
                     _ => {}
                 })
                 .on_tray_icon_event(|tray, event| {
@@ -221,7 +242,57 @@ pub fn run() {
                 })
                 .build(app)?;
 
+            // Build a minimal macOS application menu. The "Quit Marianne"
+            // item uses our own MenuItemBuilder (not PredefinedMenuItem::quit)
+            // with the Cmd+Q accelerator, so when the user presses Cmd+Q the
+            // event flows through `Builder::on_menu_event` instead of
+            // `[NSApp terminate:]`. This is the macOS-specific workaround for
+            // the Tauri v2 behaviour where the OS-level Cmd+Q skips
+            // `RunEvent::ExitRequested` and goes straight to process exit.
+            //
+            // PredefinedMenuItem entries are kept for standard macOS UX
+            // (About / Hide / Hide Others / Show All / Services) so the user
+            // is not surprised by missing items.
+            let app_quit_item = MenuItemBuilder::with_id("app-quit", "Quit Marianne")
+                .accelerator("Cmd+Q")
+                .build(app)?;
+            let app_submenu = SubmenuBuilder::new(app, "Marianne")
+                .item(&PredefinedMenuItem::about(app, None, None)?)
+                .separator()
+                .item(&PredefinedMenuItem::services(app, None)?)
+                .separator()
+                .item(&PredefinedMenuItem::hide(app, None)?)
+                .item(&PredefinedMenuItem::hide_others(app, None)?)
+                .item(&PredefinedMenuItem::show_all(app, None)?)
+                .separator()
+                .item(&app_quit_item)
+                .build()?;
+            // Edit submenu lets the user reach standard clipboard shortcuts
+            // (Cmd+C / Cmd+V / Cmd+X / Cmd+A) via the macOS menu when the
+            // webview does not handle them directly.
+            let edit_submenu = SubmenuBuilder::new(app, "Edit")
+                .item(&PredefinedMenuItem::undo(app, None)?)
+                .item(&PredefinedMenuItem::redo(app, None)?)
+                .separator()
+                .item(&PredefinedMenuItem::cut(app, None)?)
+                .item(&PredefinedMenuItem::copy(app, None)?)
+                .item(&PredefinedMenuItem::paste(app, None)?)
+                .item(&PredefinedMenuItem::select_all(app, None)?)
+                .build()?;
+            let app_menu = MenuBuilder::new(app)
+                .item(&app_submenu)
+                .item(&edit_submenu)
+                .build()?;
+            app.set_menu(app_menu)?;
+
             Ok(())
+        })
+        .on_menu_event(|app, event| {
+            // Application-menu events (from `app.set_menu` above). Tray menu
+            // events go through `TrayIconBuilder::on_menu_event` separately.
+            if event.id().as_ref() == "app-quit" {
+                request_quit(app);
+            }
         })
         // Close button on the main window hides instead of quitting so the
         // tray icon can later restore the window with in-flight edits intact.
@@ -277,13 +348,7 @@ pub fn run() {
                     return;
                 }
                 api.prevent_exit();
-                // If the user previously hid the window via the red
-                // close button, restoring it here gives the modal
-                // somewhere to land. Otherwise the dialog would render
-                // into a hidden window and the user would have no way
-                // to dismiss it.
-                show_main_window(app);
-                let _ = app.emit("quit-requested", ());
+                request_quit(app);
             }
             // macOS fires Reopen when the user clicks the Dock icon. When
             // there are no visible windows (main window was hidden via
