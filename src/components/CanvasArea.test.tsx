@@ -76,6 +76,7 @@ function renderCanvas(
     onUndo: vi.fn(),
     onRedo: vi.fn(),
     onExportToFile: vi.fn(),
+    onExportToClipboard: vi.fn(),
   };
   const shapes: Shape[] = [];
   render(
@@ -151,6 +152,32 @@ describe("CanvasArea keyboard shortcuts", () => {
     );
     textarea.remove();
     expect(onExportToFile).not.toHaveBeenCalled();
+  });
+
+  it("invokes onExportToClipboard when Meta+Shift+C is pressed", () => {
+    const { onExportToClipboard, onCopyShape } = renderCanvas();
+    window.dispatchEvent(
+      new KeyboardEvent("keydown", { key: "c", metaKey: true, shiftKey: true }),
+    );
+    expect(onExportToClipboard).toHaveBeenCalledTimes(1);
+    // Shift+C must NOT invoke the shape-copy handler (which is the plain Cmd+C).
+    expect(onCopyShape).not.toHaveBeenCalled();
+  });
+
+  it("also accepts Ctrl+Shift+C for non-mac platforms", () => {
+    const { onExportToClipboard } = renderCanvas();
+    window.dispatchEvent(
+      new KeyboardEvent("keydown", { key: "c", ctrlKey: true, shiftKey: true }),
+    );
+    expect(onExportToClipboard).toHaveBeenCalledTimes(1);
+  });
+
+  it("accepts uppercase C as the key for clipboard export", () => {
+    const { onExportToClipboard } = renderCanvas();
+    window.dispatchEvent(
+      new KeyboardEvent("keydown", { key: "C", metaKey: true, shiftKey: true }),
+    );
+    expect(onExportToClipboard).toHaveBeenCalledTimes(1);
   });
 
   it("renders the empty-state hint when no image is loaded", () => {

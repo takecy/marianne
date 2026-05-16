@@ -64,6 +64,7 @@ interface CanvasAreaProps {
   onUndo: () => void;
   onRedo: () => void;
   onExportToFile: () => void;
+  onExportToClipboard: () => void;
   onEditingTextChange?: (isEditing: boolean) => void;
 }
 
@@ -205,6 +206,7 @@ export function CanvasArea(props: CanvasAreaProps) {
     onUndo,
     onRedo,
     onExportToFile,
+    onExportToClipboard,
     onEditingTextChange,
   } = props;
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -308,8 +310,11 @@ export function CanvasArea(props: CanvasAreaProps) {
 
   // Keyboard shortcuts:
   // - Cmd/Ctrl + Shift + S => export to file (opens native save dialog)
+  // - Cmd/Ctrl + Shift + C => export to clipboard (copy PNG image)
   // - Cmd/Ctrl + Z         => undo
   // - Cmd/Ctrl + Shift + Z => redo
+  // - Cmd/Ctrl + C         => copy selected shape to internal clipboard (select mode only)
+  // - Cmd/Ctrl + V         => paste shape from internal clipboard
   // - v / a / r / t / m    => switch tool (select / arrow / rect / text / mosaic), ignored when no image
   // - Delete / Backspace   => remove selected shape (select-mode only)
   // We bail out when text input is active or when focus is in an editable field
@@ -336,6 +341,19 @@ export function CanvasArea(props: CanvasAreaProps) {
       ) {
         e.preventDefault();
         onExportToFile();
+        return;
+      }
+
+      // Cmd/Ctrl + Shift + C: export PNG to system clipboard. Distinct from
+      // the plain Cmd/Ctrl + C below, which copies the selected shape to the
+      // internal clipboard (for in-app duplication via Cmd+V).
+      if (
+        (e.metaKey || e.ctrlKey) &&
+        e.shiftKey &&
+        (e.key === "c" || e.key === "C")
+      ) {
+        e.preventDefault();
+        onExportToClipboard();
         return;
       }
 
@@ -425,6 +443,7 @@ export function CanvasArea(props: CanvasAreaProps) {
     onUndo,
     onRedo,
     onExportToFile,
+    onExportToClipboard,
   ]);
 
   const imageSize: FitSize | null = image

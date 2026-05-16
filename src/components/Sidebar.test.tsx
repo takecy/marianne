@@ -1,11 +1,11 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { Toolbar } from "./Toolbar";
+import { Sidebar } from "./Sidebar";
 
-describe("Toolbar", () => {
+describe("Sidebar", () => {
   it("renders all 5 tool buttons and 8 color presets", () => {
     render(
-      <Toolbar
+      <Sidebar
         activeTool="select"
         onToolChange={vi.fn()}
         activeColor="red"
@@ -25,7 +25,7 @@ describe("Toolbar", () => {
 
   it("marks the active tool as pressed", () => {
     render(
-      <Toolbar
+      <Sidebar
         activeTool="rect"
         onToolChange={vi.fn()}
         activeColor="blue"
@@ -47,7 +47,7 @@ describe("Toolbar", () => {
     const user = userEvent.setup();
     const onToolChange = vi.fn();
     render(
-      <Toolbar
+      <Sidebar
         activeTool="arrow"
         onToolChange={onToolChange}
         activeColor="red"
@@ -59,59 +59,27 @@ describe("Toolbar", () => {
     expect(onToolChange).toHaveBeenCalledWith("text");
   });
 
-  it("disables all buttons and suppresses callbacks when disabled is true", async () => {
+  it("disables tool and color buttons and suppresses callbacks when disabled is true", async () => {
     const user = userEvent.setup();
     const onToolChange = vi.fn();
     const onColorChange = vi.fn();
-    const onExportToFile = vi.fn();
-    const onExportToClipboard = vi.fn();
     render(
-      <Toolbar
+      <Sidebar
         activeTool="arrow"
         onToolChange={onToolChange}
         activeColor="red"
         onColorChange={onColorChange}
-        onExportToFile={onExportToFile}
-        onExportToClipboard={onExportToClipboard}
         disabled
       />,
     );
 
     expect(screen.getByRole("button", { name: /^矢印/ })).toBeDisabled();
     expect(screen.getByRole("button", { name: "red" })).toBeDisabled();
-    expect(screen.getByRole("button", { name: "保存" })).toBeDisabled();
-    expect(screen.getByRole("button", { name: "コピー" })).toBeDisabled();
 
     await user.click(screen.getByRole("button", { name: /^テキスト/ }));
     expect(onToolChange).not.toHaveBeenCalled();
     await user.click(screen.getByRole("button", { name: "blue" }));
     expect(onColorChange).not.toHaveBeenCalled();
-    await user.click(screen.getByRole("button", { name: "保存" }));
-    expect(onExportToFile).not.toHaveBeenCalled();
-    await user.click(screen.getByRole("button", { name: "コピー" }));
-    expect(onExportToClipboard).not.toHaveBeenCalled();
-  });
-
-  it("invokes onExportToFile and onExportToClipboard on the respective buttons", async () => {
-    const user = userEvent.setup();
-    const onExportToFile = vi.fn();
-    const onExportToClipboard = vi.fn();
-    render(
-      <Toolbar
-        activeTool="select"
-        onToolChange={vi.fn()}
-        activeColor="red"
-        onColorChange={vi.fn()}
-        onExportToFile={onExportToFile}
-        onExportToClipboard={onExportToClipboard}
-      />,
-    );
-
-    await user.click(screen.getByRole("button", { name: "保存" }));
-    expect(onExportToFile).toHaveBeenCalledTimes(1);
-
-    await user.click(screen.getByRole("button", { name: "コピー" }));
-    expect(onExportToClipboard).toHaveBeenCalledTimes(1);
   });
 
   it("renders 戻る/進む buttons and invokes their callbacks", async () => {
@@ -119,7 +87,7 @@ describe("Toolbar", () => {
     const onUndo = vi.fn();
     const onRedo = vi.fn();
     render(
-      <Toolbar
+      <Sidebar
         activeTool="select"
         onToolChange={vi.fn()}
         activeColor="red"
@@ -143,7 +111,7 @@ describe("Toolbar", () => {
     const onUndo = vi.fn();
     const onRedo = vi.fn();
     render(
-      <Toolbar
+      <Sidebar
         activeTool="select"
         onToolChange={vi.fn()}
         activeColor="red"
@@ -164,9 +132,9 @@ describe("Toolbar", () => {
     expect(onRedo).not.toHaveBeenCalled();
   });
 
-  it("disables 戻る/進む when the whole toolbar is disabled even if canUndo / canRedo are true", () => {
+  it("disables 戻る/進む when the whole sidebar is disabled even if canUndo / canRedo are true", () => {
     render(
-      <Toolbar
+      <Sidebar
         activeTool="select"
         onToolChange={vi.fn()}
         activeColor="red"
@@ -185,7 +153,7 @@ describe("Toolbar", () => {
 
   it("does not render the 更新を確認 button when onCheckForUpdates is omitted", () => {
     render(
-      <Toolbar
+      <Sidebar
         activeTool="select"
         onToolChange={vi.fn()}
         activeColor="red"
@@ -199,7 +167,7 @@ describe("Toolbar", () => {
     const user = userEvent.setup();
     const onCheckForUpdates = vi.fn();
     render(
-      <Toolbar
+      <Sidebar
         activeTool="select"
         onToolChange={vi.fn()}
         activeColor="red"
@@ -211,9 +179,9 @@ describe("Toolbar", () => {
     expect(onCheckForUpdates).toHaveBeenCalledTimes(1);
   });
 
-  it("update button stays enabled even when toolbar disabled is true", () => {
+  it("update button stays enabled even when sidebar disabled is true", () => {
     render(
-      <Toolbar
+      <Sidebar
         activeTool="select"
         onToolChange={vi.fn()}
         activeColor="red"
@@ -227,7 +195,7 @@ describe("Toolbar", () => {
 
   it("update button disables only when state is checking", () => {
     const { rerender } = render(
-      <Toolbar
+      <Sidebar
         activeTool="select"
         onToolChange={vi.fn()}
         activeColor="red"
@@ -239,7 +207,7 @@ describe("Toolbar", () => {
     expect(screen.getByRole("button", { name: "更新を確認" })).toBeDisabled();
 
     rerender(
-      <Toolbar
+      <Sidebar
         activeTool="select"
         onToolChange={vi.fn()}
         activeColor="red"
@@ -254,7 +222,7 @@ describe("Toolbar", () => {
   it("renders a short inline failure indicator with the full message in title", () => {
     const full = "Could not fetch a valid release JSON from the remote";
     render(
-      <Toolbar
+      <Sidebar
         activeTool="select"
         onToolChange={vi.fn()}
         activeColor="red"
@@ -263,8 +231,8 @@ describe("Toolbar", () => {
         updateErrorMessage={full}
       />,
     );
-    // Visible label is the compact "⚠ Failed" so toolbar width stays stable
-    // regardless of how long the underlying error is.
+    // Visible label is the compact "⚠ Failed" so the sidebar width stays
+    // stable regardless of how long the underlying error is.
     const status = screen.getByRole("status");
     expect(status).toHaveTextContent("⚠ Failed");
     expect(status).not.toHaveTextContent(full);
@@ -276,7 +244,7 @@ describe("Toolbar", () => {
 
   it("does not render the inline error when updateErrorMessage is undefined", () => {
     render(
-      <Toolbar
+      <Sidebar
         activeTool="select"
         onToolChange={vi.fn()}
         activeColor="red"

@@ -1,0 +1,139 @@
+.sidebar {
+  flex: 0 0 64px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 12px 10px;
+  gap: 12px;
+  background: var(--color-surface);
+  border-right: 1px solid var(--color-border-subtle);
+  overflow-y: auto;
+}
+
+.toolGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+  align-items: center;
+}
+
+.toolButton,
+.iconButton {
+  width: 44px;
+  height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 1px solid var(--color-border-strong);
+  background: var(--color-surface-raised);
+  border-radius: 0.375rem;
+  cursor: pointer;
+  color: var(--color-fg);
+  position: relative;
+  transition: background 0.12s ease, border-color 0.12s ease, color 0.12s ease;
+}
+
+.toolButton:hover:not(:disabled),
+.iconButton:hover:not(:disabled) {
+  background: var(--color-surface-hover);
+}
+
+.toolButton:focus-visible,
+.iconButton:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 1px;
+}
+
+.toolButton:disabled,
+.iconButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.toolButtonActive {
+  background: var(--color-active-bg);
+  color: var(--color-active-fg);
+  border-color: var(--color-active-bg);
+}
+
+.toolButtonActive:hover:not(:disabled) {
+  background: var(--color-active-bg-hover);
+}
+
+.divider {
+  width: 32px;
+  height: 1px;
+  background: var(--color-border-subtle);
+  flex: 0 0 auto;
+}
+
+.colorGroup {
+  display: grid;
+  grid-template-columns: repeat(2, 18px);
+  gap: 4px;
+  justify-content: center;
+}
+
+.colorSwatch {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  cursor: pointer;
+  padding: 0;
+  box-shadow: 0 0 0 1px var(--color-border-strong);
+}
+
+.colorSwatch:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+.colorSwatch:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.colorSwatchActive {
+  border-color: var(--color-active-bg);
+  box-shadow: 0 0 0 1px var(--color-active-bg);
+}
+
+.historyGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: center;
+}
+
+.updateGroup {
+  margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.updateButtonAvailable {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+}
+
+.updateBadge {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  color: var(--color-accent);
+  font-size: 0.6rem;
+  line-height: 1;
+}
+
+.updateError {
+  font-size: 0.65rem;
+  color: var(--color-fg-muted, var(--color-fg));
+  opacity: 0.85;
+  text-align: center;
+  white-space: nowrap;
+}

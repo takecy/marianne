@@ -1,6 +1,14 @@
 import type { ColorPresetName, ToolKind } from "@/types/tool";
 import { COLOR_PRESETS, TOOL_KINDS, TOOL_SHORTCUTS } from "@/types/tool";
-import styles from "./Toolbar.module.css";
+import { ArrowIcon } from "./icons/ArrowIcon";
+import { MosaicIcon } from "./icons/MosaicIcon";
+import { RectIcon } from "./icons/RectIcon";
+import { RedoIcon } from "./icons/RedoIcon";
+import { SelectIcon } from "./icons/SelectIcon";
+import { TextIcon } from "./icons/TextIcon";
+import { UndoIcon } from "./icons/UndoIcon";
+import { UpdateIcon } from "./icons/UpdateIcon";
+import styles from "./Sidebar.module.css";
 
 const TOOL_LABELS: Record<ToolKind, string> = {
   select: "選択",
@@ -10,23 +18,25 @@ const TOOL_LABELS: Record<ToolKind, string> = {
   mosaic: "モザイク",
 };
 
+const TOOL_ICONS: Record<ToolKind, () => React.ReactElement> = {
+  select: SelectIcon,
+  arrow: ArrowIcon,
+  rect: RectIcon,
+  text: TextIcon,
+  mosaic: MosaicIcon,
+};
+
 // State exposed by the updater hook in `useUpdater`. Used only to set the
-// visual indicator on the "更新を確認" button — the modal itself owns the
-// full UpdateState.
+// visual indicator on the update button — the modal itself owns the full
+// UpdateState.
 export type UpdateButtonState = "idle" | "checking" | "available";
 
-interface ToolbarProps {
+interface SidebarProps {
   activeTool: ToolKind;
   onToolChange: (next: ToolKind) => void;
   activeColor: ColorPresetName;
   onColorChange: (next: ColorPresetName) => void;
   disabled?: boolean;
-  // Extra disable signal for export-only buttons (save / copy). Used while
-  // a text shape is being edited inline so users cannot export a stage
-  // that has the live text hidden behind a textarea overlay.
-  exportDisabled?: boolean;
-  onExportToFile?: () => void;
-  onExportToClipboard?: () => void;
   onUndo?: () => void;
   onRedo?: () => void;
   canUndo?: boolean;
@@ -35,22 +45,19 @@ interface ToolbarProps {
   // updates even before loading an image. `checking` disables it briefly.
   onCheckForUpdates?: () => void;
   updateButtonState?: UpdateButtonState;
-  // Last update-check failure message. Shown inline next to the update
+  // Last update-check failure message. Shown inline below the update
   // button (not as a blocking modal) so the user can keep working. Clicking
   // the button retries the check and clears the message.
   updateErrorMessage?: string;
 }
 
-export function Toolbar(props: ToolbarProps) {
+export function Sidebar(props: SidebarProps) {
   const {
     activeTool,
     onToolChange,
     activeColor,
     onColorChange,
     disabled = false,
-    exportDisabled = false,
-    onExportToFile,
-    onExportToClipboard,
     onUndo,
     onRedo,
     canUndo = false,
@@ -61,24 +68,34 @@ export function Toolbar(props: ToolbarProps) {
   } = props;
 
   return (
-    <header className={styles.toolbar} aria-label="ツールバー">
+    <aside className={styles.sidebar} aria-label="ツールバー">
       <div className={styles.toolGroup} role="group" aria-label="ツール">
-        {TOOL_KINDS.map((tool) => (
-          <button
-            key={tool}
-            type="button"
-            className={tool === activeTool
-              ? `${styles.toolButton} ${styles.toolButtonActive}`
-              : styles.toolButton}
-            aria-pressed={tool === activeTool}
-            aria-keyshortcuts={TOOL_SHORTCUTS[tool]}
-            disabled={disabled}
-            onClick={() => onToolChange(tool)}
-          >
-            {TOOL_LABELS[tool]} ({TOOL_SHORTCUTS[tool]})
-          </button>
-        ))}
+        {TOOL_KINDS.map((tool) => {
+          const Icon = TOOL_ICONS[tool];
+          const label = TOOL_LABELS[tool];
+          const shortcut = TOOL_SHORTCUTS[tool];
+          return (
+            <button
+              key={tool}
+              type="button"
+              className={tool === activeTool
+                ? `${styles.toolButton} ${styles.toolButtonActive}`
+                : styles.toolButton}
+              aria-pressed={tool === activeTool}
+              aria-keyshortcuts={shortcut}
+              aria-label={label}
+              title={`${label} (${shortcut.toUpperCase()})`}
+              disabled={disabled}
+              onClick={() => onToolChange(tool)}
+            >
+              <Icon />
+            </button>
+          );
+        })}
       </div>
+
+      <div className={styles.divider} aria-hidden />
+
       <div className={styles.colorGroup} role="group" aria-label="色">
         {COLOR_PRESETS.map((preset) => (
           <button
@@ -95,29 +112,49 @@ export function Toolbar(props: ToolbarProps) {
           />
         ))}
       </div>
+
+      <div className={styles.divider} aria-hidden />
+
       <div className={styles.historyGroup} role="group" aria-label="履歴">
         <button
           type="button"
-          className={styles.historyButton}
+          className={styles.iconButton}
           disabled={disabled || !canUndo}
           onClick={onUndo}
           aria-label="戻る"
+          title="戻る (Cmd/Ctrl+Z)"
         >
-          戻る
+          <UndoIcon />
         </button>
         <button
           type="button"
-          className={styles.historyButton}
+          className={styles.iconButton}
           disabled={disabled || !canRedo}
           onClick={onRedo}
           aria-label="進む"
+          title="進む (Cmd/Ctrl+Shift+Z)"
         >
-          進む
+          <RedoIcon />
         </button>
       </div>
-      <div className={styles.spacer} aria-hidden />
+
       {onCheckForUpdates && (
         <div className={styles.updateGroup} role="group" aria-label="更新">
+          <button
+            type="button"
+            className={updateButtonState === "available"
+              ? `${styles.iconButton} ${styles.updateButtonAvailable}`
+              : styles.iconButton}
+            disabled={updateButtonState === "checking"}
+            onClick={onCheckForUpdates}
+            aria-label="更新を確認"
+            title={updateButtonState === "checking" ? "確認中…" : "更新を確認"}
+          >
+            <UpdateIcon />
+            {updateButtonState === "available" && (
+              <span className={styles.updateBadge} aria-hidden>●</span>
+            )}
+          </button>
           {updateErrorMessage && (
             <span
               className={styles.updateError}
@@ -128,40 +165,8 @@ export function Toolbar(props: ToolbarProps) {
               ⚠ Failed
             </span>
           )}
-          <button
-            type="button"
-            className={updateButtonState === "available"
-              ? `${styles.updateButton} ${styles.updateButtonAvailable}`
-              : styles.updateButton}
-            disabled={updateButtonState === "checking"}
-            onClick={onCheckForUpdates}
-            aria-label="更新を確認"
-          >
-            {updateButtonState === "checking" ? "確認中…" : "更新を確認"}
-            {updateButtonState === "available" && (
-              <span className={styles.updateBadge} aria-hidden>●</span>
-            )}
-          </button>
         </div>
       )}
-      <div className={styles.exportGroup} role="group" aria-label="書き出し">
-        <button
-          type="button"
-          className={styles.exportButton}
-          disabled={disabled || exportDisabled}
-          onClick={onExportToFile}
-        >
-          保存
-        </button>
-        <button
-          type="button"
-          className={styles.exportButton}
-          disabled={disabled || exportDisabled}
-          onClick={onExportToClipboard}
-        >
-          コピー
-        </button>
-      </div>
-    </header>
+    </aside>
   );
 }
