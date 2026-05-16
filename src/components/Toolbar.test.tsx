@@ -182,4 +182,72 @@ describe("Toolbar", () => {
     expect(screen.getByRole("button", { name: "戻る" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "進む" })).toBeDisabled();
   });
+
+  it("does not render the 更新を確認 button when onCheckForUpdates is omitted", () => {
+    render(
+      <Toolbar
+        activeTool="select"
+        onToolChange={vi.fn()}
+        activeColor="red"
+        onColorChange={vi.fn()}
+      />,
+    );
+    expect(screen.queryByRole("button", { name: "更新を確認" })).not.toBeInTheDocument();
+  });
+
+  it("renders 更新を確認 button when onCheckForUpdates is provided and invokes the callback", async () => {
+    const user = userEvent.setup();
+    const onCheckForUpdates = vi.fn();
+    render(
+      <Toolbar
+        activeTool="select"
+        onToolChange={vi.fn()}
+        activeColor="red"
+        onColorChange={vi.fn()}
+        onCheckForUpdates={onCheckForUpdates}
+      />,
+    );
+    await user.click(screen.getByRole("button", { name: "更新を確認" }));
+    expect(onCheckForUpdates).toHaveBeenCalledTimes(1);
+  });
+
+  it("update button stays enabled even when toolbar disabled is true", () => {
+    render(
+      <Toolbar
+        activeTool="select"
+        onToolChange={vi.fn()}
+        activeColor="red"
+        onColorChange={vi.fn()}
+        disabled
+        onCheckForUpdates={vi.fn()}
+      />,
+    );
+    expect(screen.getByRole("button", { name: "更新を確認" })).not.toBeDisabled();
+  });
+
+  it("update button disables only when state is checking", () => {
+    const { rerender } = render(
+      <Toolbar
+        activeTool="select"
+        onToolChange={vi.fn()}
+        activeColor="red"
+        onColorChange={vi.fn()}
+        onCheckForUpdates={vi.fn()}
+        updateButtonState="checking"
+      />,
+    );
+    expect(screen.getByRole("button", { name: "更新を確認" })).toBeDisabled();
+
+    rerender(
+      <Toolbar
+        activeTool="select"
+        onToolChange={vi.fn()}
+        activeColor="red"
+        onColorChange={vi.fn()}
+        onCheckForUpdates={vi.fn()}
+        updateButtonState="available"
+      />,
+    );
+    expect(screen.getByRole("button", { name: "更新を確認" })).not.toBeDisabled();
+  });
 });

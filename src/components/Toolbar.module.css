@@ -113,6 +113,52 @@
   flex: 1;
 }
 
+.updateGroup {
+  display: flex;
+  gap: 0.25rem;
+  margin-right: 0.5rem;
+}
+
+.updateButton {
+  position: relative;
+  padding: 0.4rem 0.9rem;
+  border: 1px solid var(--color-border-strong);
+  background: var(--color-surface-raised);
+  border-radius: 0.375rem;
+  cursor: pointer;
+  font-size: 0.875rem;
+  color: var(--color-fg);
+  transition: background 0.12s ease, border-color 0.12s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.updateButton:hover:not(:disabled) {
+  background: var(--color-surface-hover);
+}
+
+.updateButton:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 1px;
+}
+
+.updateButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.updateButtonAvailable {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+}
+
+.updateBadge {
+  color: var(--color-accent);
+  font-size: 0.6rem;
+  line-height: 1;
+}
+
 .exportGroup {
   display: flex;
   gap: 0.5rem;

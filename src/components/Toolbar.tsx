@@ -10,6 +10,11 @@ const TOOL_LABELS: Record<ToolKind, string> = {
   mosaic: "モザイク",
 };
 
+// State exposed by the updater hook in `useUpdater`. Used only to set the
+// visual indicator on the "更新を確認" button — the modal itself owns the
+// full UpdateState.
+export type UpdateButtonState = "idle" | "checking" | "available";
+
 interface ToolbarProps {
   activeTool: ToolKind;
   onToolChange: (next: ToolKind) => void;
@@ -26,6 +31,10 @@ interface ToolbarProps {
   onRedo?: () => void;
   canUndo?: boolean;
   canRedo?: boolean;
+  // Updater button is independent of `disabled` so the user can check for
+  // updates even before loading an image. `checking` disables it briefly.
+  onCheckForUpdates?: () => void;
+  updateButtonState?: UpdateButtonState;
 }
 
 export function Toolbar(props: ToolbarProps) {
@@ -42,6 +51,8 @@ export function Toolbar(props: ToolbarProps) {
     onRedo,
     canUndo = false,
     canRedo = false,
+    onCheckForUpdates,
+    updateButtonState = "idle",
   } = props;
 
   return (
@@ -100,6 +111,25 @@ export function Toolbar(props: ToolbarProps) {
         </button>
       </div>
       <div className={styles.spacer} aria-hidden />
+      {onCheckForUpdates && (
+        <div className={styles.updateGroup} role="group" aria-label="更新">
+          <button
+            type="button"
+            className={updateButtonState === "available"
+              ? `${styles.updateButton} ${styles.updateButtonAvailable}`
+              : styles.updateButton}
+            disabled={updateButtonState === "checking"}
+            onClick={onCheckForUpdates}
+            aria-label="更新を確認"
+            aria-live="polite"
+          >
+            {updateButtonState === "checking" ? "確認中…" : "更新を確認"}
+            {updateButtonState === "available" && (
+              <span className={styles.updateBadge} aria-hidden>●</span>
+            )}
+          </button>
+        </div>
+      )}
       <div className={styles.exportGroup} role="group" aria-label="書き出し">
         <button
           type="button"
