@@ -8,7 +8,12 @@ import {
   exportToBlob,
   saveBlobToFile,
 } from "./lib/exportImage";
-import { loadLastSaveDirectory, saveLastSaveDirectory } from "./lib/settingsStorage";
+import {
+  loadLastSaveDirectory,
+  loadLastSelectedColor,
+  saveLastSaveDirectory,
+  saveLastSelectedColor,
+} from "./lib/settingsStorage";
 import { useImageLoader } from "./lib/useImageLoader";
 import { useCanvasStore } from "./store/canvasStore";
 import type { LoadedImage } from "./types/image";
@@ -18,8 +23,15 @@ import styles from "./App.module.css";
 
 function App() {
   const [activeTool, setActiveTool] = useState<ToolKind>("select");
-  const [activeColor, setActiveColor] = useState<ColorPresetName>("red");
+  const [activeColor, setActiveColor] = useState<ColorPresetName>(
+    () => loadLastSelectedColor() ?? "red",
+  );
   const [image, setImage] = useState<LoadedImage | null>(null);
+
+  const handleColorChange = useCallback((name: ColorPresetName) => {
+    setActiveColor(name);
+    saveLastSelectedColor(name);
+  }, []);
 
   const shapes = useCanvasStore((s) => s.shapes);
   const selectedShapeId = useCanvasStore((s) => s.selectedShapeId);
@@ -105,7 +117,7 @@ function App() {
         activeTool={activeTool}
         onToolChange={setActiveTool}
         activeColor={activeColor}
-        onColorChange={setActiveColor}
+        onColorChange={handleColorChange}
         disabled={image === null}
         onExportToFile={handleExportToFile}
         onExportToClipboard={handleExportToClipboard}
