@@ -1,5 +1,32 @@
-import { afterEach, beforeEach } from "vitest";
-import { copyImageToClipboard, downloadBlob, generateExportFilename } from "./exportImage";
+import { afterEach, beforeEach, vi } from "vitest";
+import type { LoadedImage } from "@/types/image";
+import {
+  copyImageToClipboard,
+  defaultExportFileName,
+  generateExportFilename,
+  saveBlobToFile,
+} from "./exportImage";
+
+const mockSave = vi.fn();
+const mockWriteFile = vi.fn();
+
+vi.mock("@tauri-apps/plugin-dialog", () => ({
+  save: (...args: unknown[]) => mockSave(...args),
+}));
+
+vi.mock("@tauri-apps/plugin-fs", () => ({
+  writeFile: (...args: unknown[]) => mockWriteFile(...args),
+}));
+
+function buildLoadedImage(overrides: Partial<LoadedImage> = {}): LoadedImage {
+  return {
+    element: new Image(),
+    naturalWidth: 100,
+    naturalHeight: 100,
+    source: "paste",
+    ...overrides,
+  };
+}
 
 describe("generateExportFilename", () => {
   it("formats the timestamp as marianne-YYYYMMDD-HHmmss.png", () => {
@@ -14,57 +41,63 @@ describe("generateExportFilename", () => {
   });
 });
 
-describe("downloadBlob", () => {
-  let appendedAnchor: HTMLAnchorElement | null = null;
-  let clickSpy: ReturnType<typeof vi.fn>;
-  let createObjectURLSpy: ReturnType<typeof vi.fn>;
-  let revokeObjectURLSpy: ReturnType<typeof vi.fn>;
-  const originalCreateElement = document.createElement.bind(document);
+describe("defaultExportFileName", () => {
+  it("appends _annotated to the basename when sourceFileName is set", () => {
+    const image = buildLoadedImage({ sourceFileName: "foo.png" });
+    expect(defaultExportFileName(image)).toBe("foo_annotated.png");
+  });
 
+  it("preserves dotted stems and always uses .png as the extension", () => {
+    const image = buildLoadedImage({ sourceFileName: "screen.shot.jpg" });
+    expect(defaultExportFileName(image)).toBe("screen.shot_annotated.png");
+  });
+
+  it("treats a leading-dot file as having no extension", () => {
+    const image = buildLoadedImage({ sourceFileName: ".hidden" });
+    // lastIndexOf returns 0, which is not > 0, so the whole name is the stem.
+    expect(defaultExportFileName(image)).toBe(".hidden_annotated.png");
+  });
+
+  it("falls back to the timestamped form when sourceFileName is absent", () => {
+    const image = buildLoadedImage({ sourceFileName: undefined });
+    const now = new Date(2026, 4, 15, 10, 30, 45);
+    expect(defaultExportFileName(image, now)).toBe("marianne-20260515-103045.png");
+  });
+});
+
+describe("saveBlobToFile", () => {
   beforeEach(() => {
-    appendedAnchor = null;
-    clickSpy = vi.fn();
-    createObjectURLSpy = vi.fn(() => "blob:mock");
-    revokeObjectURLSpy = vi.fn();
-    Object.defineProperty(globalThis.URL, "createObjectURL", {
-      value: createObjectURLSpy,
-      configurable: true,
-    });
-    Object.defineProperty(globalThis.URL, "revokeObjectURL", {
-      value: revokeObjectURLSpy,
-      configurable: true,
-    });
-    vi.spyOn(document, "createElement").mockImplementation((tag: string) => {
-      const el = originalCreateElement(tag);
-      if (tag === "a") {
-        // Stub the click handler so jsdom does not actually attempt a navigation.
-        (el as HTMLAnchorElement).click = clickSpy as unknown as HTMLAnchorElement["click"];
-        appendedAnchor = el as HTMLAnchorElement;
-      }
-      return el;
-    });
-    vi.useFakeTimers();
+    mockSave.mockReset();
+    mockWriteFile.mockReset();
   });
 
-  afterEach(() => {
-    vi.useRealTimers();
-    vi.restoreAllMocks();
+  it("writes the blob bytes to the chosen path and returns it", async () => {
+    mockSave.mockResolvedValue("/Users/test/Pictures/foo_annotated.png");
+    mockWriteFile.mockResolvedValue(undefined);
+
+    const blob = new Blob([new Uint8Array([0x89, 0x50, 0x4e, 0x47])], { type: "image/png" });
+    const saved = await saveBlobToFile(blob, "/Users/test/Pictures/foo_annotated.png");
+
+    expect(saved).toBe("/Users/test/Pictures/foo_annotated.png");
+    expect(mockSave).toHaveBeenCalledWith({
+      defaultPath: "/Users/test/Pictures/foo_annotated.png",
+      filters: [{ name: "PNG", extensions: ["png"] }],
+    });
+    expect(mockWriteFile).toHaveBeenCalledTimes(1);
+    const [path, bytes] = mockWriteFile.mock.calls[0] as [string, Uint8Array];
+    expect(path).toBe("/Users/test/Pictures/foo_annotated.png");
+    expect(bytes).toBeInstanceOf(Uint8Array);
+    expect(Array.from(bytes)).toEqual([0x89, 0x50, 0x4e, 0x47]);
   });
 
-  it("creates an object URL, clicks an anchor, and revokes the URL on next tick", () => {
-    const blob = new Blob(["test"], { type: "image/png" });
-    downloadBlob(blob, "marianne-test.png");
+  it("returns null and skips writing when the user cancels the dialog", async () => {
+    mockSave.mockResolvedValue(null);
 
-    expect(createObjectURLSpy).toHaveBeenCalledWith(blob);
-    expect(appendedAnchor).not.toBeNull();
-    expect(appendedAnchor?.download).toBe("marianne-test.png");
-    expect(appendedAnchor?.href).toBe("blob:mock");
-    expect(clickSpy).toHaveBeenCalledTimes(1);
+    const blob = new Blob(["irrelevant"], { type: "image/png" });
+    const result = await saveBlobToFile(blob, "/tmp/whatever.png");
 
-    // revokeObjectURL is scheduled for the next tick.
-    expect(revokeObjectURLSpy).not.toHaveBeenCalled();
-    vi.runAllTimers();
-    expect(revokeObjectURLSpy).toHaveBeenCalledWith("blob:mock");
+    expect(result).toBeNull();
+    expect(mockWriteFile).not.toHaveBeenCalled();
   });
 });
 

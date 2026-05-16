@@ -1,12 +1,14 @@
 import { useCallback, useState } from "react";
+import { dirname, join } from "@tauri-apps/api/path";
 import { CanvasArea } from "./components/CanvasArea";
 import { Toolbar } from "./components/Toolbar";
 import {
   copyImageToClipboard,
-  downloadBlob,
+  defaultExportFileName,
   exportToBlob,
-  generateExportFilename,
+  saveBlobToFile,
 } from "./lib/exportImage";
+import { loadLastSaveDirectory, saveLastSaveDirectory } from "./lib/settingsStorage";
 import { useImageLoader } from "./lib/useImageLoader";
 import { useCanvasStore } from "./store/canvasStore";
 import type { LoadedImage } from "./types/image";
@@ -70,7 +72,16 @@ function App() {
     }
     try {
       const blob = await exportToBlob(image, shapes);
-      downloadBlob(blob, generateExportFilename());
+      const defaultName = defaultExportFileName(image);
+      const sourceDir = image.sourcePath !== undefined
+        ? await dirname(image.sourcePath)
+        : undefined;
+      const defaultDir = sourceDir ?? loadLastSaveDirectory();
+      const defaultPath = defaultDir ? await join(defaultDir, defaultName) : defaultName;
+      const savedPath = await saveBlobToFile(blob, defaultPath);
+      if (savedPath) {
+        saveLastSaveDirectory(await dirname(savedPath));
+      }
     } catch (error) {
       console.error("Export to file failed:", error);
     }
@@ -119,6 +130,7 @@ function App() {
         onUpdateMosaic={updateMosaic}
         onUndo={undo}
         onRedo={redo}
+        onExportToFile={handleExportToFile}
       />
     </div>
   );
