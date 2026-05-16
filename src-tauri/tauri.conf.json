@@ -37,6 +37,7 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ],
+    "resources": ["icons/menubar.png"],
     "fileAssociations": [
       {
         "ext": ["png", "jpg", "jpeg"],
