@@ -2,15 +2,15 @@
   flex: 1;
   min-height: 0;
   min-width: 0;
-  background: #e2e8f0;
+  background: var(--color-canvas-bg);
   position: relative;
   overflow: hidden;
 }
 
 .canvasAreaDragging {
-  outline: 3px dashed #2563eb;
+  outline: 3px dashed var(--color-accent);
   outline-offset: -6px;
-  background: #dbeafe;
+  background: var(--color-canvas-drop);
 }
 
 .emptyState {
@@ -20,7 +20,7 @@
   align-items: center;
   justify-content: center;
   pointer-events: none;
-  color: #475569;
+  color: var(--color-fg-muted);
   font-size: 0.95rem;
   text-align: center;
   padding: 1.5rem;
@@ -34,11 +34,11 @@
 .emptyStateTitle {
   font-size: 1.1rem;
   font-weight: 600;
-  color: #0f172a;
+  color: var(--color-fg);
   margin: 0 0 0.5rem;
 }
 
 .emptyStateBody {
   margin: 0;
-  color: #475569;
+  color: var(--color-fg-muted);
 }
