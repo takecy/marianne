@@ -4,6 +4,7 @@ import { ActionBar } from "./components/ActionBar";
 import { CanvasArea } from "./components/CanvasArea";
 import { ConfirmDialog } from "./components/ConfirmDialog";
 import { Sidebar, type UpdateButtonState } from "./components/Sidebar";
+import { StatusBar } from "./components/StatusBar";
 import { UpdateModal } from "./components/UpdateModal";
 import {
   copyImageToClipboard,
@@ -249,6 +250,7 @@ function App() {
           onExportToClipboard={handleExportToClipboard}
           onEditingTextChange={setIsEditingText}
         />
+        <StatusBar image={image} />
       </div>
       <UpdateModal
         state={updateState}
