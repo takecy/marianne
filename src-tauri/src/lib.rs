@@ -1,4 +1,5 @@
 use std::path::{Path, PathBuf};
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Mutex;
 
 use tauri::{
@@ -21,6 +22,23 @@ fn greet(name: &str) -> String {
 /// to receive events yet.
 #[derive(Default)]
 struct PendingOpenPaths(Mutex<Vec<PathBuf>>);
+
+/// Gate that lets `RunEvent::ExitRequested` distinguish a fresh quit
+/// request (must be confirmed by the renderer) from a programmatic
+/// `app.exit(0)` issued by `confirm_quit` after the user already
+/// confirmed (must pass through).
+#[derive(Default)]
+struct QuitConfirmed(AtomicBool);
+
+/// Flipped to true once the renderer has finished mounting and has
+/// registered its `listen("quit-requested")` handler. Until this is
+/// true, `ExitRequested` falls through to a normal exit — preventing
+/// the cold-start race where the user presses Cmd+Q before the
+/// frontend listener exists (which would otherwise wedge the app
+/// into an unquittable state). Mirrors the cold-start buffer pattern
+/// used by `PendingOpenPaths` for "Open With".
+#[derive(Default)]
+struct RendererReady(AtomicBool);
 
 /// Extensions accepted from macOS "Open With". Must align with
 /// `fileAssociations[].ext` in `tauri.conf.json`. Case-insensitive match.
@@ -115,6 +133,23 @@ fn take_pending_open_paths(state: tauri::State<'_, PendingOpenPaths>) -> Vec<Str
         .collect()
 }
 
+/// Renderer-initiated confirmation that the user clicked "終了する".
+/// Flips the gate and triggers a final exit cycle; the next
+/// `ExitRequested` will short-circuit and let the process terminate.
+#[tauri::command]
+fn confirm_quit(app: AppHandle, state: tauri::State<'_, QuitConfirmed>) {
+    state.0.store(true, Ordering::SeqCst);
+    app.exit(0);
+}
+
+/// Called once by the renderer immediately after `listen("quit-requested")`
+/// has been registered. Enables the quit-confirmation flow; before this
+/// is called, `ExitRequested` falls through to a normal exit.
+#[tauri::command]
+fn renderer_ready(state: tauri::State<'_, RendererReady>) {
+    state.0.store(true, Ordering::SeqCst);
+}
+
 /// Bring the main window to the front from a hidden, minimised, or unfocused state.
 fn show_main_window<R: Runtime>(app: &AppHandle<R>) {
     if let Some(window) = app.get_webview_window("main") {
@@ -148,6 +183,8 @@ pub fn run() {
 
     builder
         .manage(PendingOpenPaths::default())
+        .manage(QuitConfirmed::default())
+        .manage(RendererReady::default())
         .setup(|app| {
             let show_item = MenuItemBuilder::with_id("show", "Show Marianne").build(app)?;
             let quit_item = MenuItemBuilder::with_id("quit", "Quit Marianne").build(app)?;
@@ -198,10 +235,56 @@ pub fn run() {
                 }
             }
         })
-        .invoke_handler(tauri::generate_handler![greet, take_pending_open_paths])
+        .invoke_handler(tauri::generate_handler![
+            greet,
+            take_pending_open_paths,
+            confirm_quit,
+            renderer_ready,
+        ])
         .build(tauri::generate_context!())
         .expect("error while running tauri application")
         .run(|app, event| match event {
+            // Quit request gate. The first ExitRequested for any session
+            // is intercepted so the renderer can ask the user whether to
+            // drop unsaved annotations. The renderer then calls
+            // `confirm_quit`, which flips QuitConfirmed and re-enters this
+            // arm; the second pass sees `confirmed == true` and lets the
+            // process exit.
+            //
+            // `code` is intentionally unused: tray "Quit Marianne" issues
+            // `app.exit(0)` and Cmd+Q has no code, but both should funnel
+            // through the same confirmation path.
+            //
+            // Cold-start safety: if the renderer has not yet registered
+            // its `listen("quit-requested")` handler (RendererReady ==
+            // false), the emit below would be lost and the user could
+            // never quit. Fall through to a normal exit in that case —
+            // losing unsaved shapes is preferable to creating an
+            // unquittable app state.
+            RunEvent::ExitRequested { api, .. } => {
+                let confirmed = app
+                    .state::<QuitConfirmed>()
+                    .0
+                    .load(Ordering::SeqCst);
+                if confirmed {
+                    return;
+                }
+                let ready = app
+                    .state::<RendererReady>()
+                    .0
+                    .load(Ordering::SeqCst);
+                if !ready {
+                    return;
+                }
+                api.prevent_exit();
+                // If the user previously hid the window via the red
+                // close button, restoring it here gives the modal
+                // somewhere to land. Otherwise the dialog would render
+                // into a hidden window and the user would have no way
+                // to dismiss it.
+                show_main_window(app);
+                let _ = app.emit("quit-requested", ());
+            }
             // macOS fires Reopen when the user clicks the Dock icon. When
             // there are no visible windows (main window was hidden via
             // close = hide), restore the main window so Dock click matches
