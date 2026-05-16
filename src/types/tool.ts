@@ -5,6 +5,7 @@ export type ToolKind = (typeof TOOL_KINDS)[number];
 
 export const COLOR_PRESETS = [
   { name: "red", hex: "#ef4444" },
+  { name: "orange", hex: "#f97316" },
   { name: "blue", hex: "#3b82f6" },
   { name: "green", hex: "#22c55e" },
   { name: "yellow", hex: "#eab308" },
@@ -17,6 +18,7 @@ export type ColorPresetName = (typeof COLOR_PRESETS)[number]["name"];
 
 const COLOR_HEX_MAP: Record<ColorPresetName, string> = {
   red: "#ef4444",
+  orange: "#f97316",
   blue: "#3b82f6",
   green: "#22c55e",
   yellow: "#eab308",

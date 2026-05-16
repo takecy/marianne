@@ -3,7 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { Toolbar } from "./Toolbar";
 
 describe("Toolbar", () => {
-  it("renders all 5 tool buttons and 7 color presets", () => {
+  it("renders all 5 tool buttons and 8 color presets", () => {
     render(
       <Toolbar
         activeTool="select"
@@ -20,7 +20,7 @@ describe("Toolbar", () => {
     expect(screen.getByRole("button", { name: "モザイク" })).toBeInTheDocument();
 
     const colorGroup = screen.getByRole("group", { name: "色" });
-    expect(colorGroup.querySelectorAll("button")).toHaveLength(7);
+    expect(colorGroup.querySelectorAll("button")).toHaveLength(8);
   });
 
   it("marks the active tool as pressed", () => {
