@@ -102,6 +102,16 @@ describe("canvasStore", () => {
     if (mosaic?.type === "mosaic") expect(mosaic.width).toBe(999);
   });
 
+  // patchByType does not value-dedupe: a same-value patch still pushes onto
+  // past, so callers (e.g. CanvasArea.confirmEditText) must compare before
+  // invoking updateText. This regression test pins that contract.
+  it("updateText with the same text value still pollutes history", () => {
+    useCanvasStore.getState().addShape(sampleText("t"));
+    const pastBefore = useCanvasStore.getState().past.length;
+    useCanvasStore.getState().updateText("t", { text: "hello" });
+    expect(useCanvasStore.getState().past.length).toBe(pastBefore + 1);
+  });
+
   it("updateRect is a no-op when the id is unknown", () => {
     useCanvasStore.getState().addShape(sampleRect("a"));
     useCanvasStore.getState().updateRect("missing", { color: "blue" });

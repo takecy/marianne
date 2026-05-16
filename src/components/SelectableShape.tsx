@@ -36,7 +36,12 @@ interface SelectableShapeProps {
   // branch to render endpoint drag handles; other shape types ignore it
   // because the Konva.Transformer in CanvasArea handles their selection UI.
   isSelected: boolean;
+  // Text-only: hides the Konva text node while the edit overlay is active
+  // so the rendered text and the textarea do not double up. CanvasArea
+  // owns editingTextId and passes the derived flag down.
+  isEditing: boolean;
   onSelect: (id: string) => void;
+  onStartEditText: (id: string) => void;
   onUpdateRect: (id: string, patch: RectPatch) => void;
   onUpdateText: (id: string, patch: TextPatch) => void;
   onUpdateArrow: (id: string, patch: ArrowPatch) => void;
@@ -52,7 +57,9 @@ export function SelectableShape(props: SelectableShapeProps) {
     image,
     isSelectMode,
     isSelected,
+    isEditing,
     onSelect,
+    onStartEditText,
     onUpdateRect,
     onUpdateText,
     onUpdateArrow,
@@ -127,8 +134,11 @@ export function SelectableShape(props: SelectableShapeProps) {
         }}
         listening={isSelectMode}
         draggable={isSelectMode}
+        visible={!isEditing}
         onClick={handleSelect}
         onTap={handleSelect}
+        onDblClick={() => onStartEditText(shape.id)}
+        onDblTap={() => onStartEditText(shape.id)}
         x={topLeft.x}
         y={topLeft.y}
         text={shape.text}

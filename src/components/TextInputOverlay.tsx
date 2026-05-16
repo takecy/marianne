@@ -8,18 +8,29 @@ interface TextInputOverlayProps {
   x: number;
   y: number;
   color: ColorPresetName;
+  initialText?: string;
+  fontSize?: number;
   onConfirm: (text: string) => void;
   onCancel: () => void;
 }
 
 export function TextInputOverlay(props: TextInputOverlayProps) {
-  const { x, y, color, onConfirm, onCancel } = props;
+  const { x, y, color, initialText, fontSize, onConfirm, onCancel } = props;
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const finalizedRef = useRef<boolean>(false);
-  const [value, setValue] = useState("");
+  const [value, setValue] = useState(initialText ?? "");
 
   useEffect(() => {
-    textareaRef.current?.focus();
+    const node = textareaRef.current;
+    if (!node) {
+      return;
+    }
+    node.focus();
+    // Pre-select existing text so a typing user replaces all. Harmless for
+    // the create flow (initialText empty) and required for the edit flow.
+    if (node.value.length > 0) {
+      node.select();
+    }
   }, []);
 
   const finalize = (action: "confirm" | "cancel", text: string) => {
@@ -54,7 +65,7 @@ export function TextInputOverlay(props: TextInputOverlayProps) {
     <textarea
       ref={textareaRef}
       className={styles.textInput}
-      style={{ left: x, top: y, color: colorHex(color), fontSize: TEXT_FONT_SIZE }}
+      style={{ left: x, top: y, color: colorHex(color), fontSize: fontSize ?? TEXT_FONT_SIZE }}
       value={value}
       onChange={(e) => setValue(e.currentTarget.value)}
       onKeyDown={handleKeyDown}
