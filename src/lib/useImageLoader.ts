@@ -100,8 +100,14 @@ function decodeImageFile(
   );
 }
 
-async function decodeTauriDroppedPath(
+// Shared decoder for any Tauri-side filesystem path (drag-drop or "Open
+// With"). The trust boundary (extension whitelist, symlink rejection) lives
+// in Rust; `isImagePath` below acts as defense in depth on the frontend
+// side. `readFile` succeeds because Rust calls `scope.allow_file(path)` for
+// each accepted path before emitting / queueing it.
+async function decodeTauriFilePath(
   path: string,
+  source: ImageSource,
   onImageLoaded: (image: LoadedImage) => void,
   onError: ((message: string) => void) | undefined,
 ): Promise<void> {
@@ -112,7 +118,7 @@ async function decodeTauriDroppedPath(
     const url = URL.createObjectURL(blob);
     decodeImageFromObjectUrl(
       url,
-      { source: "drop", sourcePath: path, sourceFileName: basenameOf(path) },
+      { source, sourcePath: path, sourceFileName: basenameOf(path) },
       onImageLoaded,
       onError,
     );
@@ -148,10 +154,50 @@ export function useImageLoader(options: UseImageLoaderOptions): UseImageLoaderRe
     // pulling Tauri-specific module init into the browser-only `pnpm dev`
     // bundle.
     if (isTauri()) {
-      let unlisten: (() => void) | undefined;
+      let unlistenDragDrop: (() => void) | undefined;
+      let unlistenFileOpen: (() => void) | undefined;
       let cancelled = false;
 
       void (async () => {
+        // (1) Cold-start drain: paths queued by `RunEvent::Opened` before
+        // this hook had a chance to subscribe (e.g. when the user starts
+        // marianne via macOS "Open With" while the app was not running).
+        try {
+          const { invoke } = await import("@tauri-apps/api/core");
+          const pending = await invoke<string[]>("take_pending_open_paths");
+          if (!cancelled) {
+            const head = pending.find(isImagePath);
+            if (head) {
+              void decodeTauriFilePath(head, "file", onImageLoaded, onError);
+            }
+          }
+        } catch (err) {
+          console.error("Failed to drain pending open paths:", err);
+        }
+
+        // (2) Warm-start listen: when the app is already running and the
+        // user picks "Open With > Marianne" on another file, Rust emits
+        // `file-open-requested` with the (already vetted) path list.
+        try {
+          const { listen } = await import("@tauri-apps/api/event");
+          const fn = await listen<string[]>("file-open-requested", (event) => {
+            const head = event.payload.find(isImagePath);
+            if (head) {
+              void decodeTauriFilePath(head, "file", onImageLoaded, onError);
+            }
+          });
+          if (cancelled) {
+            fn();
+          } else {
+            unlistenFileOpen = fn;
+          }
+        } catch (err) {
+          console.error("Failed to subscribe to file-open-requested:", err);
+        }
+
+        // (3) Tauri native drag-drop. Kept as the third subscription so the
+        // user can drag images onto the window even after an "Open With"
+        // session has been started.
         try {
           const { getCurrentWebview } = await import("@tauri-apps/api/webview");
           const fn = await getCurrentWebview().onDragDropEvent((event) => {
@@ -164,14 +210,14 @@ export function useImageLoader(options: UseImageLoaderOptions): UseImageLoaderRe
               setIsDraggingOver(false);
               const imagePath = payload.paths.find(isImagePath);
               if (imagePath) {
-                void decodeTauriDroppedPath(imagePath, onImageLoaded, onError);
+                void decodeTauriFilePath(imagePath, "drop", onImageLoaded, onError);
               }
             }
           });
           if (cancelled) {
             fn();
           } else {
-            unlisten = fn;
+            unlistenDragDrop = fn;
           }
         } catch (err) {
           console.error("Failed to subscribe to Tauri drag-drop event:", err);
@@ -180,7 +226,8 @@ export function useImageLoader(options: UseImageLoaderOptions): UseImageLoaderRe
 
       return () => {
         cancelled = true;
-        unlisten?.();
+        unlistenDragDrop?.();
+        unlistenFileOpen?.();
         window.removeEventListener("paste", handlePaste);
       };
     }

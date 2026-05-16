@@ -8,8 +8,15 @@ const ERROR_MARKER = "blob:trigger-error";
 let capturedDragDropHandler:
   | ((event: { payload: DragDropPayload }) => void)
   | null = null;
+// Listen handler captured by the mocked @tauri-apps/api/event module for
+// the "file-open-requested" channel (macOS "Open With" warm start).
+let capturedFileOpenHandler:
+  | ((event: { payload: string[] }) => void)
+  | null = null;
 const mockUnlisten = vi.fn();
+const mockUnlistenFileOpen = vi.fn();
 const mockReadFile = vi.fn();
+const mockInvoke = vi.fn();
 
 type DragDropPayload =
   | { type: "enter"; paths: string[]; position: { x: number; y: number } }
@@ -24,6 +31,22 @@ vi.mock("@tauri-apps/api/webview", () => ({
       return Promise.resolve(mockUnlisten);
     },
   }),
+}));
+
+vi.mock("@tauri-apps/api/core", () => ({
+  invoke: (...args: unknown[]) => mockInvoke(...args),
+  // Honour the global `isTauri` flag the existing tests already toggle so we
+  // do not break the browser-fallback tests that rely on isTauri() === false.
+  isTauri: () => !!(globalThis as unknown as { isTauri?: boolean }).isTauri,
+}));
+
+vi.mock("@tauri-apps/api/event", () => ({
+  listen: (channel: string, handler: (event: { payload: string[] }) => void) => {
+    if (channel === "file-open-requested") {
+      capturedFileOpenHandler = handler;
+    }
+    return Promise.resolve(mockUnlistenFileOpen);
+  },
 }));
 
 vi.mock("@tauri-apps/plugin-fs", () => ({
@@ -183,8 +206,14 @@ describe("useImageLoader (Tauri native drag-drop)", () => {
   beforeEach(() => {
     installUrlAndImageStubs();
     capturedDragDropHandler = null;
+    capturedFileOpenHandler = null;
     mockUnlisten.mockClear();
+    mockUnlistenFileOpen.mockClear();
     mockReadFile.mockReset();
+    mockInvoke.mockReset();
+    // Default: no cold-start Open With paths queued by Rust. Individual
+    // tests can override this in their `mockInvoke.mockResolvedValueOnce(...)`.
+    mockInvoke.mockResolvedValue([]);
     // Flip isTauri() to true. The runtime check is `!!(globalThis || window).isTauri`.
     (globalThis as unknown as { isTauri?: boolean }).isTauri = true;
   });
@@ -255,6 +284,103 @@ describe("useImageLoader (Tauri native drag-drop)", () => {
 
     await waitFor(() => expect(onError).toHaveBeenCalledTimes(1));
     expect(onError).toHaveBeenCalledWith("画像の読み込みに失敗しました");
+    expect(onImageLoaded).not.toHaveBeenCalled();
+  });
+});
+
+describe("useImageLoader (Tauri macOS Open With)", () => {
+  beforeEach(() => {
+    installUrlAndImageStubs();
+    capturedDragDropHandler = null;
+    capturedFileOpenHandler = null;
+    mockUnlisten.mockClear();
+    mockUnlistenFileOpen.mockClear();
+    mockReadFile.mockReset();
+    mockInvoke.mockReset();
+    // Default: empty cold-start buffer; individual tests opt-in to data.
+    mockInvoke.mockResolvedValue([]);
+    (globalThis as unknown as { isTauri?: boolean }).isTauri = true;
+  });
+
+  afterEach(() => {
+    delete (globalThis as unknown as { isTauri?: boolean }).isTauri;
+    vi.unstubAllGlobals();
+  });
+
+  it("decodes a cold-start path drained from `take_pending_open_paths` with source 'file'", async () => {
+    mockInvoke.mockReset();
+    mockInvoke.mockImplementation((cmd: string) => {
+      if (cmd === "take_pending_open_paths") {
+        return Promise.resolve(["/Users/me/Pictures/cold.png"]);
+      }
+      return Promise.resolve(null);
+    });
+    mockReadFile.mockResolvedValue(new Uint8Array([1, 2, 3]));
+
+    const onImageLoaded = vi.fn<(loaded: LoadedImage) => void>();
+    renderHook(() => useImageLoader({ onImageLoaded }));
+
+    await waitFor(() => expect(mockInvoke).toHaveBeenCalledWith("take_pending_open_paths"));
+    await waitFor(() => expect(mockReadFile).toHaveBeenCalledWith("/Users/me/Pictures/cold.png"));
+    await waitFor(() => expect(onImageLoaded).toHaveBeenCalledTimes(1));
+
+    const loaded = onImageLoaded.mock.calls[0]?.[0];
+    expect(loaded?.source).toBe("file");
+    expect(loaded?.sourcePath).toBe("/Users/me/Pictures/cold.png");
+    expect(loaded?.sourceFileName).toBe("cold.png");
+  });
+
+  it("decodes a warm-start path delivered via the 'file-open-requested' event", async () => {
+    mockReadFile.mockResolvedValue(new Uint8Array([9, 9]));
+
+    const onImageLoaded = vi.fn<(loaded: LoadedImage) => void>();
+    renderHook(() => useImageLoader({ onImageLoaded }));
+
+    await waitFor(() => expect(capturedFileOpenHandler).not.toBeNull());
+    if (!capturedFileOpenHandler) throw new Error("file-open handler not captured");
+
+    capturedFileOpenHandler({ payload: ["/Users/me/Pictures/warm.jpg"] });
+
+    await waitFor(() => expect(mockReadFile).toHaveBeenCalledWith("/Users/me/Pictures/warm.jpg"));
+    await waitFor(() => expect(onImageLoaded).toHaveBeenCalledTimes(1));
+
+    const loaded = onImageLoaded.mock.calls[0]?.[0];
+    expect(loaded?.source).toBe("file");
+    expect(loaded?.sourcePath).toBe("/Users/me/Pictures/warm.jpg");
+    expect(loaded?.sourceFileName).toBe("warm.jpg");
+  });
+
+  it("ignores non-image extensions in the pending buffer", async () => {
+    mockInvoke.mockReset();
+    mockInvoke.mockImplementation((cmd: string) =>
+      cmd === "take_pending_open_paths"
+        ? Promise.resolve(["/tmp/readme.txt"])
+        : Promise.resolve(null)
+    );
+
+    const onImageLoaded = vi.fn<(loaded: LoadedImage) => void>();
+    renderHook(() => useImageLoader({ onImageLoaded }));
+
+    await waitFor(() => expect(mockInvoke).toHaveBeenCalledWith("take_pending_open_paths"));
+    // Microtask flush — nothing should follow because the path is rejected
+    // by the frontend `isImagePath` defense-in-depth check.
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(mockReadFile).not.toHaveBeenCalled();
+    expect(onImageLoaded).not.toHaveBeenCalled();
+  });
+
+  it("ignores non-image extensions delivered via the warm-start event", async () => {
+    const onImageLoaded = vi.fn<(loaded: LoadedImage) => void>();
+    renderHook(() => useImageLoader({ onImageLoaded }));
+
+    await waitFor(() => expect(capturedFileOpenHandler).not.toBeNull());
+    if (!capturedFileOpenHandler) throw new Error("file-open handler not captured");
+
+    capturedFileOpenHandler({ payload: ["/tmp/data.bin"] });
+
+    await Promise.resolve();
+    expect(mockReadFile).not.toHaveBeenCalled();
     expect(onImageLoaded).not.toHaveBeenCalled();
   });
 });
