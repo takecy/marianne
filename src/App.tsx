@@ -43,6 +43,9 @@ function App() {
   const updateArrow = useCanvasStore((s) => s.updateArrow);
   const updateMosaic = useCanvasStore((s) => s.updateMosaic);
   const clearShapes = useCanvasStore((s) => s.clearShapes);
+  const copyShape = useCanvasStore((s) => s.copyShape);
+  const pasteShape = useCanvasStore((s) => s.pasteShape);
+  const hasClipboardShape = useCanvasStore((s) => s.clipboardShape !== null);
   const undo = useCanvasStore((s) => s.undo);
   const redo = useCanvasStore((s) => s.redo);
   const canUndo = useCanvasStore((s) => s.past.length > 0);
@@ -68,6 +71,12 @@ function App() {
     },
     [addShape],
   );
+
+  // After paste, return to the select tool so the user can immediately
+  // drag the freshly pasted shape — mirroring handleShapeAdded.
+  const handleAfterPaste = useCallback(() => {
+    setActiveTool("select");
+  }, []);
 
   const handleImageError = useCallback((message: string) => {
     console.error(message);
@@ -133,6 +142,7 @@ function App() {
         activeTool={activeTool}
         activeColor={activeColor}
         selectedShapeId={selectedShapeId}
+        hasClipboardShape={hasClipboardShape}
         onToolChange={setActiveTool}
         onShapeAdded={handleShapeAdded}
         onSelectShape={selectShape}
@@ -141,6 +151,9 @@ function App() {
         onUpdateText={updateText}
         onUpdateArrow={updateArrow}
         onUpdateMosaic={updateMosaic}
+        onCopyShape={copyShape}
+        onPasteShape={pasteShape}
+        onAfterPaste={handleAfterPaste}
         onUndo={undo}
         onRedo={redo}
         onExportToFile={handleExportToFile}

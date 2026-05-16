@@ -48,6 +48,7 @@ interface CanvasAreaProps {
   activeTool: ToolKind;
   activeColor: ColorPresetName;
   selectedShapeId: string | null;
+  hasClipboardShape: boolean;
   onToolChange: (next: ToolKind) => void;
   onShapeAdded: (shape: Shape) => void;
   onSelectShape: (id: string | null) => void;
@@ -56,6 +57,9 @@ interface CanvasAreaProps {
   onUpdateText: (id: string, patch: TextPatch) => void;
   onUpdateArrow: (id: string, patch: ArrowPatch) => void;
   onUpdateMosaic: (id: string, patch: MosaicPatch) => void;
+  onCopyShape: (id: string) => void;
+  onPasteShape: (imageSize: { width: number; height: number }) => void;
+  onAfterPaste: () => void;
   onUndo: () => void;
   onRedo: () => void;
   onExportToFile: () => void;
@@ -184,6 +188,7 @@ export function CanvasArea(props: CanvasAreaProps) {
     activeTool,
     activeColor,
     selectedShapeId,
+    hasClipboardShape,
     onToolChange,
     onShapeAdded,
     onSelectShape,
@@ -192,6 +197,9 @@ export function CanvasArea(props: CanvasAreaProps) {
     onUpdateText,
     onUpdateArrow,
     onUpdateMosaic,
+    onCopyShape,
+    onPasteShape,
+    onAfterPaste,
     onUndo,
     onRedo,
     onExportToFile,
@@ -308,6 +316,39 @@ export function CanvasArea(props: CanvasAreaProps) {
         return;
       }
 
+      // Cmd/Ctrl + C: copy the selected shape (select mode only).
+      if (
+        (e.metaKey || e.ctrlKey) &&
+        !e.shiftKey &&
+        (e.key === "c" || e.key === "C")
+      ) {
+        if (isSelectMode && selectedShapeId !== null && image !== null) {
+          e.preventDefault();
+          onCopyShape(selectedShapeId);
+        }
+        return;
+      }
+
+      // Cmd/Ctrl + V: paste the clipboard shape only when something is in the
+      // in-memory clipboard. preventDefault here suppresses the corresponding
+      // `paste` event, so useImageLoader does not also fire. When the
+      // clipboard is empty, we do NOT preventDefault — the paste event then
+      // runs normally so OS-clipboard image paste keeps working.
+      // imageSize is built inline from image to avoid TDZ on the `imageSize`
+      // const declared later in this component.
+      if (
+        (e.metaKey || e.ctrlKey) &&
+        !e.shiftKey &&
+        (e.key === "v" || e.key === "V")
+      ) {
+        if (image !== null && hasClipboardShape) {
+          e.preventDefault();
+          onPasteShape({ width: image.naturalWidth, height: image.naturalHeight });
+          onAfterPaste();
+        }
+        return;
+      }
+
       // Tool switching via single-key shortcut. Modifier-less only so we never
       // hijack Cmd+T / Shift+R / etc. and so a one-key match in TOOL_SHORTCUTS
       // can win over later branches. Disabled while no image is loaded to
@@ -341,8 +382,12 @@ export function CanvasArea(props: CanvasAreaProps) {
     selectedShapeId,
     textInput,
     image,
+    hasClipboardShape,
     onToolChange,
     onDeleteShape,
+    onCopyShape,
+    onPasteShape,
+    onAfterPaste,
     onUndo,
     onRedo,
     onExportToFile,
