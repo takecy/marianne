@@ -1,0 +1,64 @@
+---
+title: インストール
+description: Apple Silicon Mac 向けの dmg から marianne をインストールし、組み込みの自動アップデート機能で常に最新版を維持する方法を紹介する。
+---
+
+import { Aside, Steps } from "@astrojs/starlight/components";
+
+marianne は **Apple Silicon Mac** 向けに署名済み dmg として配布されている。インストールは 1 分以内に完了し、以降はアプリ内蔵の updater が自動で最新版に追従する。
+
+## システム要件
+
+| 項目 | 要件 |
+|------|------|
+| ハードウェア | Apple Silicon (M1 / M2 / M3 系) — Intel Mac は非対応 |
+| macOS | 11.0 (Big Sur) 以降 |
+| ネットワーク | 起動時のアップデートチェック以外、実行時には不要 |
+
+<Aside type="caution" title="Intel Mac は非対応">
+配布物は `aarch64-apple-darwin` 専用ビルド。Intel Mac で起動すると
+`Bad CPU type in executable` エラーで失敗する。
+</Aside>
+
+## dmg からのインストール
+
+<Steps>
+1. **dmg をマウント**: Finder で `Marianne_<version>_aarch64.dmg` をダブルクリックする。
+
+2. **`Marianne.app` を `/Applications` にドラッグ**: dmg ウィンドウ内の Applications ショートカット上にドロップする。
+
+3. **dmg をアンマウント**: Finder サイドバーから取り出してクリーンアップする。
+
+4. **Marianne を起動**: Launchpad または Spotlight から起動する。
+</Steps>
+
+### 初回起動時の Gatekeeper 警告
+
+本 dmg は **コード署名なし** のため、初回起動時に macOS が「Marianne は開発元を確認できないため開けません」と警告する場合がある。以下のどちらかを一度実行すれば解決する:
+
+- Finder で `/Applications/Marianne.app` を右クリックし、コンテキストメニューから **開く** を選ぶ。
+- またはターミナルで以下を一度実行する:
+
+  ```sh
+  xattr -dr com.apple.quarantine /Applications/Marianne.app
+  ```
+
+一度承認すれば、以降の起動は通常通り進む。
+
+## 自動アップデート
+
+新しい dmg を手動でダウンロードする必要はない — marianne は起動時にリリースをチェックし、自分自身を更新する。
+
+- 起動するたびに GitHub Releases に新しいビルドがないか問い合わせる。新版が見つかるとモーダルで通知される (バージョン番号とリリースノート付き)。
+- ツールバーの **更新を確認** ボタンから手動でチェックすることもできる。
+- **今すぐ更新** を選ぶとダウンロード → 自動インストール → アプリ再起動が走る。
+
+<Aside type="caution" title="更新前に保存する">
+キャンバス上の注釈はアップデートの再起動で失われる。未保存のものがある場合は
+先に保存すること。注釈が存在する状態でアップデートをかけると、更新モーダルが
+警告を表示する。
+</Aside>
+
+アップデートチェックが失敗した場合 (ネットワーク不通 / 署名検証失敗など) は、**更新を確認** ボタンの横に小さく `⚠ Failed` 表示が出る。アプリは通常通り動作する。ホバーで詳細メッセージが見られ、同じボタンを押せば再試行できる。
+
+更新フィードは `https://github.com/takecy/marianne/releases/latest/download/latest.json` 固定。GitHub 上の draft / pre-release は無視され、公開済みの最新リリースのみがロールアウトされる。

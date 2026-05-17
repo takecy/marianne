@@ -1,0 +1,59 @@
+---
+title: Keyboard shortcuts
+description: Master marianne with eleven keyboard shortcuts covering export, edit history, the in-app shape clipboard, and one-key tool switching.
+---
+
+import { Aside } from "@astrojs/starlight/components";
+
+`Cmd` is shown for macOS — on other platforms read it as `Ctrl`. All shortcuts are suppressed while a text-annotation overlay or any native `input` / `textarea` has focus, so the browser's own editing keys keep working in those fields.
+
+## Export
+
+| Shortcut | Action |
+|----------|--------|
+| `Cmd + Shift + S` | Save the annotated PNG to a file (opens the native save dialog) |
+| `Cmd + Shift + C` | Copy the annotated PNG to the system clipboard |
+
+See [Export](./export/) for the full export workflow and the difference between the two paths.
+
+## Edit history
+
+| Shortcut | Action |
+|----------|--------|
+| `Cmd + Z` | Undo (up to 50 steps) |
+| `Cmd + Shift + Z` | Redo |
+| `Delete` / `Backspace` | Delete the selected shape (select mode only) |
+
+History resets when you load a new image — you cannot undo back to annotations on a previous image.
+
+## Shape clipboard
+
+| Shortcut | Action |
+|----------|--------|
+| `Cmd + C` | Copy the selected shape to marianne's internal clipboard (select mode only) |
+| `Cmd + V` | Paste from the internal clipboard at a small offset; falls back to the OS image-paste flow when the internal clipboard is empty |
+
+<Aside type="note" title="Why two `Cmd + C`s?">
+Plain `Cmd + C` operates on marianne's internal **shape** clipboard — it never
+touches the OS clipboard. `Cmd + Shift + C` is the unrelated export path that
+puts the annotated **image** on the system clipboard for pasting into Slack,
+chat apps, or other tools.
+</Aside>
+
+## Tool switching
+
+| Shortcut | Tool |
+|----------|------|
+| `v` | Select |
+| `a` | Arrow |
+| `r` | Rectangle |
+| `t` | Text |
+| `m` | Mosaic |
+
+Tool shortcuts are **modifier-less single keys** (no Cmd / Ctrl / Shift / Alt). They are ignored when no image is loaded, which keeps `v` etc. from intercepting key presses on the empty start screen.
+
+## Discoverability tips
+
+- Hover any toolbar button to see its shortcut in the tooltip.
+- The status bar near the bottom shows the active tool icon for quick orientation.
+- Need to remember just three? **`r` for rectangle**, **`Cmd + Z`** to undo, **`Cmd + Shift + S`** to save. Everything else builds on those.

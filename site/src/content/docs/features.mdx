@@ -1,0 +1,91 @@
+---
+title: Features
+description: A tour of marianne's annotation tools, color presets, stroke widths, and quality-of-life features like Option+drag duplication and the in-app shape clipboard.
+---
+
+import { Aside, Card, CardGrid } from "@astrojs/starlight/components";
+
+marianne keeps the annotation surface small on purpose. Four shapes, eight colors, four stroke widths, and a handful of gestures cover almost every screenshot review you will ever do.
+
+## Annotation tools
+
+<CardGrid>
+  <Card title="Rectangle" icon="seti:default">
+    Outline a region with an unfilled rectangle. Useful for "look here" callouts. Stroke width is configurable (see below).
+  </Card>
+  <Card title="Arrow" icon="right-arrow">
+    Draw a Skitch-style arrow with a thick outline and drop shadow so it reads against busy backgrounds. Drag the endpoints later to redirect.
+  </Card>
+  <Card title="Text" icon="document">
+    Drop a text label anywhere on the canvas. Resize handles on the corners scale the font, and double-click reopens the editor.
+  </Card>
+  <Card title="Mosaic" icon="approve-check">
+    Pixelate a rectangular region to redact faces, names, or other sensitive content. The pixelation is baked into the exported PNG so the original pixels cannot be recovered.
+  </Card>
+</CardGrid>
+
+Switch tools from the left sidebar or with single-key shortcuts (`v` / `a` / `r` / `t` / `m`) — see [Keyboard shortcuts](./keyboard-shortcuts/).
+
+## Color presets
+
+Eight high-contrast colors apply to rectangles, arrows, and text. Mosaic has no color (pixelation isn't tinted).
+
+| Name | Hex | Sample |
+|------|-----|--------|
+| red | `#ef4444` | <span style="display:inline-block;width:1.2em;height:1.2em;background:#ef4444;border-radius:0.2em;vertical-align:middle;" /> |
+| orange | `#f97316` | <span style="display:inline-block;width:1.2em;height:1.2em;background:#f97316;border-radius:0.2em;vertical-align:middle;" /> |
+| blue | `#3b82f6` | <span style="display:inline-block;width:1.2em;height:1.2em;background:#3b82f6;border-radius:0.2em;vertical-align:middle;" /> |
+| green | `#22c55e` | <span style="display:inline-block;width:1.2em;height:1.2em;background:#22c55e;border-radius:0.2em;vertical-align:middle;" /> |
+| yellow | `#eab308` | <span style="display:inline-block;width:1.2em;height:1.2em;background:#eab308;border-radius:0.2em;vertical-align:middle;" /> |
+| pink | `#ec4899` | <span style="display:inline-block;width:1.2em;height:1.2em;background:#ec4899;border-radius:0.2em;vertical-align:middle;" /> |
+| black | `#0f172a` | <span style="display:inline-block;width:1.2em;height:1.2em;background:#0f172a;border-radius:0.2em;vertical-align:middle;" /> |
+| white | `#f8fafc` | <span style="display:inline-block;width:1.2em;height:1.2em;background:#f8fafc;border:1px solid #cbd5e1;border-radius:0.2em;vertical-align:middle;" /> |
+
+Text shapes pick a contrasting outline automatically so red / blue / black text stays readable on light or dark backgrounds.
+
+## Rectangle stroke widths
+
+Rectangles support four preset stroke widths. The default is `thick`, matching the legacy fixed-width behavior.
+
+| Preset | Width (px) |
+|--------|------------|
+| thin | 6 |
+| medium | 12 |
+| thick | 18 (default) |
+| extraThick | 28 |
+
+Arrows have a single fixed stroke profile. Mosaic blocks use a fixed natural-pixel size, sized for redaction at typical screenshot resolutions.
+
+## Quality-of-life gestures
+
+### Option + drag to duplicate
+
+Select a shape, then **hold Option (Alt) while dragging**. The original stays put, a clone follows your cursor, and on mouse-up the clone is placed at the drop point. Selection automatically jumps to the new clone.
+
+<Aside type="tip">
+The gesture only fires when Option is held at **both** the start *and* the end
+of the drag. Releasing Option mid-drag turns it back into a plain move — handy
+when you change your mind.
+</Aside>
+
+### In-app shape clipboard
+
+`Cmd/Ctrl + C` with a shape selected copies it to marianne's **internal** clipboard. `Cmd/Ctrl + V` pastes it at a small offset from the original, so repeated pastes form a visible stack.
+
+The internal clipboard does not touch the OS clipboard, which means:
+
+- You can keep an OS image on the clipboard ready to paste as a new canvas image while still copy/pasting shapes inside marianne.
+- If the internal clipboard is empty, `Cmd/Ctrl + V` falls back to the OS image paste — see [Image input](./image-input/).
+
+### Undo / redo
+
+Up to **50 steps** of history are kept per image. Loading a new image resets the history (you cannot undo back to the previous image's annotations).
+
+## Status bar
+
+The bottom-of-window status bar shows:
+
+- **Left side**: where the current image came from — full file path (drag-drop / Finder open), or `pasted from clipboard` for paste-loaded images.
+- **Right side**: the image's natural dimensions (e.g. `1920 × 1080`).
+
+Use it to confirm at a glance which screenshot you are annotating, especially when juggling several at once.

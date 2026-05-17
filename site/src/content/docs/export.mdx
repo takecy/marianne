@@ -1,0 +1,63 @@
+---
+title: Exporting annotated images
+description: Save your annotated image as a PNG file or copy it to the system clipboard for pasting into chat apps and tickets.
+---
+
+import { Aside, Steps } from "@astrojs/starlight/components";
+
+marianne exports the annotated canvas as a flat PNG. Two destinations are supported, share the same output, and differ only in how you consume the result.
+
+## Save to file
+
+<Steps>
+1. Press **`Cmd / Ctrl + Shift + S`** or click **Save** in the toolbar.
+
+2. The native save dialog opens. The default folder is the same directory as the source image (when loaded by drag-drop or Open With); otherwise it falls back to your Documents folder.
+
+3. Confirm the filename and click **Save**. A PNG is written at the image's natural resolution.
+</Steps>
+
+The file contains the source image with every shape rasterised on top. Resolution matches the original image's natural size — no upscaling or downscaling.
+
+## Copy to system clipboard
+
+<Steps>
+1. Press **`Cmd / Ctrl + Shift + C`** or click **Copy** in the toolbar.
+
+2. The annotated PNG is placed on the macOS system clipboard.
+
+3. Paste it into any other app (Slack, GitHub issue, Mail, etc.).
+</Steps>
+
+This bypasses the file system entirely — great for "quick share" workflows where you do not need to keep a copy on disk.
+
+<Aside type="note" title="Two `Cmd + C`s, different purposes">
+`Cmd + Shift + C` puts the **annotated image** on the system clipboard.
+Plain `Cmd + C` (no Shift) is unrelated — it copies the currently selected
+**shape** into marianne's internal clipboard for in-app duplication. See
+[Keyboard shortcuts](./keyboard-shortcuts/) for the full mapping.
+</Aside>
+
+## What gets exported
+
+- The source image at its natural resolution.
+- Every annotation visible on the canvas — rectangles, arrows, text, mosaics.
+- Mosaic regions are **rasterised** into the output. The original pixels under the mosaic are not recoverable from the exported PNG — safe to share redacted screenshots.
+
+<Aside type="caution" title="Mosaic is irreversible in the export">
+Mosaic on the canvas is non-destructive (you can move or delete the mosaic
+shape any time), but once exported, the pixelation is baked into the PNG.
+Anyone with the exported file cannot recover the underlying pixels.
+</Aside>
+
+## Output details
+
+| Property | Value |
+|----------|-------|
+| Format | PNG |
+| Color space | sRGB |
+| Resolution | Image's natural pixel size (no scaling) |
+| Alpha channel | Preserved from the source image |
+| Compression | Standard PNG lossless |
+
+If you need a different format or resolution, export to PNG first and convert with a separate tool (e.g. `sips`, ImageMagick).

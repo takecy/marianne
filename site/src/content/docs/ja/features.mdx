@@ -1,0 +1,90 @@
+---
+title: 機能カタログ
+description: marianne のアノテーションツール、色プリセット、線の太さ、Option+drag による複製やアプリ内シェイプクリップボードなどの使い心地向上機能の全体像。
+---
+
+import { Aside, Card, CardGrid } from "@astrojs/starlight/components";
+
+marianne は意図的にアノテーション表面を小さく保っている。4 種類のシェイプ、8 色、4 段階の太さ、そして数個のジェスチャー — これでスクリーンショットのレビュー作業はほぼ全て対応できる。
+
+## アノテーションツール
+
+<CardGrid>
+  <Card title="矩形 (Rectangle)" icon="seti:default">
+    枠線のみの矩形で領域を囲む。「ここを見て」という指示に最適。線の太さは変更可能 (下記参照)。
+  </Card>
+  <Card title="矢印 (Arrow)" icon="right-arrow">
+    Skitch 風の太い縁取り + ドロップシャドウ付き矢印を描画する。視認性が高く、複雑な背景の上でも読みやすい。配置後に両端をドラッグして向きや長さを変更可能。
+  </Card>
+  <Card title="テキスト (Text)" icon="document">
+    キャンバス上の任意の位置にテキストラベルを配置する。四隅のリサイズハンドルでフォントサイズを変更でき、ダブルクリックで再編集できる。
+  </Card>
+  <Card title="モザイク (Mosaic)" icon="approve-check">
+    顔や名前など機密情報を矩形領域でピクセル化する。エクスポート時には PNG に焼き付けられ、元のピクセルは復元できない。
+  </Card>
+</CardGrid>
+
+ツールは左サイドバーから選択するか、単一キーショートカット (`v` / `a` / `r` / `t` / `m`) で切り替えられる — [キーボードショートカット](./keyboard-shortcuts/) を参照。
+
+## 色プリセット
+
+矩形・矢印・テキストに適用できる視認性の高い 8 色。モザイクは色プロパティを持たない (ピクセル化は着色しない)。
+
+| 名前 | Hex | サンプル |
+|------|-----|----------|
+| red | `#ef4444` | <span style="display:inline-block;width:1.2em;height:1.2em;background:#ef4444;border-radius:0.2em;vertical-align:middle;" /> |
+| orange | `#f97316` | <span style="display:inline-block;width:1.2em;height:1.2em;background:#f97316;border-radius:0.2em;vertical-align:middle;" /> |
+| blue | `#3b82f6` | <span style="display:inline-block;width:1.2em;height:1.2em;background:#3b82f6;border-radius:0.2em;vertical-align:middle;" /> |
+| green | `#22c55e` | <span style="display:inline-block;width:1.2em;height:1.2em;background:#22c55e;border-radius:0.2em;vertical-align:middle;" /> |
+| yellow | `#eab308` | <span style="display:inline-block;width:1.2em;height:1.2em;background:#eab308;border-radius:0.2em;vertical-align:middle;" /> |
+| pink | `#ec4899` | <span style="display:inline-block;width:1.2em;height:1.2em;background:#ec4899;border-radius:0.2em;vertical-align:middle;" /> |
+| black | `#0f172a` | <span style="display:inline-block;width:1.2em;height:1.2em;background:#0f172a;border-radius:0.2em;vertical-align:middle;" /> |
+| white | `#f8fafc` | <span style="display:inline-block;width:1.2em;height:1.2em;background:#f8fafc;border:1px solid #cbd5e1;border-radius:0.2em;vertical-align:middle;" /> |
+
+テキストの縁取りは色に応じて自動でコントラスト調整される — red / blue / black のテキストには白い縁取りが付き、明るい背景でも暗い背景でも読みやすい。
+
+## 矩形の線の太さ
+
+矩形は 4 段階のプリセットから線の太さを選べる。デフォルトは `thick`、つまり旧来の固定太さと同じ。
+
+| プリセット | 太さ (px) |
+|-----------|-----------|
+| thin | 6 |
+| medium | 12 |
+| thick | 18 (デフォルト) |
+| extraThick | 28 |
+
+矢印は固定の太さプロファイル。モザイクは固定のピクセルサイズで、典型的なスクリーンショット解像度での塗りつぶしに最適化されている。
+
+## 使い心地向上機能
+
+### Option+drag で複製
+
+シェイプを選択して、**Option (Alt) を押しながらドラッグする**。元シェイプはその場に残り、複製がカーソルに追従し、マウスを離すとドロップ位置に配置される。選択状態は自動で新しい複製へ移る。
+
+<Aside type="tip">
+このジェスチャーは「ドラッグ開始時 **AND** 終了時」に Option が押されている時のみ発動する。
+途中で Option を離すと通常の移動として扱われる — 気が変わった時に便利。
+</Aside>
+
+### アプリ内シェイプクリップボード
+
+シェイプを選択した状態で `Cmd/Ctrl + C` を押すと、marianne の **内部** クリップボードにコピーされる。`Cmd/Ctrl + V` で元の位置から少しずれた場所にペーストされ、連続ペーストすると階段状に並ぶ。
+
+内部クリップボードは OS クリップボードと完全に独立している:
+
+- OS クリップボードに画像を持ったまま、marianne 内でシェイプの copy/paste ができる (新規画像のペースト元として OS クリップボードを温存できる)。
+- 内部クリップボードが空の場合、`Cmd/Ctrl + V` は OS の画像ペーストにフォールバックする — [画像の取り込み](./image-input/) を参照。
+
+### Undo / Redo
+
+画像ごとに **最大 50 ステップ** の履歴が保持される。新しい画像を読み込むと履歴はリセットされる (前画像の注釈に undo で戻ることはできない)。
+
+## ステータスバー
+
+ウィンドウ下端のステータスバーには以下が表示される:
+
+- **左側**: 現在の画像の取り込み元 — フルファイルパス (drag-drop / Finder の Open With)、またはペースト由来なら `pasted from clipboard`。
+- **右側**: 画像の自然サイズ (例: `1920 × 1080`)。
+
+複数のスクリーンショットを並行で扱う際、「今どの画像を編集しているか」を一目で確認できる。

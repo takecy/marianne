@@ -1,0 +1,64 @@
+---
+title: Installation
+description: Install marianne from the prebuilt dmg on Apple Silicon Macs and learn how the built-in auto-updater keeps you on the latest release.
+---
+
+import { Aside, Steps } from "@astrojs/starlight/components";
+
+marianne ships as a signed dmg for **Apple Silicon Macs**. Installation takes under a minute; after that the app keeps itself current via a built-in updater.
+
+## System requirements
+
+| Item | Requirement |
+|------|-------------|
+| Hardware | Apple Silicon (M1 / M2 / M3 series) — Intel Macs are not supported |
+| macOS | 11.0 (Big Sur) or later |
+| Network | None required at runtime — the only outbound call is the update check on launch |
+
+<Aside type="caution" title="Intel Macs are not supported">
+The distributable is built for `aarch64-apple-darwin` only. Launching on an
+Intel Mac fails with `Bad CPU type in executable`.
+</Aside>
+
+## Install from the dmg
+
+<Steps>
+1. **Mount the dmg**: double-click `Marianne_<version>_aarch64.dmg` in Finder.
+
+2. **Drag `Marianne.app` into `/Applications`**: drop it onto the Applications shortcut shown in the dmg window.
+
+3. **Unmount the dmg**: eject it from the Finder sidebar to clean up.
+
+4. **Launch Marianne**: open it from Launchpad or Spotlight.
+</Steps>
+
+### First-launch Gatekeeper warning
+
+The dmg is **not code-signed**, so macOS may show "Marianne cannot be opened because the developer cannot be verified" on first launch. Either of these one-time workarounds clears it:
+
+- Right-click `Marianne.app` in `/Applications` and choose **Open** from the context menu.
+- Or run this once in a terminal:
+
+  ```sh
+  xattr -dr com.apple.quarantine /Applications/Marianne.app
+  ```
+
+After approving once, future launches go through normally.
+
+## Auto-update
+
+You do not need to download new dmgs by hand — marianne checks for releases on launch and updates itself.
+
+- On every launch, marianne contacts GitHub Releases for a newer build. If one is found, a modal appears with the new version number and release notes.
+- The toolbar also exposes a manual **Check for updates** button if you want to refresh on demand.
+- Choosing **Update now** downloads the new build, installs it, and relaunches Marianne.
+
+<Aside type="caution" title="Save before updating">
+Annotations in the canvas are lost when the app relaunches for an update. If
+you have unsaved work, save it first — the update modal warns you when shapes
+are present.
+</Aside>
+
+If the update check fails (no network, signature mismatch, etc.), a small `⚠ Failed` indicator appears next to the **Check for updates** button. The app keeps working normally; hover the indicator for the full error message and click the button to retry.
+
+The update feed is hard-coded to `https://github.com/takecy/marianne/releases/latest/download/latest.json`. Draft and pre-release entries on GitHub are ignored — only published latest releases roll out.

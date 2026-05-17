@@ -39,8 +39,27 @@ export default defineConfig({
       sidebar: [
         // Use `slug` (not `link`) so Starlight resolves the base prefix,
         // honours trailingSlash, and wires up the i18n locale switch.
-        { slug: "getting-started" },
-        { slug: "architecture" },
+        {
+          label: "User Guide",
+          translations: { ja: "ユーザーガイド" },
+          collapsed: false,
+          items: [
+            { slug: "installation" },
+            { slug: "features" },
+            { slug: "keyboard-shortcuts" },
+            { slug: "image-input" },
+            { slug: "export" },
+          ],
+        },
+        {
+          label: "For Contributors",
+          translations: { ja: "開発者向け" },
+          collapsed: true,
+          items: [
+            { slug: "getting-started" },
+            { slug: "architecture" },
+          ],
+        },
       ],
       social: [
         { icon: "github", label: "GitHub", href: "https://github.com/takecy/marianne" },
