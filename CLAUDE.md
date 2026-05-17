@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 `marianne` は完全オフラインで動作する Skitch 風の画像注釈デスクトップアプリ（MVP）。画像に対して矩形 / 矢印 / テキスト / モザイクのアノテーションを付与し、PNG としてファイル保存またはクリップボードへコピーする。外部ネットワーク通信は一切行わない。
 
-技術スタック: **Tauri v2（Rust シェル）+ React 19 + TypeScript + Vite + react-konva + Zustand**。Tauri バックエンドは意図的に最小限（`src-tauri/src/lib.rs` にサンプルの `greet` コマンドのみ）で、機能開発はほぼ `src/` 内で完結する。
+技術スタック: **Tauri v2（Rust シェル）+ React 19 + TypeScript + Vite + react-konva + Zustand**。Tauri バックエンドは意図的に最小限（`src-tauri/src/lib.rs` の `greet` / `take_pending_open_paths` / `confirm_quit` / `renderer_ready` の 4 コマンドのみ。`greet` はサンプル、残りは OS 統合用のグルーコード）で、機能開発はほぼ `src/` 内で完結する。
 
 ## よく使うコマンド
 
@@ -32,9 +32,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ### 状態管理: Zustand + identity-preserving な履歴
 
-`src/store/canvasStore.ts` がシェイプ・選択・undo/redo の単一の真実ソース:
+`src/store/canvasStore.ts` がシェイプ・選択・undo/redo・アプリ内シェイプクリップボードの単一の真実ソース:
 
-- `shapes`, `past: Shape[][]`, `future: Shape[][]`, `selectedShapeId`
+- `shapes`, `past: Shape[][]`, `future: Shape[][]`, `selectedShapeId`, `clipboardShape: Shape | null`
 - すべての変更は `withHistory(state, nextShapes)` を経由する。挙動:
   1. `nextShapes === state.shapes`（参照等価）なら旧 state をそのまま返す。`patchByType` はマッチが無い時に元配列を再利用するので、ヒットしない `updateXxx()` 呼び出しが履歴を汚すのを防ぐ。
   2. 旧 `shapes` を `past` に push し、`HISTORY_LIMIT = 50` でキャップ、`future` をクリア。
@@ -53,6 +53,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 `DraftShape` はドラッグ中に `width / height` が負になることを許容する。`finalizeDraft` 内で `Math.min` + `Math.abs` を使い、正の extent を持つシェイプに正規化する。このモジュールは独自の単体テストを持っており、React を import してはいけない。
 
+### Rect の stroke width プリセット
+
+`src/types/tool.ts` の `STROKE_WIDTH_PRESETS` で 4 段階を定義: `thin = 6` / `medium = 12` / `thick = 18` / `extraThick = 28`。`RectShape.strokeWidth` は **optional** で、未指定時は `"thick"` (=18) にフォールバックする。これは新フィールド導入前に保存・テスト fixture 化された矩形を `SHAPE_STROKE_WIDTH = 18` 時代と視覚的に完全一致させるための後方互換規約。新規 RectShape を作るコード (`startDraft` / クローン / ペースト) では明示的に値を入れること。
+
+`strokeWidthValue(name)` が返す数値は **export 時は natural ピクセル、画面描画時は screen ピクセル** の両方として使われる。これは export 側 (`exportImage.ts`) が画像の自然サイズで Stage を構築するため、画面側の `imgScaleX` 乗算なしでもサイズが一致するという設計。on-canvas で `strokeWidth * imgScaleX` をすると 2 重スケールになって極端に太くなるので絶対にやらないこと (`SelectableShape.tsx` / `CanvasArea.renderDraft` のいずれも生の数値を渡している)。
+
 ### モザイクの描画 & エクスポートパイプライン
 
 モザイクはパイプラインで最も繊細な部分:
@@ -60,7 +66,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - 画面表示 (`MosaicNode.tsx`): natural ピクセル矩形を `crop` として持つ `Konva.Image` に `filters: [Pixelate]` を適用し、`pixelSize = MOSAIC_NATURAL_PIXEL_SIZE * min(imgScaleX, imgScaleY)` を設定。`useEffect` 内で `cache()` を呼ぶが、その deps にはキャッシュキャンバスに影響する全 prop を含めること。1 つでも漏らすとピクセル化が古いまま固まる。
 - エクスポート (`src/lib/exportImage.ts`): 画像の自然サイズで _新しい_ オフスクリーン `Konva.Stage` を構築し、モザイクノードに `MOSAIC_EXPORT_FLAG` のタグを付け、`stage.toCanvas({ pixelRatio: 1 })` の **前に** `.cache({ pixelRatio: 1 })` を呼ぶ。この 2 箇所の `pixelRatio: 1` は必須。指定しないと Retina (DPR=2) でキャッシュキャンバスが 2 倍化し、PNG 上でブロックサイズが小さく見えてしまう。
 
-`MOSAIC_NATURAL_PIXEL_SIZE = 16`（`MosaicNode.tsx` で定義）は natural 画像座標でのブロックサイズ。画面側ノードもエクスポートパイプラインもこの同じ定数を import する。
+`MOSAIC_NATURAL_PIXEL_SIZE = 24`（`MosaicNode.tsx` で定義）は natural 画像座標でのブロックサイズ。画面側ノードもエクスポートパイプラインもこの同じ定数を import する。値を変えると過去にエクスポート / 表示済みのモザイクの粗さが変わるので、UX 上の判断として固定運用する。
 
 ### クリップボードへのエクスポート — 同期的な Promise ハンドオフ
 
@@ -73,22 +79,40 @@ copyImageToClipboard(blobPromise); // Promise<Blob> をそのまま ClipboardIte
 
 `copyImageToClipboard`（`src/lib/exportImage.ts`）は `Promise<Blob>` を直接 `new ClipboardItem({ "image/png": blobPromise })` に渡す。WebKit / WKWebView では `navigator.clipboard.write` をユーザージェスチャーハンドラ内で同期的に開始する必要があり、先に `await` すると transient user activation トークンを失って Tauri webview 上でクリップボード書き込みが無言で失敗する。これを `async/await` にリファクタしないこと。
 
+### シェイプの内部クリップボードと Option+drag による複製
+
+`canvasStore.clipboardShape` は OS クリップボードとは別の、**アプリ内専用のシェイプクリップボード**。`Cmd+C` (Shift なし) で選択中シェイプを格納し、`Cmd+V` (Shift なし) で `clipboardShape` がある時のみ `preventDefault` を呼んで貼付する。`clipboardShape` が空の時は `preventDefault` をスキップするので、ブラウザのデフォルト `paste` イベントが走り `useImageLoader` が OS クリップボード経由の画像ペーストを拾える。OS の画像クリップボードとアプリ内シェイプクリップボードを 1 つの `Cmd+V` で両立させるための分岐。
+
+クローン処理本体は `src/lib/shapeClipboard.ts` の `cloneShapeAt(shape, dropPoint, imageSize)` に集約されており、内部クリップボード経由のペーストでも Option+drag 経由の複製でも同じ関数を呼ぶ。
+
+**Option+drag によるシェイプ複製** (`SelectableShape.tsx`) は「**開始時 alt AND 終了時 alt**」の AND 判定。`onDragStart` で `altAtStartRef = event.evt.altKey` を記録し、`onDragEnd` で `altAtStart && event.evt.altKey` の時だけ `cloneShapeAt` を呼んで複製する (源シェイプは動かさず、ドラッグ位置に新クローンを配置)。途中で Option を離せば通常の移動として扱われる (`keyup` リスナで `showAltDragGhost` を即座に閉じる)。「終了時のみ alt」では誤発動するため、AND は必須。元位置に静的な ghost (`showAltDragGhost` state でレンダー) を描くことで「元が動かない」UX を視覚化している。
+
 ### 画像の入力
 
-ファイルオープンダイアログは存在しない。画像は次の 2 経路でのみ入る:
+ファイルオープンダイアログは存在しない。画像は次の 3 経路でのみ入る:
 
 - ペースト (`Cmd/Ctrl + V`) — 先頭の `image/*` クリップボード item
 - ウィンドウへのドラッグ&ドロップ — 先頭の `image/*` ファイル
+- macOS の「このアプリケーションで開く」 — Finder からのファイル関連付け起動。アプリ未起動時は Rust 側の `RunEvent::Opened` でパスをキューし、フロント初期化時に `take_pending_open_paths` を invoke して取り出す (cold-start drain)。既に起動中なら `file-open-requested` イベントで warm-start listen する
 
-`src/lib/useImageLoader.ts` がグローバルな `paste` / `dragover` / `dragleave` / `drop` リスナを所有し、`LoadedImage`（HTMLImageElement + 自然サイズ + source）を 1 つ発行する。`tauri.conf.json` で `"dragDropEnabled": false` を設定しており、Tauri のネイティブドロップを抑制して Web レイヤで処理している。
+`src/lib/useImageLoader.ts` が `paste` / native drag-drop / `file-open-requested` イベントを統合し、`LoadedImage`（HTMLImageElement + 自然サイズ + `source: "paste" | "drop" | "file"` + 任意の絶対パス / ファイル名）を 1 つ発行する。`tauri.conf.json` で `"dragDropEnabled": false` を設定しており、Tauri のネイティブドロップを抑制して Web レイヤで処理している (これにより drop した画像の絶対パスを Rust 側で確定できる)。パス検証 (拡張子 whitelist / symlink 拒否) は Rust 側が trust boundary。フロントの `isImagePath` は defense in depth。
 
 ### キーボードショートカット
 
-`CanvasArea.tsx` の `keydown` リスナが管理（テキスト入力にフォーカスが当たっている時はネイティブ textarea の編集を尊重するため bail out する）:
+`CanvasArea.tsx` の `keydown` リスナが管理（テキスト入力にフォーカスが当たっている時 / textarea や input にフォーカスがある時はネイティブの編集を尊重するため bail out する）:
 
-- `Cmd/Ctrl + Z` → undo
-- `Cmd/Ctrl + Shift + Z` → redo
-- `Delete` / `Backspace` → 選択中シェイプの削除（選択モード時のみ）
+| キー                        | 動作                                               | 補足                                                                                    |
+| --------------------------- | -------------------------------------------------- | --------------------------------------------------------------------------------------- |
+| `Cmd/Ctrl + Shift + S`      | PNG をファイル保存                                 | ネイティブの保存ダイアログを開く                                                        |
+| `Cmd/Ctrl + Shift + C`      | PNG をシステムクリップボードへコピー               | 同期的 Promise ハンドオフが必須 (後述)                                                  |
+| `Cmd/Ctrl + Z`              | undo                                               |                                                                                         |
+| `Cmd/Ctrl + Shift + Z`      | redo                                               |                                                                                         |
+| `Cmd/Ctrl + C`              | 選択中シェイプをアプリ内クリップボードへコピー     | 選択モードかつシェイプ選択時のみ                                                        |
+| `Cmd/Ctrl + V`              | アプリ内クリップボードのシェイプを貼付             | `clipboardShape` が無い時は `preventDefault` を呼ばないので OS の画像ペーストが動作する |
+| `v` / `a` / `r` / `t` / `m` | ツール切替 (select / arrow / rect / text / mosaic) | 画像未読み込み時は無視。`TOOL_SHORTCUTS` (`src/types/tool.ts`) で定義                   |
+| `Delete` / `Backspace`      | 選択中シェイプの削除                               | 選択モード時のみ                                                                        |
+
+`Cmd+C` / `Cmd+V` (Shift なし) は OS クリップボードには触れずアプリ内専用クリップボードで動作する一方、`Cmd+Shift+C` は PNG 出力という別経路の機能。エクスポートを `Cmd+E` に振り直すなどしないこと: 既存ユーザーの筋肉記憶を壊すうえ、`Cmd+V` の挙動と意味的に対をなしている。
 
 ## 規約
 
@@ -102,7 +126,7 @@ copyImageToClipboard(blobPromise); // Promise<Blob> をそのまま ClipboardIte
 ## Tauri 統合の注意点
 
 - 開発 URL は `http://localhost:1420` 固定（`vite.config.ts` の `strictPort: true` と `tauri.conf.json` が対応）。片方だけ変更しないこと。
-- `src-tauri/capabilities/default.json` の permissions リストは現在 `core:default` / `opener:default` / `dialog:allow-save` / `fs:allow-write-file` / `fs:allow-read-file` / `updater:default` / `process:default`。Rust 側プラグインを追加するときは capability も同時に追加すること（怠ると `invoke` が ACL で拒否される）。
+- `src-tauri/capabilities/default.json` の permissions リストは現在 `core:default` / `core:window:allow-set-size` / `core:window:allow-center` / `opener:default` / `dialog:allow-save` / `fs:allow-write-file` / `fs:allow-read-file` / `updater:default` / `process:default` の 9 個。`core:window:*` は `src/lib/windowResize.ts` が画像読み込み時にウィンドウサイズを自動調整するために使う。Rust 側プラグインを追加するときは capability も同時に追加すること（怠ると `invoke` が ACL で拒否される）。
 - フロントは `dist/` にビルドされ、`tauri.conf.json` の `frontendDist` 設定で `../dist` から提供される。
 
 ### セルフアップデートに関する不変条件
@@ -116,3 +140,10 @@ copyImageToClipboard(blobPromise); // Promise<Blob> をそのまま ClipboardIte
 5. **リリースは `tagging-release.yaml` の `workflow_dispatch` 経由のみ**: `tagging` (ubuntu) → `release` (macos-14, `needs: tagging`) の 2 ジョブ構成で 1 ワークフロー内で完結する。`GITHUB_TOKEN` だけで動くため PAT は不要。**手動の `git push origin vX.Y.Z` は禁忌** — bump-version.sh による 3 ファイル同期 + tauri-action の署名フローを通っていないタグはリリースとして成立せず updater が空振りする。
 6. **`tagging-release.yaml` の `releaseDraft: false` / `prerelease: false` は必須**: updater endpoint が `releases/latest/download/latest.json` を見るため、draft / prerelease のリリースだと 404 になり全ユーザーで更新が失敗する。
 7. **`relaunch()` は `await update.downloadAndInstall(...)` の解決後にのみ呼ぶ**: progress callback の `Finished` イベントは download 完了の signal であって install 完了ではない。callback 内で `relaunch()` を呼ぶと install が中断される。詳細は `src/lib/useUpdater.ts` のコメント参照。
+
+### その他の CI ワークフロー
+
+リリース用の `tagging-release.yaml` 以外に 2 つの CI ワークフローが PR / push を保護している:
+
+- `.github/workflows/ci.yml`: `main` への push と PR で起動。`pnpm install` → `lint` → `typecheck` → `fmt:check` → `test:run` → `build` を 15 分タイムアウトで実行する。これが赤いと PR はマージできない。ローカルでも `pnpm fmt:check` / `pnpm lint` / `pnpm typecheck` / `pnpm test:run` を回しておくと CI 待ちを減らせる。
+- `.github/workflows/trivy.yaml`: PR と `workflow_dispatch` で起動。`CRITICAL` / `HIGH` の CVE のみを検出してファイルシステム全体をスキャンする。検出時は依存更新 (`pnpm up <pkg>` または `cargo update -p <crate>`) で対処。`MEDIUM` 以下は無視する設定なので、警告レベルの脆弱性で PR が止まることはない。

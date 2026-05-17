@@ -17,6 +17,35 @@ Reference: [Issue #1](https://github.com/takecy/marianne/issues/1)
 - **Lint:** ESLint v10 (flat config)
 - **Formatter:** `deno fmt`
 
+## Features
+
+- **Four annotation tools:** rectangle, arrow, text, and mosaic (pixelation for redaction)
+- **8-color preset palette:** red / orange / blue / green / yellow / pink / black / white — applied to rectangles, arrows, and text
+- **Four stroke-width presets for rectangles:** thin (6) / medium (12) / thick (18) / extraThick (28). Mosaic blocks use a fixed natural-pixel size
+- **Three image-input paths:** paste from clipboard (`Cmd/Ctrl + V`), drag-and-drop onto the window, or macOS "Open With Marianne" from Finder (works both when the app is cold-started and when it is already running)
+- **Two export paths:** save as a PNG file (native save dialog) or copy as PNG to the system clipboard
+- **Option + drag to duplicate:** with a shape selected, hold Option (Alt) while dragging to clone it at the drop point. The source stays put and the new clone becomes the selection
+- **Internal shape clipboard:** `Cmd/Ctrl + C` and `Cmd/Ctrl + V` copy and paste a single shape inside the app. The OS image-paste path still works when the internal clipboard is empty
+- **Undo / redo:** up to 50 steps per session, cleared whenever a new image is loaded
+- **Status bar:** shows the image source (file path / drag-drop / paste) and natural dimensions
+- **Auto-update:** the app checks for new releases on launch and applies them with one click
+- **Fully offline:** the only network call is the updater hitting `releases/latest/download/latest.json` on GitHub. No image data ever leaves your machine
+
+## Keyboard shortcuts
+
+`Cmd` is shown for macOS; `Ctrl` is the equivalent on other platforms. All shortcuts are suppressed while a text-annotation edit overlay or any native `input` / `textarea` has focus, so the browser's native editing keys keep working.
+
+| Shortcut                    | Action                                                  | Notes                                                                      |
+| --------------------------- | ------------------------------------------------------- | -------------------------------------------------------------------------- |
+| `Cmd + Shift + S`           | Save PNG to file                                        | Opens the native save dialog                                               |
+| `Cmd + Shift + C`           | Copy PNG to system clipboard                            | Distinct from the plain `Cmd + C` below                                    |
+| `Cmd + Z`                   | Undo                                                    | Up to 50 steps                                                             |
+| `Cmd + Shift + Z`           | Redo                                                    |                                                                            |
+| `Cmd + C`                   | Copy the selected shape to the app's internal clipboard | Select mode only                                                           |
+| `Cmd + V`                   | Paste from the internal shape clipboard                 | Falls back to the OS image-paste flow when the internal clipboard is empty |
+| `v` / `a` / `r` / `t` / `m` | Switch tool (select / arrow / rect / text / mosaic)     | Ignored when no image is loaded                                            |
+| `Delete` / `Backspace`      | Delete the selected shape                               | Select mode only                                                           |
+
 ## Prerequisites
 
 Install the following before development:
