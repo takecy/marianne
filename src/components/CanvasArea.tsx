@@ -628,6 +628,7 @@ export function CanvasArea(props: CanvasAreaProps) {
                     isEditing={shape.id === editingTextId}
                     onSelect={onSelectShape}
                     onStartEditText={handleStartEditText}
+                    onAddShape={onShapeAdded}
                     onUpdateRect={onUpdateRect}
                     onUpdateText={onUpdateText}
                     onUpdateArrow={onUpdateArrow}

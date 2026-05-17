@@ -1,5 +1,5 @@
 import type { ArrowShape, MosaicShape, RectShape, TextShape } from "@/types/shape";
-import { cloneShapeForPaste, PASTE_OFFSET } from "./shapeClipboard";
+import { cloneShapeAt, cloneShapeForPaste, PASTE_OFFSET } from "./shapeClipboard";
 
 const IMAGE_SIZE = { width: 1000, height: 800 };
 
@@ -122,6 +122,91 @@ describe("cloneShapeForPaste", () => {
   it("clones to a fresh object so the source is not mutated", () => {
     const source = sampleRect();
     const cloned = cloneShapeForPaste(source, IMAGE_SIZE);
+    expect(cloned).not.toBe(source);
+    expect(source.x).toBe(10);
+    expect(source.y).toBe(20);
+  });
+});
+
+describe("cloneShapeAt", () => {
+  it("assigns a new id distinct from the source", () => {
+    const cloned = cloneShapeAt(sampleRect(), { x: 200, y: 300 }, IMAGE_SIZE);
+    expect(cloned.id).not.toBe("rect-src");
+    expect(cloned.id.length).toBeGreaterThan(0);
+  });
+
+  it("places a rect at the given anchor and preserves dimensions/color", () => {
+    const source = sampleRect();
+    const cloned = cloneShapeAt(source, { x: 400, y: 500 }, IMAGE_SIZE);
+    if (cloned.type !== "rect") throw new Error("expected rect");
+    expect(cloned.x).toBe(400);
+    expect(cloned.y).toBe(500);
+    expect(cloned.width).toBe(source.width);
+    expect(cloned.height).toBe(source.height);
+    expect(cloned.color).toBe(source.color);
+  });
+
+  it("places a text at the given anchor and preserves text/fontSize", () => {
+    const source = sampleText();
+    const cloned = cloneShapeAt(source, { x: 700, y: 100 }, IMAGE_SIZE);
+    if (cloned.type !== "text") throw new Error("expected text");
+    expect(cloned.x).toBe(700);
+    expect(cloned.y).toBe(100);
+    expect(cloned.text).toBe(source.text);
+    expect(cloned.fontSize).toBe(source.fontSize);
+  });
+
+  it("places a mosaic at the given anchor without a color field", () => {
+    const source = sampleMosaic();
+    const cloned = cloneShapeAt(source, { x: 250, y: 350 }, IMAGE_SIZE);
+    if (cloned.type !== "mosaic") throw new Error("expected mosaic");
+    expect(cloned.x).toBe(250);
+    expect(cloned.y).toBe(350);
+    expect(cloned.width).toBe(source.width);
+    expect(cloned.height).toBe(source.height);
+    expect("color" in cloned).toBe(false);
+  });
+
+  it("anchors an arrow at the given point and preserves the to-from delta", () => {
+    const source = sampleArrow();
+    const cloned = cloneShapeAt(source, { x: 500, y: 600 }, IMAGE_SIZE);
+    if (cloned.type !== "arrow") throw new Error("expected arrow");
+    expect(cloned.fromX).toBe(500);
+    expect(cloned.fromY).toBe(600);
+    expect(cloned.toX - cloned.fromX).toBe(source.toX - source.fromX);
+    expect(cloned.toY - cloned.fromY).toBe(source.toY - source.fromY);
+    expect(cloned.color).toBe(source.color);
+  });
+
+  it("clamps a rect anchor when it falls outside image bounds", () => {
+    const source = sampleRect();
+    const cloned = cloneShapeAt(
+      source,
+      { x: IMAGE_SIZE.width + 50, y: -20 },
+      IMAGE_SIZE,
+    );
+    if (cloned.type !== "rect") throw new Error("expected rect");
+    expect(cloned.x).toBe(IMAGE_SIZE.width);
+    expect(cloned.y).toBe(0);
+  });
+
+  it("clamps the arrow from-anchor but keeps the to-from delta intact", () => {
+    const source = sampleArrow();
+    const cloned = cloneShapeAt(
+      source,
+      { x: IMAGE_SIZE.width + 100, y: IMAGE_SIZE.height + 200 },
+      IMAGE_SIZE,
+    );
+    if (cloned.type !== "arrow") throw new Error("expected arrow");
+    expect(cloned.fromX).toBe(IMAGE_SIZE.width);
+    expect(cloned.fromY).toBe(IMAGE_SIZE.height);
+    expect(cloned.toX - cloned.fromX).toBe(source.toX - source.fromX);
+    expect(cloned.toY - cloned.fromY).toBe(source.toY - source.fromY);
+  });
+
+  it("clones to a fresh object so the source is not mutated", () => {
+    const source = sampleRect();
+    const cloned = cloneShapeAt(source, { x: 999, y: 999 }, IMAGE_SIZE);
     expect(cloned).not.toBe(source);
     expect(source.x).toBe(10);
     expect(source.y).toBe(20);

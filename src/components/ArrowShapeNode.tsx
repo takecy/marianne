@@ -1,6 +1,6 @@
 import type Konva from "konva";
 import type { KonvaEventObject } from "konva/lib/Node";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Circle, Line } from "react-konva";
 import {
   ARROW_HANDLE_FILL,
@@ -19,7 +19,8 @@ import type { ArrowEndpoint } from "@/lib/arrowHandleDrag";
 import { commitArrowEndpoint, previewArrowPolygon } from "@/lib/arrowHandleDrag";
 import type { FitRect, Size as FitSize } from "@/lib/imageFit";
 import { imageToScreen, imageToScreenScale, screenToImage } from "@/lib/imageFit";
-import type { ArrowShape } from "@/types/shape";
+import { cloneShapeAt } from "@/lib/shapeClipboard";
+import type { ArrowShape, Shape } from "@/types/shape";
 import { colorHex } from "@/types/tool";
 
 type ArrowPatch = Partial<Omit<ArrowShape, "id" | "type">>;
@@ -31,6 +32,7 @@ interface ArrowShapeNodeProps {
   isSelectMode: boolean;
   isSelected: boolean;
   onSelect: (id: string) => void;
+  onAddShape: (shape: Shape) => void;
   onUpdateArrow: (id: string, patch: ArrowPatch) => void;
   registerNode: (id: string, node: Konva.Node | null) => void;
 }
@@ -42,17 +44,51 @@ interface ArrowShapeNodeProps {
 // Konva.Transformer mutates scale during a transform). The store update is
 // deferred to onDragEnd so undo records exactly one entry per gesture.
 export function ArrowShapeNode(props: ArrowShapeNodeProps) {
-  const { shape, fit, imageSize, isSelectMode, isSelected, onSelect, onUpdateArrow, registerNode } =
-    props;
+  const {
+    shape,
+    fit,
+    imageSize,
+    isSelectMode,
+    isSelected,
+    onSelect,
+    onAddShape,
+    onUpdateArrow,
+    registerNode,
+  } = props;
   const lineRef = useRef<Konva.Line | null>(null);
   const fromHandleRef = useRef<Konva.Circle | null>(null);
   const toHandleRef = useRef<Konva.Circle | null>(null);
+  // Captures whether Alt/Option was held at drag start on the Line body.
+  // AND-combined with the altKey at drag end to decide "duplicate" vs "move"
+  // (Issue #1). Endpoint handle drags cancelBubble on dragStart so this ref
+  // is not touched by handle gestures.
+  const altAtStartRef = useRef<boolean>(false);
+  // Render a non-interactive duplicate at the source's original polygon while
+  // the source itself is being dragged with Alt held. This makes the original
+  // appear to stay put visually while the moving Konva node looks like the
+  // newly created copy — matching the user-expected Figma-style UX.
+  const [showAltDragGhost, setShowAltDragGhost] = useState<boolean>(false);
   const { scaleX: imgScaleX, scaleY: imgScaleY } = imageToScreenScale(fit, imageSize);
 
   useEffect(() => {
     registerNode(shape.id, lineRef.current);
     return () => registerNode(shape.id, null);
   }, [shape.id, registerNode]);
+
+  // Hide the ghost the moment the user releases Alt mid-drag. The drag-end
+  // branch still uses altAtStart AND event.evt.altKey, so releasing Alt
+  // naturally falls into the move branch. The listener is only installed
+  // while the ghost is visible.
+  useEffect(() => {
+    if (!showAltDragGhost) return;
+    const onKeyUp = (e: KeyboardEvent) => {
+      if (e.key === "Alt") {
+        setShowAltDragGhost(false);
+      }
+    };
+    window.addEventListener("keyup", onKeyUp);
+    return () => window.removeEventListener("keyup", onKeyUp);
+  }, [showAltDragGhost]);
 
   const fromScreen = imageToScreen({ x: shape.fromX, y: shape.fromY }, fit, imageSize);
   const toScreen = imageToScreen({ x: shape.toX, y: shape.toY }, fit, imageSize);
@@ -96,6 +132,20 @@ export function ArrowShapeNode(props: ArrowShapeNodeProps) {
 
   return (
     <>
+      {showAltDragGhost
+        ? (
+          <Line
+            listening={false}
+            points={polygon}
+            closed
+            fill={colorHex(shape.color)}
+            shadowBlur={6 * arrowScale}
+            shadowColor="rgba(0,0,0,0.45)"
+            shadowOffsetX={1 * arrowScale}
+            shadowOffsetY={2 * arrowScale}
+          />
+        )
+        : null}
       <Line
         ref={(node) => {
           lineRef.current = node;
@@ -111,6 +161,12 @@ export function ArrowShapeNode(props: ArrowShapeNodeProps) {
         shadowColor="rgba(0,0,0,0.45)"
         shadowOffsetX={1 * arrowScale}
         shadowOffsetY={2 * arrowScale}
+        onDragStart={(event: KonvaEventObject<DragEvent>) => {
+          altAtStartRef.current = event.evt.altKey;
+          if (event.evt.altKey) {
+            setShowAltDragGhost(true);
+          }
+        }}
         onDragMove={(event: KonvaEventObject<DragEvent>) => {
           // The Line's points are absolute screen coords; Konva drags by
           // mutating the node's x/y as a translation offset. Mirror that
@@ -125,16 +181,33 @@ export function ArrowShapeNode(props: ArrowShapeNodeProps) {
           node.getLayer()?.batchDraw();
         }}
         onDragEnd={(event: KonvaEventObject<DragEvent>) => {
+          const altAtStart = altAtStartRef.current;
+          altAtStartRef.current = false;
+          setShowAltDragGhost(false);
           const node = event.target;
           const dx = node.x();
           const dy = node.y();
-          node.x(0);
-          node.y(0);
           const newFrom = screenToImage(
             { x: fromScreen.x + dx, y: fromScreen.y + dy },
             fit,
             imageSize,
           );
+          if (altAtStart && event.evt.altKey) {
+            // Option+drag duplicate. cloneShapeAt anchors the new from-endpoint
+            // at the drop and preserves the original to-from delta so direction
+            // and length stay intact. Reset the Line's translation offset back
+            // to (0, 0) so the source arrow returns to its original points
+            // (the source's polygon coords never changed in the store).
+            const cloned = cloneShapeAt(shape, newFrom, imageSize);
+            onAddShape(cloned);
+            onSelect(cloned.id);
+            node.x(0);
+            node.y(0);
+            node.getLayer()?.batchDraw();
+            return;
+          }
+          node.x(0);
+          node.y(0);
           const newTo = screenToImage(
             { x: toScreen.x + dx, y: toScreen.y + dy },
             fit,
