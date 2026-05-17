@@ -21,7 +21,6 @@ export const ja: Record<TranslationKey, string> = {
   "sidebar.strokeWidthGroup.label": "太さ",
   "sidebar.historyGroup.label": "履歴",
   "sidebar.updateGroup.label": "更新",
-  "sidebar.infoGroup.label": "情報",
 
   // history + update actions (Sidebar)
   "action.undo.label": "戻る",
@@ -82,21 +81,4 @@ export const ja: Record<TranslationKey, string> = {
   "error.imageLoadFailed": "画像の読み込みに失敗しました",
   "error.update.generic": "更新処理でエラーが発生しました",
   "error.update.infoLost": "更新情報が失われました。再度確認してください。",
-
-  // About dialog (Sidebar info button + AboutDialog content)
-  "about.button.label": "アプリ情報",
-  "about.button.title": "Marianne について",
-  "about.title": "Marianne について",
-  "about.tagline": "Skitch 風オフライン画像アノテーション",
-  "about.tribute":
-    "Skitch (Plasq → Evernote) へのトリビュート。Skitch のメンテナンスが止まり、macOS から Intel サポートも消えゆく中、Skitch の精神を継ぐ前向きなリプレイスとして Marianne を作りました。",
-  "about.nameOrigin":
-    "名前は、ONE PIECE (尾田栄一郎・集英社) に登場する画家キャラ「ミス・ゴールデンウィーク」の本名 Marianne から。",
-  "about.license.prefix": "ライセンス:",
-  "about.license.suffix":
-    " © 2026 takecy。個人利用および非商用利用は自由。プロプライエタリな製品への組込や再販は不可。",
-  "about.tributeLink": "トリビュートの全文を読む →",
-  "about.disclaimer":
-    "本プロジェクトは Plasq・Evernote・集英社・尾田栄一郎いずれとも提携・公式承認関係はありません。「Skitch」「ONE PIECE」は各権利者の商標です。",
-  "about.close": "閉じる",
 };

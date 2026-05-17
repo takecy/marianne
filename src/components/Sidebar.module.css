@@ -172,13 +172,6 @@
   gap: 4px;
 }
 
-.infoGroup {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-}
-
 .updateButtonAvailable {
   border-color: var(--color-accent);
   color: var(--color-accent);
