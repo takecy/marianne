@@ -1,7 +1,6 @@
 import Konva from "konva";
 import { save } from "@tauri-apps/plugin-dialog";
 import { writeFile } from "@tauri-apps/plugin-fs";
-import { MOSAIC_NATURAL_PIXEL_SIZE } from "@/components/MosaicNode";
 import {
   ARROW_HEAD_HALF_WIDTH,
   ARROW_HEAD_LENGTH,
@@ -17,6 +16,7 @@ import {
   TEXT_STROKE_WIDTH,
 } from "@/constants/shape";
 import { computeArrowPolygon } from "@/lib/arrowGeometry";
+import { mosaicPixelSize } from "@/lib/mosaicStrength";
 import { partitionShapesByMosaicFirst } from "@/lib/shapeZOrder";
 import type { LoadedImage } from "@/types/image";
 import type { Shape } from "@/types/shape";
@@ -24,7 +24,7 @@ import { colorHex, strokeWidthValue, textStrokeColorFor } from "@/types/tool";
 
 const MOSAIC_EXPORT_FLAG = "isMosaicExport";
 
-function buildShapeNode(shape: Shape, image: LoadedImage): Konva.Shape {
+export function buildShapeNode(shape: Shape, image: LoadedImage): Konva.Shape {
   if (shape.type === "rect") {
     return new Konva.Rect({
       x: shape.x,
@@ -96,7 +96,7 @@ function buildShapeNode(shape: Shape, image: LoadedImage): Konva.Shape {
       height: shape.height,
     },
     filters: [Konva.Filters.Pixelate],
-    pixelSize: MOSAIC_NATURAL_PIXEL_SIZE,
+    pixelSize: mosaicPixelSize(shape.strengthLevel),
     listening: false,
   });
   node.setAttr(MOSAIC_EXPORT_FLAG, true);

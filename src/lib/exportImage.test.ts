@@ -1,6 +1,40 @@
 import { afterEach, beforeEach, vi } from "vitest";
 import type { LoadedImage } from "@/types/image";
+import type { MosaicShape } from "@/types/shape";
+
+// Konva's real Shape constructor calls into canvas (getHitColor → farbling
+// detection) which jsdom cannot satisfy. We only need the bare constructor +
+// attr storage to verify buildShapeNode's mosaic pixelSize wiring, so stub it
+// out for this file. The other tests in this file (filename/save/clipboard) do
+// not exercise Konva at all.
+vi.mock("konva", () => {
+  class StubShape {
+    private attrs: Record<string, unknown>;
+    constructor(attrs: Record<string, unknown> = {}) {
+      this.attrs = { ...attrs };
+    }
+    setAttr(key: string, value: unknown): void {
+      this.attrs[key] = value;
+    }
+    getAttr(key: string): unknown {
+      return this.attrs[key];
+    }
+  }
+  // eslint-disable-next-line @typescript-eslint/no-empty-function
+  const noopFilter = () => {};
+  return {
+    default: {
+      Image: StubShape,
+      Rect: StubShape,
+      Text: StubShape,
+      Line: StubShape,
+      Filters: { Pixelate: noopFilter },
+    },
+  };
+});
+
 import {
+  buildShapeNode,
   copyImageToClipboard,
   defaultExportFileName,
   generateExportFilename,
@@ -157,5 +191,34 @@ describe("copyImageToClipboard", () => {
     await expect(copyImageToClipboard(Promise.resolve(new Blob()))).rejects.toThrow(
       /Clipboard API/,
     );
+  });
+});
+
+describe("buildShapeNode (mosaic strength)", () => {
+  function mosaic(strengthLevel?: number): MosaicShape {
+    return {
+      id: "test",
+      type: "mosaic",
+      x: 0,
+      y: 0,
+      width: 50,
+      height: 50,
+      strengthLevel,
+    };
+  }
+
+  it("uses base pixelSize (24) for level 1", () => {
+    const node = buildShapeNode(mosaic(1), buildLoadedImage());
+    expect(node.getAttr("pixelSize")).toBe(24);
+  });
+
+  it("uses 48 for level 3 (additive growth: 24 + 12 * 2)", () => {
+    const node = buildShapeNode(mosaic(3), buildLoadedImage());
+    expect(node.getAttr("pixelSize")).toBe(48);
+  });
+
+  it("falls back to base pixelSize (24) when strengthLevel is undefined", () => {
+    const node = buildShapeNode(mosaic(undefined), buildLoadedImage());
+    expect(node.getAttr("pixelSize")).toBe(24);
   });
 });

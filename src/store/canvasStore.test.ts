@@ -514,4 +514,31 @@ describe("canvasStore", () => {
     expect(state.shapes.map((s) => s.id)).toEqual(["a"]);
     expect(state.selectedShapeId).toBeNull();
   });
+
+  // --- mosaic strengthLevel preservation ---
+
+  it("pasteShape preserves the strengthLevel of a mosaic", () => {
+    const strong: MosaicShape = { ...sampleMosaic("m"), strengthLevel: 3 };
+    useCanvasStore.getState().addShape(strong);
+    useCanvasStore.getState().copyShape("m");
+    useCanvasStore.getState().pasteShape(IMAGE_SIZE);
+    const pasted = useCanvasStore.getState().shapes[1];
+    if (pasted?.type !== "mosaic") {
+      throw new Error("expected pasted mosaic");
+    }
+    expect(pasted.strengthLevel).toBe(3);
+  });
+
+  it("undo/redo round-trip preserves the strengthLevel of a mosaic", () => {
+    const strong: MosaicShape = { ...sampleMosaic("m"), strengthLevel: 4 };
+    useCanvasStore.getState().addShape(strong);
+    useCanvasStore.getState().addShape(sampleRect("r"));
+    useCanvasStore.getState().undo();
+    useCanvasStore.getState().redo();
+    const mosaic = useCanvasStore.getState().shapes.find((s) => s.id === "m");
+    if (mosaic?.type !== "mosaic") {
+      throw new Error("expected mosaic to survive undo/redo");
+    }
+    expect(mosaic.strengthLevel).toBe(4);
+  });
 });

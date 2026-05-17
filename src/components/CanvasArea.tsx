@@ -11,6 +11,7 @@ import {
 } from "@/lib/imageFit";
 import type { FitRect, Point, Size as FitSize } from "@/lib/imageFit";
 import { finalizeDraft, moveDraft, startDraft } from "@/lib/drawingGesture";
+import { computeMosaicStrengthLevel } from "@/lib/mosaicStrength";
 import { partitionShapesByMosaicFirst } from "@/lib/shapeZOrder";
 import { useThemeMode } from "@/lib/useThemeMode";
 import { t } from "@/i18n/translate";
@@ -527,7 +528,13 @@ export function CanvasArea(props: CanvasAreaProps) {
     }
     const shape = finalizeDraft(draft);
     if (shape) {
-      onShapeAdded(shape);
+      // Mosaics get a strengthLevel based on overlap with existing mosaics at
+      // creation time. Determined here (not in finalizeDraft) so drawingGesture
+      // stays pure and store-independent.
+      const finalShape = shape.type === "mosaic"
+        ? { ...shape, strengthLevel: computeMosaicStrengthLevel(shape, mosaics) }
+        : shape;
+      onShapeAdded(finalShape);
     }
     setDraft(null);
   };
