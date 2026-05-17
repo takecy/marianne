@@ -11,6 +11,7 @@ import {
 } from "@/lib/imageFit";
 import type { FitRect, Point, Size as FitSize } from "@/lib/imageFit";
 import { finalizeDraft, moveDraft, startDraft } from "@/lib/drawingGesture";
+import { partitionShapesByMosaicFirst } from "@/lib/shapeZOrder";
 import { useThemeMode } from "@/lib/useThemeMode";
 import { t } from "@/i18n/translate";
 import type { LoadedImage } from "@/types/image";
@@ -458,6 +459,14 @@ export function CanvasArea(props: CanvasAreaProps) {
     [shapes, selectedShapeId],
   );
 
+  // Render mosaics first, then other shapes, so arrows / rects / text stay
+  // visible on top of overlapping mosaics. Stable within each group; logical
+  // order in the `shapes` array is unchanged (issue #51).
+  const { mosaics, others } = useMemo(
+    () => partitionShapesByMosaicFirst(shapes),
+    [shapes],
+  );
+
   const enabledAnchors = !selectedShape
     ? []
     : selectedShape.type === "text"
@@ -617,26 +626,50 @@ export function CanvasArea(props: CanvasAreaProps) {
             </Layer>
             <Layer listening={isSelectMode}>
               {fit && imageSize
-                ? shapes.map((shape) => (
-                  <SelectableShape
-                    key={shape.id}
-                    shape={shape}
-                    fit={fit}
-                    imageSize={imageSize}
-                    image={image}
-                    isSelectMode={isSelectMode}
-                    isSelected={shape.id === selectedShapeId}
-                    isEditing={shape.id === editingTextId}
-                    onSelect={onSelectShape}
-                    onStartEditText={handleStartEditText}
-                    onAddShape={onShapeAdded}
-                    onUpdateRect={onUpdateRect}
-                    onUpdateText={onUpdateText}
-                    onUpdateArrow={onUpdateArrow}
-                    onUpdateMosaic={onUpdateMosaic}
-                    registerNode={registerNode}
-                  />
-                ))
+                ? (
+                  <>
+                    {mosaics.map((shape) => (
+                      <SelectableShape
+                        key={shape.id}
+                        shape={shape}
+                        fit={fit}
+                        imageSize={imageSize}
+                        image={image}
+                        isSelectMode={isSelectMode}
+                        isSelected={shape.id === selectedShapeId}
+                        isEditing={shape.id === editingTextId}
+                        onSelect={onSelectShape}
+                        onStartEditText={handleStartEditText}
+                        onAddShape={onShapeAdded}
+                        onUpdateRect={onUpdateRect}
+                        onUpdateText={onUpdateText}
+                        onUpdateArrow={onUpdateArrow}
+                        onUpdateMosaic={onUpdateMosaic}
+                        registerNode={registerNode}
+                      />
+                    ))}
+                    {others.map((shape) => (
+                      <SelectableShape
+                        key={shape.id}
+                        shape={shape}
+                        fit={fit}
+                        imageSize={imageSize}
+                        image={image}
+                        isSelectMode={isSelectMode}
+                        isSelected={shape.id === selectedShapeId}
+                        isEditing={shape.id === editingTextId}
+                        onSelect={onSelectShape}
+                        onStartEditText={handleStartEditText}
+                        onAddShape={onShapeAdded}
+                        onUpdateRect={onUpdateRect}
+                        onUpdateText={onUpdateText}
+                        onUpdateArrow={onUpdateArrow}
+                        onUpdateMosaic={onUpdateMosaic}
+                        registerNode={registerNode}
+                      />
+                    ))}
+                  </>
+                )
                 : null}
               <Transformer
                 ref={transformerRef}

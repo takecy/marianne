@@ -17,6 +17,7 @@ import {
   TEXT_STROKE_WIDTH,
 } from "@/constants/shape";
 import { computeArrowPolygon } from "@/lib/arrowGeometry";
+import { partitionShapesByMosaicFirst } from "@/lib/shapeZOrder";
 import type { LoadedImage } from "@/types/image";
 import type { Shape } from "@/types/shape";
 import { colorHex, strokeWidthValue, textStrokeColorFor } from "@/types/tool";
@@ -130,8 +131,15 @@ export async function exportToBlob(image: LoadedImage, shapes: Shape[]): Promise
     );
     stage.add(imageLayer);
 
+    // Mosaics render below other shapes so arrows / rects / text stay visible
+    // when overlapping a mosaic region. The partition keeps creation order
+    // within each group (issue #51).
     const shapeLayer = new Konva.Layer({ listening: false });
-    for (const shape of shapes) {
+    const { mosaics, others } = partitionShapesByMosaicFirst(shapes);
+    for (const shape of mosaics) {
+      shapeLayer.add(buildShapeNode(shape, image));
+    }
+    for (const shape of others) {
       shapeLayer.add(buildShapeNode(shape, image));
     }
     stage.add(shapeLayer);
