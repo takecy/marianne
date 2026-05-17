@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { dirname, join } from "@tauri-apps/api/path";
 import { t } from "./i18n/translate";
+import { AboutDialog } from "./components/AboutDialog";
 import { ActionBar } from "./components/ActionBar";
 import { CanvasArea } from "./components/CanvasArea";
 import { ConfirmDialog } from "./components/ConfirmDialog";
@@ -70,6 +71,28 @@ function App() {
   const [isEditingText, setIsEditingText] = useState(false);
   const [copyState, setCopyState] = useState<"idle" | "success">("idle");
   const copyResetTimer = useRef<number | null>(null);
+
+  // About dialog state. The version is fetched once at mount via Tauri's
+  // getVersion(); failure (e.g. running outside Tauri in tests) leaves it
+  // as an empty string and the dialog simply omits the "v…" label.
+  const [aboutDialogOpen, setAboutDialogOpen] = useState(false);
+  const [appVersion, setAppVersion] = useState("");
+
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const { getVersion } = await import("@tauri-apps/api/app");
+        const v = await getVersion();
+        if (!cancelled) setAppVersion(v);
+      } catch {
+        // Non-Tauri environment (tests, web preview) — silently leave empty.
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     return () => {
@@ -274,6 +297,7 @@ function App() {
         onCheckForUpdates={() => void checkForUpdates()}
         updateButtonState={deriveUpdateButtonState(updateState.kind)}
         updateErrorMessage={updateState.kind === "error" ? updateState.message : undefined}
+        onShowAbout={() => setAboutDialogOpen(true)}
       />
       <div className={styles.mainColumn}>
         <ActionBar
@@ -333,6 +357,11 @@ function App() {
         destructive
         onConfirm={handleConfirmReplaceImage}
         onCancel={handleCancelReplaceImage}
+      />
+      <AboutDialog
+        open={aboutDialogOpen}
+        version={appVersion}
+        onClose={() => setAboutDialogOpen(false)}
       />
     </div>
   );
