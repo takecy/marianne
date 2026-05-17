@@ -1,5 +1,5 @@
 import type { ArrowShape, DraftShape, MosaicShape, RectShape, Shape } from "@/types/shape";
-import type { ColorPresetName } from "@/types/tool";
+import type { ColorPresetName, StrokeWidthPresetName } from "@/types/tool";
 
 const MIN_RECT_DIM = 2;
 const MIN_ARROW_LENGTH = 4;
@@ -8,12 +8,14 @@ const MIN_MOSAIC_DIM = 4;
 export function startDraft(
   tool: "rect" | "arrow" | "mosaic",
   color: ColorPresetName,
+  strokeWidth: StrokeWidthPresetName,
   point: { x: number; y: number },
 ): DraftShape {
   if (tool === "rect") {
     return {
       type: "rect",
       color,
+      strokeWidth,
       x: point.x,
       y: point.y,
       width: 0,
@@ -30,8 +32,8 @@ export function startDraft(
       toY: point.y,
     };
   }
-  // mosaic: color is accepted in the signature for call-site uniformity but
-  // intentionally not stored on the resulting shape.
+  // mosaic: color and strokeWidth are accepted in the signature for call-site
+  // uniformity but intentionally not stored on the resulting shape.
   return {
     type: "mosaic",
     x: point.x,
@@ -72,6 +74,7 @@ export function finalizeDraft(
       id: idGen(),
       type: "rect",
       color: draft.color,
+      strokeWidth: draft.strokeWidth,
       x,
       y,
       width,

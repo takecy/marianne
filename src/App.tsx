@@ -15,8 +15,10 @@ import {
 import {
   loadLastSaveDirectory,
   loadLastSelectedColor,
+  loadLastSelectedStrokeWidth,
   saveLastSaveDirectory,
   saveLastSelectedColor,
+  saveLastSelectedStrokeWidth,
 } from "./lib/settingsStorage";
 import { useImageLoader } from "./lib/useImageLoader";
 import { useQuitConfirm } from "./lib/useQuitConfirm";
@@ -25,7 +27,7 @@ import { applyWindowSizeForImage } from "./lib/windowResize";
 import { useCanvasStore } from "./store/canvasStore";
 import type { LoadedImage } from "./types/image";
 import type { Shape } from "./types/shape";
-import type { ColorPresetName, ToolKind } from "./types/tool";
+import type { ColorPresetName, StrokeWidthPresetName, ToolKind } from "./types/tool";
 import styles from "./App.module.css";
 
 const COPY_FEEDBACK_DURATION_MS = 2000;
@@ -46,6 +48,9 @@ function App() {
   const [activeTool, setActiveTool] = useState<ToolKind>("select");
   const [activeColor, setActiveColor] = useState<ColorPresetName>(
     () => loadLastSelectedColor() ?? "red",
+  );
+  const [activeStrokeWidth, setActiveStrokeWidth] = useState<StrokeWidthPresetName>(
+    () => loadLastSelectedStrokeWidth() ?? "thick",
   );
   const [image, setImage] = useState<LoadedImage | null>(null);
   // Driven by CanvasArea via onEditingTextChange. Used to disable export
@@ -82,6 +87,9 @@ function App() {
   const updateArrow = useCanvasStore((s) => s.updateArrow);
   const updateMosaic = useCanvasStore((s) => s.updateMosaic);
   const setSelectedShapeColor = useCanvasStore((s) => s.setSelectedShapeColor);
+  const setSelectedShapeStrokeWidth = useCanvasStore(
+    (s) => s.setSelectedShapeStrokeWidth,
+  );
   const clearShapes = useCanvasStore((s) => s.clearShapes);
   const copyShape = useCanvasStore((s) => s.copyShape);
   const pasteShape = useCanvasStore((s) => s.pasteShape);
@@ -99,6 +107,16 @@ function App() {
     setActiveColor(name);
     saveLastSelectedColor(name);
   }, [setSelectedShapeColor]);
+
+  // Symmetric to handleColorChange: try to repaint the selected shape first,
+  // then update the active preset used for new rects, then persist. The store
+  // call is a silent no-op when the selection is not a rect (text/arrow/mosaic)
+  // or when the value is unchanged — see canvasStore.setSelectedShapeStrokeWidth.
+  const handleStrokeWidthChange = useCallback((name: StrokeWidthPresetName) => {
+    setSelectedShapeStrokeWidth(name);
+    setActiveStrokeWidth(name);
+    saveLastSelectedStrokeWidth(name);
+  }, [setSelectedShapeStrokeWidth]);
 
   const handleImageLoaded = useCallback(
     (loaded: LoadedImage) => {
@@ -209,6 +227,8 @@ function App() {
         onToolChange={setActiveTool}
         activeColor={activeColor}
         onColorChange={handleColorChange}
+        activeStrokeWidth={activeStrokeWidth}
+        onStrokeWidthChange={handleStrokeWidthChange}
         disabled={image === null}
         onUndo={undo}
         onRedo={redo}
@@ -231,6 +251,7 @@ function App() {
           shapes={shapes}
           activeTool={activeTool}
           activeColor={activeColor}
+          activeStrokeWidth={activeStrokeWidth}
           selectedShapeId={selectedShapeId}
           hasClipboardShape={hasClipboardShape}
           onToolChange={setActiveTool}

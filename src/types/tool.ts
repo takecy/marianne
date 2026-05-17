@@ -48,3 +48,29 @@ export function textStrokeColorFor(name: ColorPresetName): string {
   }
   return TEXT_STROKE_COLOR_BLACK;
 }
+
+// Stroke width presets for rect shapes. The same numeric value is interpreted as
+// image-natural pixels in export (exportImage.ts uses a natural-sized stage) and
+// as screen pixels in on-canvas rendering (SelectableShape / CanvasArea.renderDraft
+// do not multiply by imgScaleX). "thick" preserves the legacy SHAPE_STROKE_WIDTH = 18
+// behaviour exactly so rects with `strokeWidth` undefined (defaulted to "thick")
+// remain visually identical to the pre-preset rendering.
+export const STROKE_WIDTH_PRESETS = [
+  { name: "thin", value: 6 },
+  { name: "medium", value: 12 },
+  { name: "thick", value: 18 },
+  { name: "extraThick", value: 28 },
+] as const;
+
+export type StrokeWidthPresetName = (typeof STROKE_WIDTH_PRESETS)[number]["name"];
+
+const STROKE_WIDTH_VALUE_MAP: Record<StrokeWidthPresetName, number> = {
+  thin: 6,
+  medium: 12,
+  thick: 18,
+  extraThick: 28,
+};
+
+export function strokeWidthValue(name: StrokeWidthPresetName): number {
+  return STROKE_WIDTH_VALUE_MAP[name];
+}

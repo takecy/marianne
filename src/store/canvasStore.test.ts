@@ -329,6 +329,108 @@ describe("canvasStore", () => {
     expect(useCanvasStore.getState().past.length).toBe(pastBefore + 1);
   });
 
+  // --- setSelectedShapeStrokeWidth ---
+
+  it("setSelectedShapeStrokeWidth updates the strokeWidth of a selected rect", () => {
+    useCanvasStore.getState().addShape(sampleRect("a"));
+    useCanvasStore.getState().selectShape("a");
+    useCanvasStore.getState().setSelectedShapeStrokeWidth("extraThick");
+    const shape = useCanvasStore.getState().shapes[0];
+    if (shape?.type === "rect") {
+      expect(shape.strokeWidth).toBe("extraThick");
+    } else {
+      throw new Error("expected shape to remain a rect");
+    }
+  });
+
+  it("setSelectedShapeStrokeWidth is a silent no-op for a selected text shape", () => {
+    useCanvasStore.getState().addShape(sampleText("t"));
+    useCanvasStore.getState().selectShape("t");
+    const shapesBefore = useCanvasStore.getState().shapes;
+    const pastBefore = useCanvasStore.getState().past.length;
+    useCanvasStore.getState().setSelectedShapeStrokeWidth("thin");
+    const state = useCanvasStore.getState();
+    // Identity-preserved no-op proves the matter-of-fact rect-only contract.
+    expect(state.shapes).toBe(shapesBefore);
+    expect(state.past.length).toBe(pastBefore);
+  });
+
+  it("setSelectedShapeStrokeWidth is a silent no-op for a selected arrow", () => {
+    useCanvasStore.getState().addShape(sampleArrow("a"));
+    useCanvasStore.getState().selectShape("a");
+    const shapesBefore = useCanvasStore.getState().shapes;
+    const pastBefore = useCanvasStore.getState().past.length;
+    useCanvasStore.getState().setSelectedShapeStrokeWidth("thin");
+    const state = useCanvasStore.getState();
+    expect(state.shapes).toBe(shapesBefore);
+    expect(state.past.length).toBe(pastBefore);
+  });
+
+  it("setSelectedShapeStrokeWidth is a silent no-op for a selected mosaic", () => {
+    useCanvasStore.getState().addShape(sampleMosaic("m"));
+    useCanvasStore.getState().selectShape("m");
+    const shapesBefore = useCanvasStore.getState().shapes;
+    const pastBefore = useCanvasStore.getState().past.length;
+    useCanvasStore.getState().setSelectedShapeStrokeWidth("medium");
+    const state = useCanvasStore.getState();
+    expect(state.shapes).toBe(shapesBefore);
+    expect(state.past.length).toBe(pastBefore);
+  });
+
+  it("setSelectedShapeStrokeWidth is a no-op when nothing is selected", () => {
+    useCanvasStore.getState().addShape(sampleRect("a"));
+    const shapesBefore = useCanvasStore.getState().shapes;
+    const pastBefore = useCanvasStore.getState().past.length;
+    useCanvasStore.getState().setSelectedShapeStrokeWidth("thin");
+    const state = useCanvasStore.getState();
+    expect(state.shapes).toBe(shapesBefore);
+    expect(state.past.length).toBe(pastBefore);
+  });
+
+  it("setSelectedShapeStrokeWidth treats an unset strokeWidth as 'thick' (default) and skips same-value clicks", () => {
+    // sampleRect has no strokeWidth field — defaulted to "thick" at render time.
+    useCanvasStore.getState().addShape(sampleRect("a"));
+    useCanvasStore.getState().selectShape("a");
+    const shapesBefore = useCanvasStore.getState().shapes;
+    const pastBefore = useCanvasStore.getState().past.length;
+    useCanvasStore.getState().setSelectedShapeStrokeWidth("thick");
+    const state = useCanvasStore.getState();
+    expect(state.shapes).toBe(shapesBefore);
+    expect(state.past.length).toBe(pastBefore);
+  });
+
+  it("setSelectedShapeStrokeWidth is a no-op when re-applying the same explicit preset", () => {
+    useCanvasStore.getState().addShape({ ...sampleRect("a"), strokeWidth: "medium" });
+    useCanvasStore.getState().selectShape("a");
+    const shapesBefore = useCanvasStore.getState().shapes;
+    const pastBefore = useCanvasStore.getState().past.length;
+    useCanvasStore.getState().setSelectedShapeStrokeWidth("medium");
+    const state = useCanvasStore.getState();
+    expect(state.shapes).toBe(shapesBefore);
+    expect(state.past.length).toBe(pastBefore);
+  });
+
+  it("setSelectedShapeStrokeWidth pushes onto past when the strokeWidth actually changes", () => {
+    useCanvasStore.getState().addShape(sampleRect("a"));
+    useCanvasStore.getState().selectShape("a");
+    const pastBefore = useCanvasStore.getState().past.length;
+    useCanvasStore.getState().setSelectedShapeStrokeWidth("thin");
+    expect(useCanvasStore.getState().past.length).toBe(pastBefore + 1);
+  });
+
+  it("undo restores the prior strokeWidth after setSelectedShapeStrokeWidth", () => {
+    useCanvasStore.getState().addShape({ ...sampleRect("a"), strokeWidth: "thick" });
+    useCanvasStore.getState().selectShape("a");
+    useCanvasStore.getState().setSelectedShapeStrokeWidth("extraThick");
+    useCanvasStore.getState().undo();
+    const shape = useCanvasStore.getState().shapes[0];
+    if (shape?.type === "rect") {
+      expect(shape.strokeWidth).toBe("thick");
+    } else {
+      throw new Error("expected rect after undo");
+    }
+  });
+
   it("undo clears the selectedShapeId for safety", () => {
     useCanvasStore.getState().addShape(sampleRect("a"));
     useCanvasStore.getState().selectShape("a");

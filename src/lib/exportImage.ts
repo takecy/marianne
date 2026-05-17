@@ -8,7 +8,6 @@ import {
   ARROW_NECK_HALF_WIDTH,
   ARROW_NECK_LENGTH,
   ARROW_TAIL_HALF_WIDTH,
-  SHAPE_STROKE_WIDTH,
   TEXT_FONT_SIZE,
   TEXT_FONT_STYLE,
   TEXT_SHADOW_BLUR,
@@ -20,7 +19,7 @@ import {
 import { computeArrowPolygon } from "@/lib/arrowGeometry";
 import type { LoadedImage } from "@/types/image";
 import type { Shape } from "@/types/shape";
-import { colorHex, textStrokeColorFor } from "@/types/tool";
+import { colorHex, strokeWidthValue, textStrokeColorFor } from "@/types/tool";
 
 const MOSAIC_EXPORT_FLAG = "isMosaicExport";
 
@@ -32,7 +31,7 @@ function buildShapeNode(shape: Shape, image: LoadedImage): Konva.Shape {
       width: shape.width,
       height: shape.height,
       stroke: colorHex(shape.color),
-      strokeWidth: SHAPE_STROKE_WIDTH,
+      strokeWidth: strokeWidthValue(shape.strokeWidth ?? "thick"),
       lineJoin: "round",
       listening: false,
     });
