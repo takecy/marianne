@@ -1,34 +1,34 @@
 ---
 title: Loading images
-description: Three ways to bring an image into marianne — clipboard paste, drag-and-drop, and macOS "Open With Marianne" from Finder.
+description: Three ways to bring an image into Marianne — clipboard paste, drag-and-drop, and macOS "Open With Marianne" from Finder.
 ---
 
 import { Aside } from "@astrojs/starlight/components";
 
-marianne has **no file-open dialog** by design. Images enter the canvas through exactly three paths — pick whichever fits your workflow.
+Marianne has **no file-open dialog** by design. Images enter the canvas through exactly three paths — pick whichever fits your workflow.
 
 ## The three input paths
 
 ```mermaid
 flowchart LR
-  C[macOS Clipboard] -->|Cmd + V paste| M[marianne canvas]
+  C[macOS Clipboard] -->|Cmd + V paste| M[Marianne canvas]
   F[Image file on disk] -->|drag onto window| M
   R[Finder: right-click <br/> Open With Marianne] -->|file association| M
 ```
 
 ### 1. Paste from clipboard
 
-Press **`Cmd / Ctrl + V`** while marianne has focus. The first `image/*` item on the clipboard is decoded and placed on the canvas. This is the fastest path after a screenshot:
+Press **`Cmd / Ctrl + V`** while Marianne has focus. The first `image/*` item on the clipboard is decoded and placed on the canvas. This is the fastest path after a screenshot:
 
 1. Take a screenshot to clipboard (on macOS: `Cmd + Shift + Ctrl + 4`).
-2. Switch to marianne.
+2. Switch to Marianne.
 3. Press `Cmd + V`.
 
 The status bar shows `pasted from clipboard` so you can verify the source.
 
 ### 2. Drag and drop
 
-Drag any image file onto the marianne window. The first `image/*` file in the drop is decoded; other files are ignored. Useful when you want to annotate something already saved to disk without switching to Finder for "Open With".
+Drag any image file onto the Marianne window. The first `image/*` file in the drop is decoded; other files are ignored. Useful when you want to annotate something already saved to disk without switching to Finder for "Open With".
 
 The status bar shows the full file path on the left side, which doubles as the default save location later.
 
@@ -36,8 +36,8 @@ The status bar shows the full file path on the left side, which doubles as the d
 
 In Finder, right-click an image file → **Open With → Marianne**. Two scenarios are handled:
 
-- **Cold start** (marianne is not running): macOS launches the app and hands it the path. marianne queues the path and consumes it once the canvas is ready.
-- **Warm start** (marianne is already running): the running instance receives the file path event and immediately loads the image.
+- **Cold start** (Marianne is not running): macOS launches the app and hands it the path. Marianne queues the path and consumes it once the canvas is ready.
+- **Warm start** (Marianne is already running): the running instance receives the file path event and immediately loads the image.
 
 Either way the file path appears in the status bar.
 
@@ -58,4 +58,4 @@ the previous image's annotations after replacement.
 
 ## What about other formats?
 
-marianne accepts the formats the system / browser layer can decode — typically **PNG, JPEG, GIF, WebP, BMP**. PDF, SVG, and HEIC are not supported; convert to PNG or JPEG first.
+Marianne accepts the formats the system / browser layer can decode — typically **PNG, JPEG, GIF, WebP, BMP**. PDF, SVG, and HEIC are not supported; convert to PNG or JPEG first.

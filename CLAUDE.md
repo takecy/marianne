@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## プロジェクト概要
 
-`marianne` は完全オフラインで動作する Skitch 風の画像注釈デスクトップアプリ（MVP）。画像に対して矩形 / 矢印 / テキスト / モザイクのアノテーションを付与し、PNG としてファイル保存またはクリップボードへコピーする。外部ネットワーク通信は一切行わない。
+**Marianne** は完全オフラインで動作する Skitch 風の画像注釈デスクトップアプリ（MVP）。画像に対して矩形 / 矢印 / テキスト / モザイクのアノテーションを付与し、PNG としてファイル保存またはクリップボードへコピーする。外部ネットワーク通信は一切行わない。
 
 技術スタック: **Tauri v2（Rust シェル）+ React 19 + TypeScript + Vite + react-konva + Zustand**。Tauri バックエンドは意図的に最小限（`src-tauri/src/lib.rs` の `greet` / `take_pending_open_paths` / `confirm_quit` / `renderer_ready` の 4 コマンドのみ。`greet` はサンプル、残りは OS 統合用のグルーコード）で、機能開発はほぼ `src/` 内で完結する。
 
@@ -15,7 +15,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - フォーマッタは **`deno fmt`** であって Prettier ではない (`deno.json` 設定済み)
 - 単一テスト実行: `pnpm test:run src/store/canvasStore.test.ts` / `pnpm test:run -t "undo"`
 - パスエイリアス `@/*` → `./src/*` は `tsconfig.json` / `vite.config.ts` / `vitest.config.ts` の 3 箇所で設定。変更時は全て同期させる。
-- ローカルインストール: `pnpm install:local`（macOS 専用。`scripts/install-local.sh` が `pnpm tauri build` 実行後、`/Applications/marianne.app` にコピー。コード署名なしのため初回起動で Gatekeeper 警告 — 右クリック「開く」または `xattr -dr com.apple.quarantine` で回避。詳細は README）
+- ローカルインストール: `pnpm install:local`（macOS 専用。`scripts/install-local.sh` が `pnpm tauri build` 実行後、`/Applications/Marianne.app` にコピー。コード署名なしのため初回起動で Gatekeeper 警告 — 右クリック「開く」または `xattr -dr com.apple.quarantine` で回避。詳細は README）
 
 ## アーキテクチャ
 
