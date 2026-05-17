@@ -91,6 +91,7 @@ function App() {
   const shapes = useCanvasStore((s) => s.shapes);
   const selectedShapeId = useCanvasStore((s) => s.selectedShapeId);
   const addShape = useCanvasStore((s) => s.addShape);
+  const addShapes = useCanvasStore((s) => s.addShapes);
   const selectShape = useCanvasStore((s) => s.selectShape);
   const deleteShape = useCanvasStore((s) => s.deleteShape);
   const updateRect = useCanvasStore((s) => s.updateRect);
@@ -174,6 +175,16 @@ function App() {
       setActiveTool("select");
     },
     [addShape],
+  );
+
+  // Batch variant for mosaic stacking — one drag may emit a base shape plus
+  // per-overlap strength overlays, added as one history transaction.
+  const handleShapesAdded = useCallback(
+    (shapes: Shape[]) => {
+      addShapes(shapes);
+      setActiveTool("select");
+    },
+    [addShapes],
   );
 
   // After paste, return to the select tool so the user can immediately
@@ -293,6 +304,7 @@ function App() {
           hasClipboardShape={hasClipboardShape}
           onToolChange={setActiveTool}
           onShapeAdded={handleShapeAdded}
+          onShapesAdded={handleShapesAdded}
           onSelectShape={selectShape}
           onDeleteShape={deleteShape}
           onUpdateRect={updateRect}

@@ -11,6 +11,7 @@ import {
 } from "@/lib/imageFit";
 import type { FitRect, Point, Size as FitSize } from "@/lib/imageFit";
 import { finalizeDraft, moveDraft, startDraft } from "@/lib/drawingGesture";
+import { splitMosaicByOverlap } from "@/lib/mosaicStrength";
 import { partitionShapesByMosaicFirst } from "@/lib/shapeZOrder";
 import { useThemeMode } from "@/lib/useThemeMode";
 import { t } from "@/i18n/translate";
@@ -54,6 +55,9 @@ interface CanvasAreaProps {
   hasClipboardShape: boolean;
   onToolChange: (next: ToolKind) => void;
   onShapeAdded: (shape: Shape) => void;
+  // Batch variant used for mosaic stacking, where one drag may emit a base
+  // shape plus per-overlap strength overlays as a single history transaction.
+  onShapesAdded: (shapes: Shape[]) => void;
   onSelectShape: (id: string | null) => void;
   onDeleteShape: (id: string) => void;
   onUpdateRect: (id: string, patch: RectPatch) => void;
@@ -197,6 +201,7 @@ export function CanvasArea(props: CanvasAreaProps) {
     hasClipboardShape,
     onToolChange,
     onShapeAdded,
+    onShapesAdded,
     onSelectShape,
     onDeleteShape,
     onUpdateRect,
@@ -527,7 +532,15 @@ export function CanvasArea(props: CanvasAreaProps) {
     }
     const shape = finalizeDraft(draft);
     if (shape) {
-      onShapeAdded(shape);
+      if (shape.type === "mosaic") {
+        // One mosaic drag may emit a base (level 1) plus per-overlap overlays.
+        // splitMosaicByOverlap discards the draft's id and generates new ones
+        // for every sub-shape; we wrap them in a single addShapes transaction
+        // so undo rewinds the whole gesture in one step.
+        onShapesAdded(splitMosaicByOverlap(shape, mosaics));
+      } else {
+        onShapeAdded(shape);
+      }
     }
     setDraft(null);
   };

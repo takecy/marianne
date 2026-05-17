@@ -65,6 +65,7 @@ function renderCanvas(
   const handlers = {
     onToolChange: vi.fn(),
     onShapeAdded: vi.fn(),
+    onShapesAdded: vi.fn(),
     onSelectShape: vi.fn(),
     onDeleteShape: vi.fn(),
     onUpdateRect: vi.fn(),

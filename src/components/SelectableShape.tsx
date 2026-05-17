@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { Rect, Text } from "react-konva";
 import { imageToScreen, imageToScreenScale, screenToImage } from "@/lib/imageFit";
 import type { FitRect, Size as FitSize } from "@/lib/imageFit";
+import { mosaicPixelSize } from "@/lib/mosaicStrength";
 import { cloneShapeAt } from "@/lib/shapeClipboard";
 import type { LoadedImage } from "@/types/image";
 import type { ArrowShape, MosaicShape, RectShape, Shape, TextShape } from "@/types/shape";
@@ -19,7 +20,7 @@ import {
   TEXT_STROKE_WIDTH,
 } from "@/constants/shape";
 import { ArrowShapeNode } from "./ArrowShapeNode";
-import { MOSAIC_NATURAL_PIXEL_SIZE, MosaicNode } from "./MosaicNode";
+import { MosaicNode } from "./MosaicNode";
 
 type RectPatch = Partial<Omit<RectShape, "id" | "type">>;
 type TextPatch = Partial<Omit<TextShape, "id" | "type">>;
@@ -318,7 +319,7 @@ export function SelectableShape(props: SelectableShapeProps) {
     return null;
   }
   const topLeft = imageToScreen({ x: shape.x, y: shape.y }, fit, imageSize);
-  const pixelSize = MOSAIC_NATURAL_PIXEL_SIZE * Math.min(imgScaleX, imgScaleY);
+  const pixelSize = mosaicPixelSize(shape.strengthLevel) * Math.min(imgScaleX, imgScaleY);
   return (
     <>
       {showAltDragGhost

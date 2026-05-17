@@ -46,6 +46,12 @@ export interface MosaicShape extends ShapeBase {
   y: number;
   width: number;
   height: number;
+  // Determined at creation time from overlap with existing mosaics. Higher
+  // levels produce coarser pixelation (see mosaicPixelSize). Optional for
+  // backward compatibility: mosaics created before stacking was introduced
+  // resolve to level 1 at render time, which equals the previous fixed-block
+  // behaviour.
+  strengthLevel?: number;
 }
 
 export type Shape = RectShape | TextShape | ArrowShape | MosaicShape;

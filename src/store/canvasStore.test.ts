@@ -74,6 +74,35 @@ describe("canvasStore", () => {
     expect(ids).toEqual(["a", "b"]);
   });
 
+  it("addShapes appends every shape in the batch in order", () => {
+    useCanvasStore.getState().addShapes([sampleRect("a"), sampleRect("b"), sampleRect("c")]);
+    const ids = useCanvasStore.getState().shapes.map((s) => s.id);
+    expect(ids).toEqual(["a", "b", "c"]);
+  });
+
+  it("addShapes records the batch as a single history snapshot", () => {
+    useCanvasStore.getState().addShapes([sampleRect("a"), sampleRect("b")]);
+    expect(useCanvasStore.getState().past.length).toBe(1);
+  });
+
+  it("undo after addShapes removes the entire batch in one step", () => {
+    useCanvasStore.getState().addShape(sampleRect("pre"));
+    useCanvasStore.getState().addShapes([sampleRect("a"), sampleRect("b"), sampleRect("c")]);
+    expect(useCanvasStore.getState().shapes.map((s) => s.id)).toEqual(["pre", "a", "b", "c"]);
+    useCanvasStore.getState().undo();
+    expect(useCanvasStore.getState().shapes.map((s) => s.id)).toEqual(["pre"]);
+  });
+
+  it("addShapes with an empty array is a no-op that does not pollute history", () => {
+    useCanvasStore.getState().addShape(sampleRect("a"));
+    const shapesBefore = useCanvasStore.getState().shapes;
+    const pastBefore = useCanvasStore.getState().past.length;
+    useCanvasStore.getState().addShapes([]);
+    const state = useCanvasStore.getState();
+    expect(state.shapes).toBe(shapesBefore);
+    expect(state.past.length).toBe(pastBefore);
+  });
+
   it("updateRect merges the patch into the matching rect", () => {
     useCanvasStore.getState().addShape(sampleRect("a"));
     useCanvasStore.getState().updateRect("a", { color: "blue", width: 200 });
@@ -513,5 +542,32 @@ describe("canvasStore", () => {
     const state = useCanvasStore.getState();
     expect(state.shapes.map((s) => s.id)).toEqual(["a"]);
     expect(state.selectedShapeId).toBeNull();
+  });
+
+  // --- mosaic strengthLevel preservation ---
+
+  it("pasteShape preserves the strengthLevel of a mosaic", () => {
+    const strong: MosaicShape = { ...sampleMosaic("m"), strengthLevel: 3 };
+    useCanvasStore.getState().addShape(strong);
+    useCanvasStore.getState().copyShape("m");
+    useCanvasStore.getState().pasteShape(IMAGE_SIZE);
+    const pasted = useCanvasStore.getState().shapes[1];
+    if (pasted?.type !== "mosaic") {
+      throw new Error("expected pasted mosaic");
+    }
+    expect(pasted.strengthLevel).toBe(3);
+  });
+
+  it("undo/redo round-trip preserves the strengthLevel of a mosaic", () => {
+    const strong: MosaicShape = { ...sampleMosaic("m"), strengthLevel: 4 };
+    useCanvasStore.getState().addShape(strong);
+    useCanvasStore.getState().addShape(sampleRect("r"));
+    useCanvasStore.getState().undo();
+    useCanvasStore.getState().redo();
+    const mosaic = useCanvasStore.getState().shapes.find((s) => s.id === "m");
+    if (mosaic?.type !== "mosaic") {
+      throw new Error("expected mosaic to survive undo/redo");
+    }
+    expect(mosaic.strengthLevel).toBe(4);
   });
 });
