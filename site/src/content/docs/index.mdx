@@ -1,0 +1,50 @@
+---
+title: marianne docs
+description: Contributor documentation for marianne, an offline image annotation desktop app built with Tauri v2 + React.
+template: splash
+hero:
+  tagline: Skitch-style offline image annotation. Tauri v2 + React 19 + react-konva.
+  actions:
+    - text: Getting Started
+      link: ./getting-started/
+      icon: right-arrow
+      variant: primary
+    - text: View on GitHub
+      link: https://github.com/takecy/marianne
+      icon: external
+---
+
+import { Card, CardGrid, LinkCard } from "@astrojs/starlight/components";
+
+## What is marianne?
+
+`marianne` is a lightweight desktop app for annotating images — rectangles, arrows, text, and pixelation — designed to run **fully offline**. Screenshots never leave your machine, so it is safe for sensitive content.
+
+This site is the **contributor-facing** documentation. End-user instructions (download, install, keyboard shortcuts) live in the repository README.
+
+<CardGrid>
+  <LinkCard
+    title="For users"
+    description="Install instructions, features, and keyboard shortcuts."
+    href="https://github.com/takecy/marianne#readme"
+  />
+  <LinkCard
+    title="For contributors"
+    description="Set up the dev environment and start hacking."
+    href={import.meta.env.BASE_URL + "getting-started/"}
+  />
+</CardGrid>
+
+## Where to go next
+
+<CardGrid>
+  <Card title="Getting Started" icon="rocket">
+    Dev environment setup, verification commands, worktree workflow, and the contribution loop.
+    [Read →](./getting-started/)
+  </Card>
+  <Card title="Architecture" icon="puzzle">
+    System overview, coordinate-space invariants, drawing gesture state machine,
+    image input paths, and the export pipeline — diagrams included.
+    [Read →](./architecture/)
+  </Card>
+</CardGrid>

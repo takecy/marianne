@@ -1,0 +1,50 @@
+---
+title: marianne ドキュメント
+description: marianne (Tauri v2 + React 19 製のオフライン画像アノテーションデスクトップアプリ) の contributor 向けドキュメント
+template: splash
+hero:
+  tagline: Skitch 風オフライン画像アノテーション。Tauri v2 + React 19 + react-konva。
+  actions:
+    - text: はじめに
+      link: ./getting-started/
+      icon: right-arrow
+      variant: primary
+    - text: GitHub で見る
+      link: https://github.com/takecy/marianne
+      icon: external
+---
+
+import { Card, CardGrid, LinkCard } from "@astrojs/starlight/components";
+
+## marianne とは
+
+`marianne` は画像にアノテーション (矩形 / 矢印 / テキスト / モザイク) を付与する軽量デスクトップアプリで、**完全オフライン**で動作する。スクリーンショットが端末外に出ることは一切ないため、機密情報を含むコンテンツも安全に扱える。
+
+このサイトは **contributor 向け** のドキュメント。エンドユーザー向けの情報 (ダウンロード、インストール、ショートカット) はリポジトリ README に記載している。
+
+<CardGrid>
+  <LinkCard
+    title="ユーザーの方へ"
+    description="インストール手順、機能、キーボードショートカット。"
+    href="https://github.com/takecy/marianne/blob/main/README_ja.md"
+  />
+  <LinkCard
+    title="contributor の方へ"
+    description="開発環境を構築して開発を始める。"
+    href={import.meta.env.BASE_URL + "ja/getting-started/"}
+  />
+</CardGrid>
+
+## ナビゲーション
+
+<CardGrid>
+  <Card title="はじめに" icon="rocket">
+    開発環境構築、検証コマンド、worktree ワークフロー、貢献の流れ。
+    [読む →](./getting-started/)
+  </Card>
+  <Card title="アーキテクチャ" icon="puzzle">
+    システム概要、座標系の不変条件、描画ジェスチャーのステートマシン、
+    画像入力経路、エクスポートパイプライン — 図解付き。
+    [読む →](./architecture/)
+  </Card>
+</CardGrid>

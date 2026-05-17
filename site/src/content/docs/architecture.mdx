@@ -1,0 +1,183 @@
+---
+title: Architecture Overview
+description: System overview, coordinate-space invariants, state management, drawing gestures, image input paths, and export pipeline.
+---
+
+import { Aside } from "@astrojs/starlight/components";
+
+`marianne` is a Tauri v2 desktop app with a React 19 + react-konva web frontend. The Rust shell is intentionally minimal; almost all annotation logic lives in `src/`.
+
+## System overview
+
+```mermaid
+graph LR
+  subgraph OS["macOS / Linux / Windows"]
+    Clipboard[(System Clipboard)]
+    Filesystem[(Filesystem)]
+    Finder[Finder: Open With]
+  end
+
+  subgraph Tauri["Tauri v2 (Rust shell)"]
+    RustCmds["lib.rs commands<br/>greet · take_pending_open_paths<br/>confirm_quit · renderer_ready"]
+    Plugins["tauri-plugin-*<br/>opener · dialog · fs<br/>updater · process"]
+  end
+
+  subgraph Webview["React 19 webview"]
+    UI["UI<br/>Toolbar · Sidebar · StatusBar"]
+    Canvas["CanvasArea + Konva Stage"]
+    Loader["useImageLoader.ts"]
+    Store[("canvasStore<br/>(Zustand + undo/redo)")]
+    Export["exportImage.ts"]
+  end
+
+  Clipboard -->|paste| Loader
+  Filesystem -->|drag-drop| Loader
+  Finder -->|file-open-requested| Loader
+  Loader --> Canvas
+  Canvas <--> Store
+  UI <--> Store
+  Canvas --> Export
+  Export -->|PNG file| Filesystem
+  Export -->|PNG blob| Clipboard
+  Tauri <-->|invoke / event| Webview
+```
+
+## Coordinate-space invariant
+
+<Aside type="caution" title="Read this first">
+All `Shape` coordinates in `canvasStore` are stored in the image's **natural
+pixel space** (origin at the image top-left, max at `naturalWidth /
+naturalHeight`). Screen-space conversion happens only at rendering and pointer
+boundaries.
+</Aside>
+
+The conversion helpers live in [`src/lib/imageFit.ts`](https://github.com/takecy/marianne/blob/main/src/lib/imageFit.ts):
+
+- `fitContain(image, container)` → display rect of a letter-boxed image (screen px `FitRect`)
+- `imageToScreen` / `screenToImage` — bidirectional conversion
+- `imageToScreenScale` — returns `scaleX` / `scaleY` for stroke widths, font sizes, and mosaic pixel sizes
+- `clampToImage` — clamps pointer-derived coords into the image bounds
+
+When you add a new shape type or pointer interaction, **never persist screen coordinates**. Convert at the mouse handler / `onTransformEnd` boundary and store natural coords. After each transform, reset `node.scaleX(1); node.scaleY(1)` so Konva's temporary scale doesn't leak into the next render.
+
+## State management — Zustand with identity-preserving history
+
+`src/store/canvasStore.ts` is the single source of truth for shapes, selection, undo/redo, and the in-app shape clipboard:
+
+```mermaid
+flowchart TD
+  Action["addShape / updateRect / deleteShape /<br/>copyShape / pasteShape / undo / redo"]
+  WithHistory["withHistory(state, nextShapes)"]
+  IdentityCheck{"nextShapes ===<br/>state.shapes?"}
+  PatchByType["patchByType(shapes, id, type, patch)<br/>(reuses array on miss)"]
+  PushPast["past.push(oldShapes)<br/>cap at HISTORY_LIMIT=50<br/>clear future"]
+  NewState["new state"]
+
+  Action --> PatchByType
+  PatchByType --> WithHistory
+  WithHistory --> IdentityCheck
+  IdentityCheck -->|yes| NewState
+  IdentityCheck -->|no| PushPast
+  PushPast --> NewState
+```
+
+Behaviour:
+
+1. If `nextShapes === state.shapes` (reference-equal), the old state is returned unchanged. `patchByType` reuses the original array on misses, so a no-op `updateXxx()` does not pollute history.
+2. Otherwise the old `shapes` is pushed onto `past`, capped at `HISTORY_LIMIT = 50`, and `future` is cleared.
+
+`undo` / `redo` both clear `selectedShapeId` to prevent the Transformer from grabbing a stale node.
+
+## Drawing gesture state machine
+
+`src/lib/drawingGesture.ts` is a **pure module** (no React, no Konva imports). `CanvasArea.handleMouseDown/Move/Up` drives it:
+
+```mermaid
+stateDiagram-v2
+  [*] --> Idle
+  Idle --> Drafting: mouseDown<br/>startDraft(tool, color, point)
+  Drafting --> Drafting: mouseMove<br/>moveDraft(draft, point)
+  Drafting --> Idle: mouseUp<br/>finalizeDraft(draft)
+  note right of Drafting
+    DraftShape permits negative<br/>width/height during drag.<br/>finalizeDraft normalises with<br/>Math.min + Math.abs.
+  end note
+  note right of Idle
+    finalizeDraft returns null<br/>if extent is below MIN_*<br/>threshold (no shape added).
+  end note
+```
+
+This module has its own unit tests and must never import React.
+
+## Image input — three paths
+
+`src/lib/useImageLoader.ts` is the **only** entry point for images. There is no file-open dialog.
+
+```mermaid
+sequenceDiagram
+  participant User
+  participant Webview as Webview (React)
+  participant Rust as Tauri (Rust)
+  participant Loader as useImageLoader
+
+  alt Paste
+    User->>Webview: Cmd/Ctrl + V
+    Webview->>Loader: paste event (image/* item)
+    Loader->>Webview: LoadedImage { source: "paste" }
+  else Drag-drop
+    User->>Rust: drag file onto window
+    Rust->>Webview: onDragDropEvent (drop, paths)
+    Webview->>Loader: decodeTauriFilePath
+    Loader->>Webview: LoadedImage { source: "drop", sourcePath }
+  else macOS Open With
+    User->>Rust: Finder → Open With → Marianne
+    Note right of Rust: Cold start: queue in RunEvent::Opened<br/>Warm start: emit file-open-requested
+    Webview->>Rust: take_pending_open_paths (on init)
+    Rust->>Webview: file-open-requested (listen)
+    Webview->>Loader: decodeTauriFilePath
+    Loader->>Webview: LoadedImage { source: "file", sourcePath }
+  end
+```
+
+Path validation (extension whitelist, symlink rejection) is the Rust side's trust boundary. Frontend's `isImagePath` is defense-in-depth.
+
+## Export pipeline
+
+Two paths share the same offscreen Konva stage built from the image's natural size:
+
+```mermaid
+sequenceDiagram
+  participant User
+  participant App as App.tsx
+  participant Export as exportImage.ts
+  participant Konva as Offscreen Konva.Stage
+  participant Browser
+
+  alt File save (Cmd+Shift+S)
+    User->>App: handleExportToFile
+    App->>Export: exportToBlob(image, shapes)
+    Export->>Konva: build natural-size stage
+    Note over Konva: mosaic nodes:<br/>.cache({ pixelRatio: 1 })<br/>before toCanvas
+    Konva-->>Export: blob (image/png)
+    Export-->>App: await blob
+    App->>Browser: native save dialog
+  else Clipboard copy (Cmd+Shift+C)
+    User->>App: handleExportToClipboard
+    App->>Export: exportToBlob(image, shapes) (no await!)
+    Export-->>App: returns a Promise of Blob
+    App->>Browser: navigator.clipboard.write({ image/png: promise })
+    Note over App,Browser: Synchronous handoff —<br/>awaiting first would lose<br/>transient user activation.
+  end
+```
+
+<Aside type="danger" title="Do not refactor the clipboard path to async/await">
+WebKit/WKWebView requires `navigator.clipboard.write` to start synchronously
+inside a user-gesture handler. Awaiting the blob first loses the transient
+activation token and the write silently fails inside the Tauri webview.
+</Aside>
+
+## Mosaic — the most delicate part
+
+- **Screen rendering** ([`MosaicNode.tsx`](https://github.com/takecy/marianne/blob/main/src/components/MosaicNode.tsx)): a `Konva.Image` with `crop` in natural pixels, `filters: [Pixelate]`, and `pixelSize = MOSAIC_NATURAL_PIXEL_SIZE * min(imgScaleX, imgScaleY)`. The `useEffect` that calls `.cache()` must list **every** prop that affects the cached canvas in its deps — miss one and the pixelation freezes on a stale frame.
+- **Export** (`src/lib/exportImage.ts`): both `stage.toCanvas({ pixelRatio: 1 })` and the prior `.cache({ pixelRatio: 1 })` are required. Omitting either makes Retina (DPR=2) double the cache canvas, so blocks look half-size in the exported PNG.
+
+`MOSAIC_NATURAL_PIXEL_SIZE = 24` is defined in `MosaicNode.tsx` and imported by both screen and export. Treat it as fixed for backward compatibility.

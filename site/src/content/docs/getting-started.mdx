@@ -1,0 +1,101 @@
+---
+title: Getting Started
+description: Set up a local development environment for marianne, including the docs site toolchain.
+---
+
+import { Aside, Steps } from "@astrojs/starlight/components";
+
+This guide walks you through setting up a local development environment for marianne. By the end you'll have the Tauri desktop app running, the test suite passing, and the documentation site previewing locally.
+
+## Prerequisites
+
+| Tool | Requirement |
+|------|-------------|
+| Node.js | `^20.19.0 \|\| ^22.13.0 \|\| >=24` (ESLint v10 engine requirement) |
+| pnpm | 9 or later |
+| Rust toolchain | Install stable via `rustup` |
+| Xcode CLT | Required on macOS for the Tauri bundle |
+| deno | Used as the formatter (`deno fmt`) |
+| gh CLI | For opening pull requests |
+
+## First-time setup
+
+<Steps>
+1. Clone and install dependencies
+
+   ```sh
+   git clone https://github.com/takecy/marianne.git
+   cd marianne
+   pnpm install
+   ```
+
+2. Install Playwright Chromium (for documentation Mermaid SSR)
+
+   ```sh
+   pnpm --filter ./site exec playwright install chromium
+   ```
+
+   <Aside type="note">
+   The architecture diagrams in this docs site are rendered to SVG at build time
+   by a headless Chromium. You only need to run this once per machine — the
+   browser is cached in `~/Library/Caches/ms-playwright` (macOS) and reused on
+   every `pnpm docs:build`.
+   </Aside>
+
+3. Launch the desktop app with hot reload
+
+   ```sh
+   pnpm tauri dev
+   ```
+
+   The Vite dev server starts on `http://localhost:1420`. Tauri wraps it in a
+   native window automatically.
+</Steps>
+
+## Verification commands
+
+Run these locally before every push — CI runs the same set, in order, and stops at the first failure.
+
+| Command | What it does |
+|---------|--------------|
+| `pnpm typecheck` | TypeScript strict check (`tsc --noEmit`) |
+| `pnpm lint` | ESLint v10 flat config |
+| `pnpm fmt:check` | `deno fmt --check` for all source + Markdown |
+| `pnpm test:run` | Vitest, single run |
+| `pnpm build` | Vite build of the React frontend |
+| `pnpm docs:build` | Builds this docs site into `/docs/` |
+
+## Worktree-based workflow
+
+For any non-trivial change, work in a dedicated worktree under `.worktrees/`:
+
+```sh
+git worktree add .worktrees/feat/your-feature -b feat/your-feature
+cd .worktrees/feat/your-feature
+```
+
+`.worktrees/` is gitignored. This keeps your main checkout clean and lets you run multiple parallel branches without `git stash` gymnastics.
+
+## Editing this docs site
+
+```sh
+pnpm docs:dev      # Start the Astro dev server (localhost:4321/marianne/)
+pnpm docs:build    # Build to /docs/ (the GitHub Pages source folder)
+pnpm docs:preview  # Serve the built output for a final smoke test
+```
+
+<Aside type="caution" title="Build before you commit">
+The deploy model is **GitHub Pages → Branch: main / Folder: /docs**. CI rejects
+any PR where the committed `/docs/` is out of sync with `pnpm docs:build`
+output. Always run `pnpm docs:build` and commit the result alongside your
+`site/` source edits.
+</Aside>
+
+## Submitting a pull request
+
+1. Create a feature branch in a worktree (see above).
+2. Make changes; run all verification commands.
+3. Commit using Conventional Commits in English (e.g. `feat(canvas): add arrow rotation`).
+4. Push and open a PR in draft mode by default.
+
+Releases are fully automated via `.github/workflows/tagging-release.yaml` — see the repository README for the maintainer-side procedure.

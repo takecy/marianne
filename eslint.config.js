@@ -11,6 +11,14 @@ export default tseslint.config(
       "src-tauri/gen/**",
       "node_modules/**",
       "coverage/**",
+      // Astro Starlight workspace has its own toolchain and TS project; lint it
+      // separately via `pnpm --filter ./site lint` when needed. Including it
+      // here would trigger `typescript-eslint` projectService parsing errors
+      // because the root tsconfig.json only covers `src/`.
+      "site/**",
+      // GitHub Pages publishing source = Astro build output. Generated HTML/JS
+      // should never be linted.
+      "docs/**",
     ],
   },
   js.configs.recommended,

@@ -55,3 +55,26 @@ jobs:
 
       - name: Build
         run: pnpm build
+
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        id: playwright-cache
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+
+      - name: Install Playwright Chromium for Mermaid SSR
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
+        run: pnpm --filter ./site exec playwright install --with-deps chromium
+
+      - name: Build docs site
+        run: pnpm docs:build
+        # Verifies the site/ source compiles end-to-end (MDX parsing, Mermaid
+        # SSR via Playwright, Pagefind indexing). A strict diff against the
+        # committed /docs/ would be ideal but is structurally impossible:
+        # Mermaid assigns a fresh `id="mermaid-N"` to every <svg> per build,
+        # and Astro's _astro/*.css filenames are content-hashed so any byte
+        # difference cascades into new filenames. The build step here at least
+        # catches "I forgot to rebuild before commit and the source no longer
+        # compiles" — the page-staleness case is left to developer discipline
+        # (the getting-started doc spells out `pnpm docs:build` before commit).
