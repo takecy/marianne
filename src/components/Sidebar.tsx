@@ -1,5 +1,5 @@
-import type { ColorPresetName, ToolKind } from "@/types/tool";
-import { COLOR_PRESETS, TOOL_KINDS, TOOL_SHORTCUTS } from "@/types/tool";
+import type { ColorPresetName, StrokeWidthPresetName, ToolKind } from "@/types/tool";
+import { COLOR_PRESETS, STROKE_WIDTH_PRESETS, TOOL_KINDS, TOOL_SHORTCUTS } from "@/types/tool";
 import { ArrowIcon } from "./icons/ArrowIcon";
 import { MosaicIcon } from "./icons/MosaicIcon";
 import { RectIcon } from "./icons/RectIcon";
@@ -16,6 +16,13 @@ const TOOL_LABELS: Record<ToolKind, string> = {
   rect: "四角",
   text: "テキスト",
   mosaic: "モザイク",
+};
+
+const STROKE_WIDTH_LABELS: Record<StrokeWidthPresetName, string> = {
+  thin: "細",
+  medium: "中",
+  thick: "太",
+  extraThick: "極太",
 };
 
 const TOOL_ICONS: Record<ToolKind, () => React.ReactElement> = {
@@ -36,6 +43,11 @@ interface SidebarProps {
   onToolChange: (next: ToolKind) => void;
   activeColor: ColorPresetName;
   onColorChange: (next: ColorPresetName) => void;
+  // Stroke width preset applied to new rect draws AND to the currently
+  // selected rect (the store-side handler is rect-only — text/arrow/mosaic
+  // selections are silent no-ops, matching the Issue #1 "矩形用" requirement).
+  activeStrokeWidth: StrokeWidthPresetName;
+  onStrokeWidthChange: (next: StrokeWidthPresetName) => void;
   disabled?: boolean;
   onUndo?: () => void;
   onRedo?: () => void;
@@ -57,6 +69,8 @@ export function Sidebar(props: SidebarProps) {
     onToolChange,
     activeColor,
     onColorChange,
+    activeStrokeWidth,
+    onStrokeWidthChange,
     disabled = false,
     onUndo,
     onRedo,
@@ -111,6 +125,35 @@ export function Sidebar(props: SidebarProps) {
             onClick={() => onColorChange(preset.name)}
           />
         ))}
+      </div>
+
+      <div className={styles.divider} aria-hidden />
+
+      <div className={styles.strokeWidthGroup} role="group" aria-label="太さ">
+        {STROKE_WIDTH_PRESETS.map((preset) => {
+          const label = STROKE_WIDTH_LABELS[preset.name];
+          const isActive = preset.name === activeStrokeWidth;
+          return (
+            <button
+              key={preset.name}
+              type="button"
+              className={isActive
+                ? `${styles.strokeWidthButton} ${styles.strokeWidthButtonActive}`
+                : styles.strokeWidthButton}
+              aria-pressed={isActive}
+              aria-label={label}
+              title={label}
+              disabled={disabled}
+              onClick={() => onStrokeWidthChange(preset.name)}
+            >
+              <span
+                className={styles.strokeWidthBar}
+                style={{ height: `${preset.value / 2.5}px` }}
+                aria-hidden
+              />
+            </button>
+          );
+        })}
       </div>
 
       <div className={styles.divider} aria-hidden />

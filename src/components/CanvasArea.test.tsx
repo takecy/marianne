@@ -86,6 +86,7 @@ function renderCanvas(
       shapes={shapes}
       activeTool="select"
       activeColor="red"
+      activeStrokeWidth="thick"
       selectedShapeId={null}
       hasClipboardShape={false}
       {...handlers}

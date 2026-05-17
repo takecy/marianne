@@ -10,6 +10,8 @@ describe("Sidebar", () => {
         onToolChange={vi.fn()}
         activeColor="red"
         onColorChange={vi.fn()}
+        activeStrokeWidth="thick"
+        onStrokeWidthChange={vi.fn()}
       />,
     );
 
@@ -30,6 +32,8 @@ describe("Sidebar", () => {
         onToolChange={vi.fn()}
         activeColor="blue"
         onColorChange={vi.fn()}
+        activeStrokeWidth="thick"
+        onStrokeWidthChange={vi.fn()}
       />,
     );
 
@@ -52,6 +56,8 @@ describe("Sidebar", () => {
         onToolChange={onToolChange}
         activeColor="red"
         onColorChange={vi.fn()}
+        activeStrokeWidth="thick"
+        onStrokeWidthChange={vi.fn()}
       />,
     );
 
@@ -69,6 +75,8 @@ describe("Sidebar", () => {
         onToolChange={onToolChange}
         activeColor="red"
         onColorChange={onColorChange}
+        activeStrokeWidth="thick"
+        onStrokeWidthChange={vi.fn()}
         disabled
       />,
     );
@@ -92,6 +100,8 @@ describe("Sidebar", () => {
         onToolChange={vi.fn()}
         activeColor="red"
         onColorChange={vi.fn()}
+        activeStrokeWidth="thick"
+        onStrokeWidthChange={vi.fn()}
         onUndo={onUndo}
         onRedo={onRedo}
         canUndo
@@ -116,6 +126,8 @@ describe("Sidebar", () => {
         onToolChange={vi.fn()}
         activeColor="red"
         onColorChange={vi.fn()}
+        activeStrokeWidth="thick"
+        onStrokeWidthChange={vi.fn()}
         onUndo={onUndo}
         onRedo={onRedo}
         canUndo={false}
@@ -139,6 +151,8 @@ describe("Sidebar", () => {
         onToolChange={vi.fn()}
         activeColor="red"
         onColorChange={vi.fn()}
+        activeStrokeWidth="thick"
+        onStrokeWidthChange={vi.fn()}
         onUndo={vi.fn()}
         onRedo={vi.fn()}
         canUndo
@@ -158,6 +172,8 @@ describe("Sidebar", () => {
         onToolChange={vi.fn()}
         activeColor="red"
         onColorChange={vi.fn()}
+        activeStrokeWidth="thick"
+        onStrokeWidthChange={vi.fn()}
       />,
     );
     expect(screen.queryByRole("button", { name: "更新を確認" })).not.toBeInTheDocument();
@@ -172,6 +188,8 @@ describe("Sidebar", () => {
         onToolChange={vi.fn()}
         activeColor="red"
         onColorChange={vi.fn()}
+        activeStrokeWidth="thick"
+        onStrokeWidthChange={vi.fn()}
         onCheckForUpdates={onCheckForUpdates}
       />,
     );
@@ -186,6 +204,8 @@ describe("Sidebar", () => {
         onToolChange={vi.fn()}
         activeColor="red"
         onColorChange={vi.fn()}
+        activeStrokeWidth="thick"
+        onStrokeWidthChange={vi.fn()}
         disabled
         onCheckForUpdates={vi.fn()}
       />,
@@ -200,6 +220,8 @@ describe("Sidebar", () => {
         onToolChange={vi.fn()}
         activeColor="red"
         onColorChange={vi.fn()}
+        activeStrokeWidth="thick"
+        onStrokeWidthChange={vi.fn()}
         onCheckForUpdates={vi.fn()}
         updateButtonState="checking"
       />,
@@ -212,6 +234,8 @@ describe("Sidebar", () => {
         onToolChange={vi.fn()}
         activeColor="red"
         onColorChange={vi.fn()}
+        activeStrokeWidth="thick"
+        onStrokeWidthChange={vi.fn()}
         onCheckForUpdates={vi.fn()}
         updateButtonState="available"
       />,
@@ -227,6 +251,8 @@ describe("Sidebar", () => {
         onToolChange={vi.fn()}
         activeColor="red"
         onColorChange={vi.fn()}
+        activeStrokeWidth="thick"
+        onStrokeWidthChange={vi.fn()}
         onCheckForUpdates={vi.fn()}
         updateErrorMessage={full}
       />,
@@ -242,6 +268,84 @@ describe("Sidebar", () => {
     expect(screen.getByRole("button", { name: "更新を確認" })).not.toBeDisabled();
   });
 
+  // --- stroke width presets ---
+
+  it("renders all 4 stroke width preset buttons", () => {
+    render(
+      <Sidebar
+        activeTool="select"
+        onToolChange={vi.fn()}
+        activeColor="red"
+        onColorChange={vi.fn()}
+        activeStrokeWidth="thick"
+        onStrokeWidthChange={vi.fn()}
+      />,
+    );
+    const strokeGroup = screen.getByRole("group", { name: "太さ" });
+    expect(strokeGroup.querySelectorAll("button")).toHaveLength(4);
+    expect(screen.getByRole("button", { name: "細" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "中" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "太" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "極太" })).toBeInTheDocument();
+  });
+
+  it("marks the active stroke width preset as pressed", () => {
+    render(
+      <Sidebar
+        activeTool="select"
+        onToolChange={vi.fn()}
+        activeColor="red"
+        onColorChange={vi.fn()}
+        activeStrokeWidth="thin"
+        onStrokeWidthChange={vi.fn()}
+      />,
+    );
+    expect(screen.getByRole("button", { name: "細" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    expect(screen.getByRole("button", { name: "太" })).toHaveAttribute(
+      "aria-pressed",
+      "false",
+    );
+  });
+
+  it("invokes onStrokeWidthChange with the preset name when a stroke width button is clicked", async () => {
+    const user = userEvent.setup();
+    const onStrokeWidthChange = vi.fn();
+    render(
+      <Sidebar
+        activeTool="select"
+        onToolChange={vi.fn()}
+        activeColor="red"
+        onColorChange={vi.fn()}
+        activeStrokeWidth="thick"
+        onStrokeWidthChange={onStrokeWidthChange}
+      />,
+    );
+    await user.click(screen.getByRole("button", { name: "極太" }));
+    expect(onStrokeWidthChange).toHaveBeenCalledWith("extraThick");
+  });
+
+  it("disables stroke width buttons and suppresses callbacks when disabled is true", async () => {
+    const user = userEvent.setup();
+    const onStrokeWidthChange = vi.fn();
+    render(
+      <Sidebar
+        activeTool="select"
+        onToolChange={vi.fn()}
+        activeColor="red"
+        onColorChange={vi.fn()}
+        activeStrokeWidth="thick"
+        onStrokeWidthChange={onStrokeWidthChange}
+        disabled
+      />,
+    );
+    expect(screen.getByRole("button", { name: "細" })).toBeDisabled();
+    await user.click(screen.getByRole("button", { name: "細" }));
+    expect(onStrokeWidthChange).not.toHaveBeenCalled();
+  });
+
   it("does not render the inline error when updateErrorMessage is undefined", () => {
     render(
       <Sidebar
@@ -249,6 +353,8 @@ describe("Sidebar", () => {
         onToolChange={vi.fn()}
         activeColor="red"
         onColorChange={vi.fn()}
+        activeStrokeWidth="thick"
+        onStrokeWidthChange={vi.fn()}
         onCheckForUpdates={vi.fn()}
       />,
     );

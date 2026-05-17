@@ -2,7 +2,7 @@ import { create } from "zustand";
 import type { Size } from "@/lib/imageFit";
 import { cloneShapeForPaste } from "@/lib/shapeClipboard";
 import type { ArrowShape, MosaicShape, RectShape, Shape, TextShape } from "@/types/shape";
-import type { ColorPresetName } from "@/types/tool";
+import type { ColorPresetName, StrokeWidthPresetName } from "@/types/tool";
 
 const HISTORY_LIMIT = 50;
 
@@ -23,6 +23,7 @@ interface CanvasState {
   updateArrow: (id: string, patch: ArrowPatch) => void;
   updateMosaic: (id: string, patch: MosaicPatch) => void;
   setSelectedShapeColor: (color: ColorPresetName) => void;
+  setSelectedShapeStrokeWidth: (strokeWidth: StrokeWidthPresetName) => void;
   deleteShape: (id: string) => void;
   selectShape: (id: string | null) => void;
   clearShapes: () => void;
@@ -115,6 +116,28 @@ export const useCanvasStore = create<CanvasState>((set) => ({
           // Mosaic shapes have no color field — silent no-op.
           return {};
       }
+      return withHistory(state, next);
+    }),
+  // Apply `strokeWidth` to the currently selected shape (rect only). Other
+  // shape types (text / arrow / mosaic) are intentional silent no-ops because
+  // the "矩形用" requirement (Issue #1 Phase 11) restricts width adjustment to
+  // rectangles. Unset → "thick" defaulting is applied so an unstored value
+  // matching the default does not pollute undo history.
+  setSelectedShapeStrokeWidth: (strokeWidth) =>
+    set((state) => {
+      const id = state.selectedShapeId;
+      if (id === null) {
+        return {};
+      }
+      const shape = state.shapes.find((s) => s.id === id);
+      if (shape === undefined || shape.type !== "rect") {
+        return {};
+      }
+      const current = shape.strokeWidth ?? "thick";
+      if (current === strokeWidth) {
+        return {};
+      }
+      const next = patchByType(state.shapes, id, "rect", { strokeWidth });
       return withHistory(state, next);
     }),
   deleteShape: (id) =>

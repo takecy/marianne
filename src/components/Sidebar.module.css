@@ -103,6 +103,60 @@
   box-shadow: 0 0 0 1px var(--color-active-bg);
 }
 
+.strokeWidthGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: center;
+  width: 100%;
+}
+
+.strokeWidthButton {
+  width: 44px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 1px solid var(--color-border-strong);
+  background: var(--color-surface-raised);
+  border-radius: 0.375rem;
+  cursor: pointer;
+  color: var(--color-fg);
+  transition: background 0.12s ease, border-color 0.12s ease, color 0.12s ease;
+}
+
+.strokeWidthButton:hover:not(:disabled) {
+  background: var(--color-surface-hover);
+}
+
+.strokeWidthButton:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 1px;
+}
+
+.strokeWidthButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.strokeWidthButtonActive {
+  background: var(--color-active-bg);
+  color: var(--color-active-fg);
+  border-color: var(--color-active-bg);
+}
+
+.strokeWidthButtonActive:hover:not(:disabled) {
+  background: var(--color-active-bg-hover);
+}
+
+.strokeWidthBar {
+  display: block;
+  width: 24px;
+  background: currentColor;
+  border-radius: 1px;
+}
+
 .historyGroup {
   display: flex;
   flex-direction: column;

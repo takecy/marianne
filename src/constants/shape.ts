@@ -1,11 +1,10 @@
 // Default rendering dimensions for annotations. Values are tuned for visibility
 // on typical screenshot-style images. See src/components/MosaicNode.tsx for the
 // matching MOSAIC_NATURAL_PIXEL_SIZE constant.
-
-// Stroke width for rect shapes (image-natural pixels in export, screen
-// pixels in on-canvas rendering — both share this number). Arrows use a
-// custom polygon (see ARROW_* constants below) and do not stroke.
-export const SHAPE_STROKE_WIDTH = 18;
+//
+// Note: rect stroke widths used to be a single constant SHAPE_STROKE_WIDTH = 18.
+// They are now sourced from STROKE_WIDTH_PRESETS in src/types/tool.ts. The
+// "thick" preset preserves the original 18-pixel value exactly.
 
 // Skitch-style "harpoon" arrow geometry. The arrow is rendered as a closed
 // concave polygon (Konva.Line with `closed: true`) so the shaft tapers from a

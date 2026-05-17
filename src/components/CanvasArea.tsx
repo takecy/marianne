@@ -21,15 +21,14 @@ import type {
   Shape,
   TextShape,
 } from "@/types/shape";
-import type { ColorPresetName, ToolKind } from "@/types/tool";
-import { colorHex, TOOL_KINDS, TOOL_SHORTCUTS } from "@/types/tool";
+import type { ColorPresetName, StrokeWidthPresetName, ToolKind } from "@/types/tool";
+import { colorHex, strokeWidthValue, TOOL_KINDS, TOOL_SHORTCUTS } from "@/types/tool";
 import {
   ARROW_HEAD_HALF_WIDTH,
   ARROW_HEAD_LENGTH,
   ARROW_NECK_HALF_WIDTH,
   ARROW_NECK_LENGTH,
   ARROW_TAIL_HALF_WIDTH,
-  SHAPE_STROKE_WIDTH,
   TEXT_FONT_SIZE,
 } from "@/constants/shape";
 import { computeArrowPolygon } from "@/lib/arrowGeometry";
@@ -48,6 +47,7 @@ interface CanvasAreaProps {
   shapes: Shape[];
   activeTool: ToolKind;
   activeColor: ColorPresetName;
+  activeStrokeWidth: StrokeWidthPresetName;
   selectedShapeId: string | null;
   hasClipboardShape: boolean;
   onToolChange: (next: ToolKind) => void;
@@ -130,7 +130,7 @@ function renderDraft(
         width={w * scaleX}
         height={h * scaleY}
         stroke={hex}
-        strokeWidth={SHAPE_STROKE_WIDTH}
+        strokeWidth={strokeWidthValue(draft.strokeWidth)}
         lineJoin="round"
         listening={false}
         opacity={0.7}
@@ -190,6 +190,7 @@ export function CanvasArea(props: CanvasAreaProps) {
     shapes,
     activeTool,
     activeColor,
+    activeStrokeWidth,
     selectedShapeId,
     hasClipboardShape,
     onToolChange,
@@ -486,7 +487,7 @@ export function CanvasArea(props: CanvasAreaProps) {
     }
     const imagePoint = clampToImage(screenToImage(screen, fit, imageSize), imageSize);
     if (activeTool === "rect" || activeTool === "arrow" || activeTool === "mosaic") {
-      setDraft(startDraft(activeTool, activeColor, imagePoint));
+      setDraft(startDraft(activeTool, activeColor, activeStrokeWidth, imagePoint));
       return;
     }
     if (activeTool === "text") {

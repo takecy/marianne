@@ -1,4 +1,4 @@
-import type { ColorPresetName } from "./tool";
+import type { ColorPresetName, StrokeWidthPresetName } from "./tool";
 
 // All coordinates are stored in image natural pixel space
 // (0,0 = image top-left, max = image naturalWidth/Height).
@@ -15,6 +15,10 @@ export interface RectShape extends ShapeBase {
   y: number;
   width: number;
   height: number;
+  // Optional for backward compatibility: rects created before this field was
+  // introduced (e.g. older test fixtures) resolve to "thick" at render time,
+  // which equals the previous SHAPE_STROKE_WIDTH = 18 behaviour.
+  strokeWidth?: StrokeWidthPresetName;
 }
 
 export interface TextShape extends ShapeBase {
@@ -50,6 +54,7 @@ export type DraftShape =
   | {
     type: "rect";
     color: ColorPresetName;
+    strokeWidth: StrokeWidthPresetName;
     x: number;
     y: number;
     width: number;

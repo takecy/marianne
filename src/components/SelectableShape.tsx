@@ -6,9 +6,8 @@ import { imageToScreen, imageToScreenScale, screenToImage } from "@/lib/imageFit
 import type { FitRect, Size as FitSize } from "@/lib/imageFit";
 import type { LoadedImage } from "@/types/image";
 import type { ArrowShape, MosaicShape, RectShape, Shape, TextShape } from "@/types/shape";
-import { colorHex, textStrokeColorFor } from "@/types/tool";
+import { colorHex, strokeWidthValue, textStrokeColorFor } from "@/types/tool";
 import {
-  SHAPE_STROKE_WIDTH,
   TEXT_FONT_SIZE,
   TEXT_FONT_SIZE_MIN,
   TEXT_FONT_STYLE,
@@ -92,7 +91,7 @@ export function SelectableShape(props: SelectableShapeProps) {
         width={shape.width * imgScaleX}
         height={shape.height * imgScaleY}
         stroke={colorHex(shape.color)}
-        strokeWidth={SHAPE_STROKE_WIDTH}
+        strokeWidth={strokeWidthValue(shape.strokeWidth ?? "thick")}
         lineJoin="round"
         onDragEnd={(event: KonvaEventObject<DragEvent>) => {
           const node = event.target;
