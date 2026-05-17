@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { isTauri } from "@tauri-apps/api/core";
+import { t } from "@/i18n/translate";
 
 // State machine for the self-update flow. Each kind maps to a distinct
 // `UpdateModal` view; the modal hides itself for `idle`, `checking`, and
@@ -44,7 +45,7 @@ function errorMessage(err: unknown): string {
   if (typeof err === "string") {
     return err;
   }
-  return "更新処理でエラーが発生しました";
+  return t("error.update.generic");
 }
 
 export function useUpdater(options: UseUpdaterOptions = {}): UseUpdaterResult {
@@ -92,7 +93,7 @@ export function useUpdater(options: UseUpdaterOptions = {}): UseUpdaterResult {
     }
     const update = updateRef.current;
     if (!update) {
-      setState({ kind: "error", message: "更新情報が失われました。再度確認してください。" });
+      setState({ kind: "error", message: t("error.update.infoLost") });
       return;
     }
     setState({ kind: "downloading", downloaded: 0 });

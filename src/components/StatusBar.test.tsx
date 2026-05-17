@@ -1,4 +1,5 @@
 import { render, screen } from "@testing-library/react";
+import { t } from "@/i18n/translate";
 import type { LoadedImage } from "@/types/image";
 import { StatusBar } from "./StatusBar";
 
@@ -17,7 +18,7 @@ describe("StatusBar", () => {
     render(<StatusBar image={null} />);
     // No `role` is set (avoiding implicit role=status live-region semantics);
     // query by accessible label instead.
-    const bar = screen.getByLabelText("画像情報");
+    const bar = screen.getByLabelText(t("statusBar.imageInfo.label"));
     expect(bar).toBeInTheDocument();
     expect(bar.textContent).toBe("");
   });
@@ -40,7 +41,7 @@ describe("StatusBar", () => {
     render(
       <StatusBar image={makeImage({ source: "paste", sourceFileName: "image.png" })} />,
     );
-    expect(screen.getByText("クリップボードから貼り付け")).toBeInTheDocument();
+    expect(screen.getByText(t("source.paste"))).toBeInTheDocument();
     expect(screen.getByText("png : 1920×1080")).toBeInTheDocument();
   });
 
@@ -48,13 +49,13 @@ describe("StatusBar", () => {
     render(
       <StatusBar image={makeImage({ source: "drop", sourceFileName: "photo.jpg" })} />,
     );
-    expect(screen.getByText("ドラッグ&ドロップで読み込み")).toBeInTheDocument();
+    expect(screen.getByText(t("source.drop"))).toBeInTheDocument();
     expect(screen.getByText("jpg : 1920×1080")).toBeInTheDocument();
   });
 
   it("shows file-open label when sourcePath is missing for 'file' source", () => {
     render(<StatusBar image={makeImage({ source: "file" })} />);
-    expect(screen.getByText("ファイルを開く")).toBeInTheDocument();
+    expect(screen.getByText(t("source.file"))).toBeInTheDocument();
   });
 
   it("omits the extension segment when sourceFileName has no extension", () => {

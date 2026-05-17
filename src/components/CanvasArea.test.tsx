@@ -1,5 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import { beforeAll, vi } from "vitest";
+import { t } from "@/i18n/translate";
 import type { LoadedImage } from "@/types/image";
 import type { Shape } from "@/types/shape";
 import { CanvasArea } from "./CanvasArea";
@@ -183,7 +184,7 @@ describe("CanvasArea keyboard shortcuts", () => {
 
   it("renders the empty-state hint when no image is loaded", () => {
     renderCanvas();
-    expect(screen.getByText("画像を読み込み")).toBeInTheDocument();
+    expect(screen.getByText(t("canvas.empty.title"))).toBeInTheDocument();
   });
 });
 

@@ -1,3 +1,4 @@
+import { t } from "@/i18n/translate";
 import { CheckIcon } from "./icons/CheckIcon";
 import { CopyIcon } from "./icons/CopyIcon";
 import { SaveIcon } from "./icons/SaveIcon";
@@ -25,15 +26,15 @@ export function ActionBar(props: ActionBarProps) {
     : styles.exportButton;
 
   return (
-    <div className={styles.actionBar} role="toolbar" aria-label="書き出し">
+    <div className={styles.actionBar} role="toolbar" aria-label={t("actionBar.label")}>
       <button
         type="button"
         className={styles.exportButton}
         disabled={disabled}
         onClick={onExportToFile}
-        aria-label="保存"
+        aria-label={t("action.save.label")}
         aria-keyshortcuts="Meta+Shift+S Control+Shift+S"
-        title="保存 (Cmd/Ctrl+Shift+S)"
+        title={t("action.save.title")}
       >
         <SaveIcon />
       </button>
@@ -42,14 +43,14 @@ export function ActionBar(props: ActionBarProps) {
         className={copyClassName}
         disabled={disabled}
         onClick={onExportToClipboard}
-        aria-label="コピー"
+        aria-label={t("action.copy.label")}
         aria-keyshortcuts="Meta+Shift+C Control+Shift+C"
-        title={isCopied ? "コピーしました" : "クリップボードへコピー (Cmd/Ctrl+Shift+C)"}
+        title={isCopied ? t("action.copy.copied") : t("action.copy.title")}
       >
         {isCopied ? <CheckIcon /> : <CopyIcon />}
       </button>
       <span className={styles.copyAnnouncement} role="status" aria-live="polite">
-        {isCopied ? "クリップボードへコピーしました" : ""}
+        {isCopied ? t("action.copy.announcement") : ""}
       </span>
     </div>
   );

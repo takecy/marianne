@@ -1,5 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { t } from "@/i18n/translate";
 import { Sidebar } from "./Sidebar";
 
 describe("Sidebar", () => {
@@ -15,13 +16,13 @@ describe("Sidebar", () => {
       />,
     );
 
-    expect(screen.getByRole("button", { name: /^選択/ })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /^矢印/ })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /^四角/ })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /^テキスト/ })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /^モザイク/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: t("tool.select") })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: t("tool.arrow") })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: t("tool.rect") })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: t("tool.text") })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: t("tool.mosaic") })).toBeInTheDocument();
 
-    const colorGroup = screen.getByRole("group", { name: "色" });
+    const colorGroup = screen.getByRole("group", { name: t("sidebar.colorGroup.label") });
     expect(colorGroup.querySelectorAll("button")).toHaveLength(8);
   });
 
@@ -37,11 +38,11 @@ describe("Sidebar", () => {
       />,
     );
 
-    expect(screen.getByRole("button", { name: /^四角/ })).toHaveAttribute(
+    expect(screen.getByRole("button", { name: t("tool.rect") })).toHaveAttribute(
       "aria-pressed",
       "true",
     );
-    expect(screen.getByRole("button", { name: /^矢印/ })).toHaveAttribute(
+    expect(screen.getByRole("button", { name: t("tool.arrow") })).toHaveAttribute(
       "aria-pressed",
       "false",
     );
@@ -61,7 +62,7 @@ describe("Sidebar", () => {
       />,
     );
 
-    await user.click(screen.getByRole("button", { name: /^テキスト/ }));
+    await user.click(screen.getByRole("button", { name: t("tool.text") }));
     expect(onToolChange).toHaveBeenCalledWith("text");
   });
 
@@ -81,16 +82,16 @@ describe("Sidebar", () => {
       />,
     );
 
-    expect(screen.getByRole("button", { name: /^矢印/ })).toBeDisabled();
+    expect(screen.getByRole("button", { name: t("tool.arrow") })).toBeDisabled();
     expect(screen.getByRole("button", { name: "red" })).toBeDisabled();
 
-    await user.click(screen.getByRole("button", { name: /^テキスト/ }));
+    await user.click(screen.getByRole("button", { name: t("tool.text") }));
     expect(onToolChange).not.toHaveBeenCalled();
     await user.click(screen.getByRole("button", { name: "blue" }));
     expect(onColorChange).not.toHaveBeenCalled();
   });
 
-  it("renders 戻る/進む buttons and invokes their callbacks", async () => {
+  it("renders undo/redo buttons and invokes their callbacks", async () => {
     const user = userEvent.setup();
     const onUndo = vi.fn();
     const onRedo = vi.fn();
@@ -109,14 +110,14 @@ describe("Sidebar", () => {
       />,
     );
 
-    await user.click(screen.getByRole("button", { name: "戻る" }));
+    await user.click(screen.getByRole("button", { name: t("action.undo.label") }));
     expect(onUndo).toHaveBeenCalledTimes(1);
 
-    await user.click(screen.getByRole("button", { name: "進む" }));
+    await user.click(screen.getByRole("button", { name: t("action.redo.label") }));
     expect(onRedo).toHaveBeenCalledTimes(1);
   });
 
-  it("disables 戻る/進む buttons when canUndo / canRedo are false", async () => {
+  it("disables undo/redo buttons when canUndo / canRedo are false", async () => {
     const user = userEvent.setup();
     const onUndo = vi.fn();
     const onRedo = vi.fn();
@@ -135,16 +136,16 @@ describe("Sidebar", () => {
       />,
     );
 
-    expect(screen.getByRole("button", { name: "戻る" })).toBeDisabled();
-    expect(screen.getByRole("button", { name: "進む" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: t("action.undo.label") })).toBeDisabled();
+    expect(screen.getByRole("button", { name: t("action.redo.label") })).toBeDisabled();
 
-    await user.click(screen.getByRole("button", { name: "戻る" }));
+    await user.click(screen.getByRole("button", { name: t("action.undo.label") }));
     expect(onUndo).not.toHaveBeenCalled();
-    await user.click(screen.getByRole("button", { name: "進む" }));
+    await user.click(screen.getByRole("button", { name: t("action.redo.label") }));
     expect(onRedo).not.toHaveBeenCalled();
   });
 
-  it("disables 戻る/進む when the whole sidebar is disabled even if canUndo / canRedo are true", () => {
+  it("disables undo/redo when the whole sidebar is disabled even if canUndo / canRedo are true", () => {
     render(
       <Sidebar
         activeTool="select"
@@ -161,11 +162,11 @@ describe("Sidebar", () => {
       />,
     );
 
-    expect(screen.getByRole("button", { name: "戻る" })).toBeDisabled();
-    expect(screen.getByRole("button", { name: "進む" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: t("action.undo.label") })).toBeDisabled();
+    expect(screen.getByRole("button", { name: t("action.redo.label") })).toBeDisabled();
   });
 
-  it("does not render the 更新を確認 button when onCheckForUpdates is omitted", () => {
+  it("does not render the check-for-updates button when onCheckForUpdates is omitted", () => {
     render(
       <Sidebar
         activeTool="select"
@@ -176,10 +177,11 @@ describe("Sidebar", () => {
         onStrokeWidthChange={vi.fn()}
       />,
     );
-    expect(screen.queryByRole("button", { name: "更新を確認" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: t("action.checkUpdates.label") }))
+      .not.toBeInTheDocument();
   });
 
-  it("renders 更新を確認 button when onCheckForUpdates is provided and invokes the callback", async () => {
+  it("renders the check-for-updates button when onCheckForUpdates is provided and invokes the callback", async () => {
     const user = userEvent.setup();
     const onCheckForUpdates = vi.fn();
     render(
@@ -193,7 +195,7 @@ describe("Sidebar", () => {
         onCheckForUpdates={onCheckForUpdates}
       />,
     );
-    await user.click(screen.getByRole("button", { name: "更新を確認" }));
+    await user.click(screen.getByRole("button", { name: t("action.checkUpdates.label") }));
     expect(onCheckForUpdates).toHaveBeenCalledTimes(1);
   });
 
@@ -210,7 +212,7 @@ describe("Sidebar", () => {
         onCheckForUpdates={vi.fn()}
       />,
     );
-    expect(screen.getByRole("button", { name: "更新を確認" })).not.toBeDisabled();
+    expect(screen.getByRole("button", { name: t("action.checkUpdates.label") })).not.toBeDisabled();
   });
 
   it("update button disables only when state is checking", () => {
@@ -226,7 +228,7 @@ describe("Sidebar", () => {
         updateButtonState="checking"
       />,
     );
-    expect(screen.getByRole("button", { name: "更新を確認" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: t("action.checkUpdates.label") })).toBeDisabled();
 
     rerender(
       <Sidebar
@@ -240,7 +242,7 @@ describe("Sidebar", () => {
         updateButtonState="available"
       />,
     );
-    expect(screen.getByRole("button", { name: "更新を確認" })).not.toBeDisabled();
+    expect(screen.getByRole("button", { name: t("action.checkUpdates.label") })).not.toBeDisabled();
   });
 
   it("renders a short inline failure indicator with the full message in title", () => {
@@ -265,7 +267,7 @@ describe("Sidebar", () => {
     // Full text is preserved on hover via the title attribute.
     expect(status).toHaveAttribute("title", full);
     // Button remains usable so the user can retry.
-    expect(screen.getByRole("button", { name: "更新を確認" })).not.toBeDisabled();
+    expect(screen.getByRole("button", { name: t("action.checkUpdates.label") })).not.toBeDisabled();
   });
 
   // --- stroke width presets ---
@@ -281,12 +283,12 @@ describe("Sidebar", () => {
         onStrokeWidthChange={vi.fn()}
       />,
     );
-    const strokeGroup = screen.getByRole("group", { name: "太さ" });
+    const strokeGroup = screen.getByRole("group", { name: t("sidebar.strokeWidthGroup.label") });
     expect(strokeGroup.querySelectorAll("button")).toHaveLength(4);
-    expect(screen.getByRole("button", { name: "細" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "中" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "太" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "極太" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: t("strokeWidth.thin") })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: t("strokeWidth.medium") })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: t("strokeWidth.thick") })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: t("strokeWidth.extraThick") })).toBeInTheDocument();
   });
 
   it("marks the active stroke width preset as pressed", () => {
@@ -300,11 +302,11 @@ describe("Sidebar", () => {
         onStrokeWidthChange={vi.fn()}
       />,
     );
-    expect(screen.getByRole("button", { name: "細" })).toHaveAttribute(
+    expect(screen.getByRole("button", { name: t("strokeWidth.thin") })).toHaveAttribute(
       "aria-pressed",
       "true",
     );
-    expect(screen.getByRole("button", { name: "太" })).toHaveAttribute(
+    expect(screen.getByRole("button", { name: t("strokeWidth.thick") })).toHaveAttribute(
       "aria-pressed",
       "false",
     );
@@ -323,7 +325,7 @@ describe("Sidebar", () => {
         onStrokeWidthChange={onStrokeWidthChange}
       />,
     );
-    await user.click(screen.getByRole("button", { name: "極太" }));
+    await user.click(screen.getByRole("button", { name: t("strokeWidth.extraThick") }));
     expect(onStrokeWidthChange).toHaveBeenCalledWith("extraThick");
   });
 
@@ -341,8 +343,8 @@ describe("Sidebar", () => {
         disabled
       />,
     );
-    expect(screen.getByRole("button", { name: "細" })).toBeDisabled();
-    await user.click(screen.getByRole("button", { name: "細" }));
+    expect(screen.getByRole("button", { name: t("strokeWidth.thin") })).toBeDisabled();
+    await user.click(screen.getByRole("button", { name: t("strokeWidth.thin") }));
     expect(onStrokeWidthChange).not.toHaveBeenCalled();
   });
 

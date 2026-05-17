@@ -1,6 +1,7 @@
 import { act, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import App from "./App";
+import { t } from "./i18n/translate";
 import { useCanvasStore } from "./store/canvasStore";
 import type { RectShape } from "./types/shape";
 
@@ -143,7 +144,7 @@ async function flush() {
 // `open` attribute via showModal()/close(). queryByText sees the h2 even
 // when closed, so test visibility via the closest <dialog>'s open attr.
 function replaceDialogIsOpen(): boolean {
-  const heading = screen.queryByText("編集中の注釈があります");
+  const heading = screen.queryByText(t("dialog.imageReplace.title"));
   const dialog = heading?.closest("dialog");
   return dialog?.hasAttribute("open") ?? false;
 }
@@ -216,7 +217,7 @@ describe("App image replace confirmation", () => {
     });
     await flush();
 
-    await user.click(screen.getByRole("button", { name: "破棄して読み込み" }));
+    await user.click(screen.getByRole("button", { name: t("dialog.imageReplace.confirm") }));
 
     expect(useCanvasStore.getState().shapes).toHaveLength(0);
     expect(replaceDialogIsOpen()).toBe(false);
@@ -235,7 +236,7 @@ describe("App image replace confirmation", () => {
     });
     await flush();
 
-    await user.click(screen.getByRole("button", { name: "キャンセル" }));
+    await user.click(screen.getByRole("button", { name: t("dialog.cancel") }));
 
     expect(useCanvasStore.getState().shapes).toHaveLength(1);
     expect(replaceDialogIsOpen()).toBe(false);
