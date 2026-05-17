@@ -1,3 +1,4 @@
+import { t } from "@/i18n/translate";
 import type { LoadedImage } from "@/types/image";
 import styles from "./StatusBar.module.css";
 
@@ -5,13 +6,10 @@ interface StatusBarProps {
   image: LoadedImage | null;
 }
 
-// Fallback labels for the left text when sourcePath is unavailable. The
-// natural-language strings are kept inline here (matching the project's
-// hardcoded-Japanese-UI convention; see Sidebar.tsx TOOL_LABELS).
 const SOURCE_LABELS: Record<LoadedImage["source"], string> = {
-  paste: "クリップボードから貼り付け",
-  drop: "ドラッグ&ドロップで読み込み",
-  file: "ファイルを開く",
+  paste: t("source.paste"),
+  drop: t("source.drop"),
+  file: t("source.file"),
 };
 
 function extensionOf(fileName: string | undefined): string {
@@ -32,7 +30,7 @@ function extensionOf(fileName: string | undefined): string {
 // semantics.
 export function StatusBar({ image }: StatusBarProps) {
   if (image === null) {
-    return <div className={styles.statusBar} aria-label="画像情報" />;
+    return <div className={styles.statusBar} aria-label={t("statusBar.imageInfo.label")} />;
   }
 
   const leftText = image.sourcePath ?? SOURCE_LABELS[image.source];
@@ -41,7 +39,7 @@ export function StatusBar({ image }: StatusBarProps) {
   const rightText = ext ? `${ext} : ${dimensions}` : dimensions;
 
   return (
-    <div className={styles.statusBar} aria-label="画像情報">
+    <div className={styles.statusBar} aria-label={t("statusBar.imageInfo.label")}>
       <span className={styles.left} title={leftText}>{leftText}</span>
       <span className={styles.right}>{rightText}</span>
     </div>

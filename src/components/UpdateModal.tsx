@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import { t } from "@/i18n/translate";
 import type { UpdateState } from "@/lib/useUpdater";
 import styles from "./UpdateModal.module.css";
 
@@ -71,28 +72,27 @@ export function UpdateModal(props: UpdateModalProps) {
         {state.kind === "available" && (
           <>
             <h2 id="update-modal-title" className={styles.title}>
-              新しいバージョン {state.version} が利用可能です
+              {t("update.available.title", { version: state.version })}
             </h2>
             {state.notes && (
               <div className={styles.notes}>
-                <div className={styles.notesLabel}>変更内容:</div>
+                <div className={styles.notesLabel}>{t("update.releaseNotes.label")}</div>
                 <pre className={styles.notesBody}>{state.notes}</pre>
               </div>
             )}
             {hasUnsavedShapes && (
               <p className={styles.warning} role="alert">
-                ⚠ 未保存の注釈があります。更新するとアプリが再起動し、編集中の内容は失われます。
-                先に保存してから更新してください。
+                {t("update.warning.unsaved")}
               </p>
             )}
-            <p className={styles.note}>更新を適用するとアプリが再起動します。</p>
+            <p className={styles.note}>{t("update.notice.restart")}</p>
             <div className={styles.actions}>
               <button
                 type="button"
                 className={styles.secondaryButton}
                 onClick={onDismiss}
               >
-                後で
+                {t("update.action.later")}
               </button>
               <button
                 type="button"
@@ -100,7 +100,7 @@ export function UpdateModal(props: UpdateModalProps) {
                 onClick={onInstall}
                 autoFocus
               >
-                今すぐ更新
+                {t("update.action.install")}
               </button>
             </div>
           </>
@@ -109,7 +109,7 @@ export function UpdateModal(props: UpdateModalProps) {
         {state.kind === "downloading" && (
           <>
             <h2 id="update-modal-title" className={styles.title}>
-              ダウンロード中…
+              {t("update.status.downloading")}
             </h2>
             <div className={styles.progressWrap} aria-live="polite">
               {state.contentLength !== undefined
@@ -138,10 +138,10 @@ export function UpdateModal(props: UpdateModalProps) {
         {state.kind === "readyToInstall" && (
           <>
             <h2 id="update-modal-title" className={styles.title}>
-              更新を適用しています
+              {t("update.status.applying")}
             </h2>
             <p className={styles.note}>
-              {state.version} のインストール後、アプリが自動で再起動します。
+              {t("update.readyToInstall.body", { version: state.version })}
             </p>
           </>
         )}

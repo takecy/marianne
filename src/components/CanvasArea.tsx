@@ -12,6 +12,7 @@ import {
 import type { FitRect, Point, Size as FitSize } from "@/lib/imageFit";
 import { finalizeDraft, moveDraft, startDraft } from "@/lib/drawingGesture";
 import { useThemeMode } from "@/lib/useThemeMode";
+import { t } from "@/i18n/translate";
 import type { LoadedImage } from "@/types/image";
 import type {
   ArrowShape,
@@ -591,7 +592,7 @@ export function CanvasArea(props: CanvasAreaProps) {
     : undefined;
 
   return (
-    <div ref={containerRef} className={className} aria-label="キャンバス">
+    <div ref={containerRef} className={className} aria-label={t("canvas.label")}>
       {size.width > 0 && size.height > 0
         ? (
           <Stage
@@ -687,11 +688,8 @@ export function CanvasArea(props: CanvasAreaProps) {
         ? (
           <div className={styles.emptyState} aria-hidden={false}>
             <div className={styles.emptyStateInner}>
-              <p className={styles.emptyStateTitle}>画像を読み込み</p>
-              <p className={styles.emptyStateBody}>
-                画像をクリップボードから貼り付け（⌘V /
-                Ctrl+V）するか、ここにドラッグ＆ドロップしてください。
-              </p>
+              <p className={styles.emptyStateTitle}>{t("canvas.empty.title")}</p>
+              <p className={styles.emptyStateBody}>{t("canvas.empty.message")}</p>
             </div>
           </div>
         )

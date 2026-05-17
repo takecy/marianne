@@ -1,5 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { t } from "@/i18n/translate";
 import type { UpdateState } from "@/lib/useUpdater";
 import { UpdateModal } from "./UpdateModal";
 
@@ -55,10 +56,11 @@ describe("UpdateModal", () => {
   it("opens with title and buttons for available state", () => {
     renderModal({ kind: "available", version: "0.1.1", notes: "Bug fixes" });
     expect(screen.getByRole("dialog")).toBeInTheDocument();
-    expect(screen.getByText(/新しいバージョン 0\.1\.1 が利用可能です/)).toBeInTheDocument();
+    expect(screen.getByText(t("update.available.title", { version: "0.1.1" })))
+      .toBeInTheDocument();
     expect(screen.getByText("Bug fixes")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "今すぐ更新" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "後で" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: t("update.action.install") })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: t("update.action.later") })).toBeInTheDocument();
   });
 
   it("shows unsaved-shapes warning when hasUnsavedShapes is true", () => {
@@ -66,7 +68,7 @@ describe("UpdateModal", () => {
       { kind: "available", version: "0.1.1" },
       { hasUnsavedShapes: true },
     );
-    expect(screen.getByRole("alert")).toHaveTextContent("未保存の注釈があります");
+    expect(screen.getByRole("alert")).toHaveTextContent(t("update.warning.unsaved"));
   });
 
   it("does not show warning when there are no unsaved shapes", () => {
@@ -80,21 +82,21 @@ describe("UpdateModal", () => {
   it("invokes onInstall when Install is clicked", async () => {
     const user = userEvent.setup();
     const { onInstall } = renderModal({ kind: "available", version: "0.1.1" });
-    await user.click(screen.getByRole("button", { name: "今すぐ更新" }));
+    await user.click(screen.getByRole("button", { name: t("update.action.install") }));
     expect(onInstall).toHaveBeenCalledTimes(1);
   });
 
   it("invokes onDismiss when Later is clicked", async () => {
     const user = userEvent.setup();
     const { onDismiss } = renderModal({ kind: "available", version: "0.1.1" });
-    await user.click(screen.getByRole("button", { name: "後で" }));
+    await user.click(screen.getByRole("button", { name: t("update.action.later") }));
     expect(onDismiss).toHaveBeenCalledTimes(1);
   });
 
   it("shows progress UI for downloading state", () => {
     renderModal({ kind: "downloading", downloaded: 512, contentLength: 1024 });
     expect(screen.getByRole("dialog")).toBeInTheDocument();
-    expect(screen.getByText(/ダウンロード中/)).toBeInTheDocument();
+    expect(screen.getByText(t("update.status.downloading"))).toBeInTheDocument();
     // Progress label shows the byte counts in human-readable form.
     expect(screen.getByText(/512 B/)).toBeInTheDocument();
     expect(screen.getByText(/1\.0 KB/)).toBeInTheDocument();
@@ -102,8 +104,9 @@ describe("UpdateModal", () => {
 
   it("shows install message for readyToInstall state", () => {
     renderModal({ kind: "readyToInstall", version: "0.1.1" });
-    expect(screen.getByText(/更新を適用しています/)).toBeInTheDocument();
-    expect(screen.getByText(/0\.1\.1/)).toBeInTheDocument();
+    expect(screen.getByText(t("update.status.applying"))).toBeInTheDocument();
+    expect(screen.getByText(t("update.readyToInstall.body", { version: "0.1.1" })))
+      .toBeInTheDocument();
   });
 
   it("does NOT open for error state (failure surfaces in the toolbar instead)", () => {

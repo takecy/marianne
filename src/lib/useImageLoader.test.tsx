@@ -1,4 +1,5 @@
 import { renderHook, waitFor } from "@testing-library/react";
+import { t } from "@/i18n/translate";
 import type { LoadedImage } from "@/types/image";
 import { useImageLoader } from "./useImageLoader";
 
@@ -196,7 +197,7 @@ describe("useImageLoader (browser fallback)", () => {
     window.dispatchEvent(buildDropEvent([file]));
 
     await waitFor(() => expect(onError).toHaveBeenCalledTimes(1));
-    expect(onError).toHaveBeenCalledWith("画像の読み込みに失敗しました");
+    expect(onError).toHaveBeenCalledWith(t("error.imageLoadFailed"));
     expect(onImageLoaded).not.toHaveBeenCalled();
     expect(revokeObjectURL).toHaveBeenCalledWith(ERROR_MARKER);
   });
@@ -283,7 +284,7 @@ describe("useImageLoader (Tauri native drag-drop)", () => {
     });
 
     await waitFor(() => expect(onError).toHaveBeenCalledTimes(1));
-    expect(onError).toHaveBeenCalledWith("画像の読み込みに失敗しました");
+    expect(onError).toHaveBeenCalledWith(t("error.imageLoadFailed"));
     expect(onImageLoaded).not.toHaveBeenCalled();
   });
 });

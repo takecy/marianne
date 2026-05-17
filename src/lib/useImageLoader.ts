@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { isTauri } from "@tauri-apps/api/core";
+import { t } from "@/i18n/translate";
 import type { ImageSource, LoadedImage } from "@/types/image";
 
 interface UseImageLoaderOptions {
@@ -75,7 +76,7 @@ function decodeImageFromObjectUrl(
   };
   img.onerror = () => {
     URL.revokeObjectURL(url);
-    const message = "画像の読み込みに失敗しました";
+    const message = t("error.imageLoadFailed");
     if (onError) {
       onError(message);
     } else {
@@ -123,7 +124,7 @@ async function decodeTauriFilePath(
       onError,
     );
   } catch (err) {
-    const message = "画像の読み込みに失敗しました";
+    const message = t("error.imageLoadFailed");
     if (onError) {
       onError(message);
     } else {

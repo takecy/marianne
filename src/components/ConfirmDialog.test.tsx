@@ -1,5 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { t } from "@/i18n/translate";
 import { ConfirmDialog } from "./ConfirmDialog";
 
 // jsdom does not implement HTMLDialogElement.showModal / close, so we stub
@@ -32,8 +33,8 @@ function renderDialog(
   const view = render(
     <ConfirmDialog
       open={opts.open ?? true}
-      title={opts.title ?? "確認"}
-      message={opts.message ?? "実行してよろしいですか?"}
+      title={opts.title ?? "Confirm"}
+      message={opts.message ?? "Are you sure you want to proceed?"}
       confirmLabel={opts.confirmLabel ?? "OK"}
       cancelLabel={opts.cancelLabel}
       destructive={opts.destructive}
@@ -52,21 +53,21 @@ describe("ConfirmDialog", () => {
 
   it("renders title, message, and button labels from props", () => {
     renderDialog({
-      title: "未保存の注釈があります",
-      message: "編集中の注釈は保存されません。本当に終了しますか?",
-      confirmLabel: "終了する",
+      title: t("dialog.quit.title"),
+      message: t("dialog.quit.message"),
+      confirmLabel: t("dialog.quit.confirm"),
     });
     expect(screen.getByRole("dialog")).toBeInTheDocument();
-    expect(screen.getByText("未保存の注釈があります")).toBeInTheDocument();
-    expect(screen.getByText(/編集中の注釈は保存されません/)).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "終了する" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "キャンセル" })).toBeInTheDocument();
+    expect(screen.getByText(t("dialog.quit.title"))).toBeInTheDocument();
+    expect(screen.getByText(t("dialog.quit.message"))).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: t("dialog.quit.confirm") })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: t("dialog.cancel") })).toBeInTheDocument();
   });
 
   it("uses a custom cancelLabel when provided", () => {
-    renderDialog({ cancelLabel: "戻る" });
-    expect(screen.getByRole("button", { name: "戻る" })).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "キャンセル" })).not.toBeInTheDocument();
+    renderDialog({ cancelLabel: "Back" });
+    expect(screen.getByRole("button", { name: "Back" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: t("dialog.cancel") })).not.toBeInTheDocument();
   });
 
   it("calls onConfirm when the confirm button is clicked", async () => {
@@ -79,7 +80,7 @@ describe("ConfirmDialog", () => {
   it("calls onCancel when the cancel button is clicked", async () => {
     const user = userEvent.setup();
     const { onCancel } = renderDialog();
-    await user.click(screen.getByRole("button", { name: "キャンセル" }));
+    await user.click(screen.getByRole("button", { name: t("dialog.cancel") }));
     expect(onCancel).toHaveBeenCalledTimes(1);
   });
 
@@ -92,15 +93,15 @@ describe("ConfirmDialog", () => {
   });
 
   it("autofocuses Cancel when destructive (default)", () => {
-    renderDialog({ confirmLabel: "削除", destructive: true });
+    renderDialog({ confirmLabel: "Delete", destructive: true });
     // autoFocus on a button is realized by jsdom as the focused element
     // after the dialog mounts.
-    expect(screen.getByRole("button", { name: "キャンセル" })).toHaveFocus();
+    expect(screen.getByRole("button", { name: t("dialog.cancel") })).toHaveFocus();
   });
 
   it("autofocuses Confirm when destructive is false", () => {
-    renderDialog({ confirmLabel: "送信", destructive: false });
-    expect(screen.getByRole("button", { name: "送信" })).toHaveFocus();
+    renderDialog({ confirmLabel: "Submit", destructive: false });
+    expect(screen.getByRole("button", { name: "Submit" })).toHaveFocus();
   });
 
   it("uses a unique aria-labelledby id per instance", () => {

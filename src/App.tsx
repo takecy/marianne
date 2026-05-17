@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { dirname, join } from "@tauri-apps/api/path";
+import { t } from "./i18n/translate";
 import { ActionBar } from "./components/ActionBar";
 import { CanvasArea } from "./components/CanvasArea";
 import { ConfirmDialog } from "./components/ConfirmDialog";
@@ -317,18 +318,18 @@ function App() {
       />
       <ConfirmDialog
         open={quitState.kind === "confirming"}
-        title="未保存の注釈があります"
-        message="編集中の注釈は保存されません。本当に終了しますか?"
-        confirmLabel="終了する"
+        title={t("dialog.quit.title")}
+        message={t("dialog.quit.message")}
+        confirmLabel={t("dialog.quit.confirm")}
         destructive
         onConfirm={() => void confirmQuit()}
         onCancel={cancelQuit}
       />
       <ConfirmDialog
         open={pendingImage !== null}
-        title="編集中の注釈があります"
-        message="新しい画像を読み込むと、現在の注釈は破棄されます。破棄して読み込みますか?"
-        confirmLabel="破棄して読み込み"
+        title={t("dialog.imageReplace.title")}
+        message={t("dialog.imageReplace.message")}
+        confirmLabel={t("dialog.imageReplace.confirm")}
         destructive
         onConfirm={handleConfirmReplaceImage}
         onCancel={handleCancelReplaceImage}

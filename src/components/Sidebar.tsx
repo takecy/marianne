@@ -1,3 +1,4 @@
+import { t } from "@/i18n/translate";
 import type { ColorPresetName, StrokeWidthPresetName, ToolKind } from "@/types/tool";
 import { COLOR_PRESETS, STROKE_WIDTH_PRESETS, TOOL_KINDS, TOOL_SHORTCUTS } from "@/types/tool";
 import { ArrowIcon } from "./icons/ArrowIcon";
@@ -11,18 +12,18 @@ import { UpdateIcon } from "./icons/UpdateIcon";
 import styles from "./Sidebar.module.css";
 
 const TOOL_LABELS: Record<ToolKind, string> = {
-  select: "選択",
-  arrow: "矢印",
-  rect: "四角",
-  text: "テキスト",
-  mosaic: "モザイク",
+  select: t("tool.select"),
+  arrow: t("tool.arrow"),
+  rect: t("tool.rect"),
+  text: t("tool.text"),
+  mosaic: t("tool.mosaic"),
 };
 
 const STROKE_WIDTH_LABELS: Record<StrokeWidthPresetName, string> = {
-  thin: "細",
-  medium: "中",
-  thick: "太",
-  extraThick: "極太",
+  thin: t("strokeWidth.thin"),
+  medium: t("strokeWidth.medium"),
+  thick: t("strokeWidth.thick"),
+  extraThick: t("strokeWidth.extraThick"),
 };
 
 const TOOL_ICONS: Record<ToolKind, () => React.ReactElement> = {
@@ -82,8 +83,8 @@ export function Sidebar(props: SidebarProps) {
   } = props;
 
   return (
-    <aside className={styles.sidebar} aria-label="ツールバー">
-      <div className={styles.toolGroup} role="group" aria-label="ツール">
+    <aside className={styles.sidebar} aria-label={t("sidebar.toolbar.label")}>
+      <div className={styles.toolGroup} role="group" aria-label={t("sidebar.toolGroup.label")}>
         {TOOL_KINDS.map((tool) => {
           const Icon = TOOL_ICONS[tool];
           const label = TOOL_LABELS[tool];
@@ -110,7 +111,7 @@ export function Sidebar(props: SidebarProps) {
 
       <div className={styles.divider} aria-hidden />
 
-      <div className={styles.colorGroup} role="group" aria-label="色">
+      <div className={styles.colorGroup} role="group" aria-label={t("sidebar.colorGroup.label")}>
         {COLOR_PRESETS.map((preset) => (
           <button
             key={preset.name}
@@ -129,7 +130,11 @@ export function Sidebar(props: SidebarProps) {
 
       <div className={styles.divider} aria-hidden />
 
-      <div className={styles.strokeWidthGroup} role="group" aria-label="太さ">
+      <div
+        className={styles.strokeWidthGroup}
+        role="group"
+        aria-label={t("sidebar.strokeWidthGroup.label")}
+      >
         {STROKE_WIDTH_PRESETS.map((preset) => {
           const label = STROKE_WIDTH_LABELS[preset.name];
           const isActive = preset.name === activeStrokeWidth;
@@ -158,14 +163,18 @@ export function Sidebar(props: SidebarProps) {
 
       <div className={styles.divider} aria-hidden />
 
-      <div className={styles.historyGroup} role="group" aria-label="履歴">
+      <div
+        className={styles.historyGroup}
+        role="group"
+        aria-label={t("sidebar.historyGroup.label")}
+      >
         <button
           type="button"
           className={styles.iconButton}
           disabled={disabled || !canUndo}
           onClick={onUndo}
-          aria-label="戻る"
-          title="戻る (Cmd/Ctrl+Z)"
+          aria-label={t("action.undo.label")}
+          title={t("action.undo.title")}
         >
           <UndoIcon />
         </button>
@@ -174,15 +183,19 @@ export function Sidebar(props: SidebarProps) {
           className={styles.iconButton}
           disabled={disabled || !canRedo}
           onClick={onRedo}
-          aria-label="進む"
-          title="進む (Cmd/Ctrl+Shift+Z)"
+          aria-label={t("action.redo.label")}
+          title={t("action.redo.title")}
         >
           <RedoIcon />
         </button>
       </div>
 
       {onCheckForUpdates && (
-        <div className={styles.updateGroup} role="group" aria-label="更新">
+        <div
+          className={styles.updateGroup}
+          role="group"
+          aria-label={t("sidebar.updateGroup.label")}
+        >
           <button
             type="button"
             className={updateButtonState === "available"
@@ -190,8 +203,10 @@ export function Sidebar(props: SidebarProps) {
               : styles.iconButton}
             disabled={updateButtonState === "checking"}
             onClick={onCheckForUpdates}
-            aria-label="更新を確認"
-            title={updateButtonState === "checking" ? "確認中…" : "更新を確認"}
+            aria-label={t("action.checkUpdates.label")}
+            title={updateButtonState === "checking"
+              ? t("action.checkUpdates.checking")
+              : t("action.checkUpdates.idle")}
           >
             <UpdateIcon />
             {updateButtonState === "available" && (

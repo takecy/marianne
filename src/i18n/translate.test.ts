@@ -1,6 +1,18 @@
+import { en } from "./en";
+import { ja } from "./ja";
 import { t } from "./translate";
 
-describe("t", () => {
+function setLocale(value: string): void {
+  Object.defineProperty(navigator, "language", {
+    value,
+    configurable: true,
+    writable: true,
+  });
+}
+
+describe("t (English locale)", () => {
+  beforeEach(() => setLocale("en-US"));
+
   it("returns the English value for a known key without params", () => {
     expect(t("tool.select")).toBe("Select");
   });
@@ -31,5 +43,35 @@ describe("t", () => {
     expect(t("update.available.title", { version: 42 })).toBe(
       "A new version 42 is available",
     );
+  });
+});
+
+describe("t (Japanese locale)", () => {
+  beforeEach(() => setLocale("ja-JP"));
+
+  it("returns the Japanese value for a known key without params", () => {
+    expect(t("tool.select")).toBe("選択");
+  });
+
+  it("substitutes {name} placeholders inside a Japanese template", () => {
+    expect(t("update.available.title", { version: "1.2.3" })).toBe(
+      "新しいバージョン 1.2.3 が利用可能です",
+    );
+  });
+
+  it("treats any navigator.language starting with 'ja' as Japanese (e.g. 'ja')", () => {
+    setLocale("ja");
+    expect(t("tool.select")).toBe("選択");
+  });
+
+  it("falls back to English for non-Japanese locales (e.g. 'fr-FR')", () => {
+    setLocale("fr-FR");
+    expect(t("tool.select")).toBe("Select");
+  });
+});
+
+describe("dictionary parity", () => {
+  it("ja has the same keys as en (no missing or extra translations)", () => {
+    expect(Object.keys(ja).sort()).toEqual(Object.keys(en).sort());
   });
 });

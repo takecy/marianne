@@ -1,4 +1,5 @@
 import { useEffect, useId, useRef } from "react";
+import { t } from "@/i18n/translate";
 import styles from "./ConfirmDialog.module.css";
 
 interface ConfirmDialogProps {
@@ -23,7 +24,7 @@ export function ConfirmDialog(props: ConfirmDialogProps) {
     title,
     message,
     confirmLabel,
-    cancelLabel = "キャンセル",
+    cancelLabel = t("dialog.cancel"),
     destructive = true,
     onConfirm,
     onCancel,

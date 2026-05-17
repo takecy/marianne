@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { TEXT_FONT_SIZE } from "@/constants/shape";
+import { t } from "@/i18n/translate";
 import { colorHex } from "@/types/tool";
 import type { ColorPresetName } from "@/types/tool";
 import styles from "./TextInputOverlay.module.css";
@@ -72,7 +73,7 @@ export function TextInputOverlay(props: TextInputOverlayProps) {
       onBlur={handleBlur}
       rows={1}
       cols={10}
-      aria-label="テキスト入力"
+      aria-label={t("textInput.label")}
     />
   );
 }
