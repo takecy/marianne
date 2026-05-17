@@ -53,6 +53,16 @@ function App() {
     () => loadLastSelectedStrokeWidth() ?? "thick",
   );
   const [image, setImage] = useState<LoadedImage | null>(null);
+  // Holds a newly-pasted/dropped image while the user confirms whether
+  // to discard the current annotations. Mirrored into pendingImageRef so
+  // handleImageLoaded can read it without becoming dependent on the state
+  // (which would cause useImageLoader's listener to teardown on every
+  // toggle).
+  const [pendingImage, setPendingImage] = useState<LoadedImage | null>(null);
+  const pendingImageRef = useRef<LoadedImage | null>(null);
+  useEffect(() => {
+    pendingImageRef.current = pendingImage;
+  }, [pendingImage]);
   // Driven by CanvasArea via onEditingTextChange. Used to disable export
   // buttons in the Toolbar while a text shape is being inline-edited so
   // the exported PNG does not capture a hidden text node.
@@ -120,12 +130,38 @@ function App() {
 
   const handleImageLoaded = useCallback(
     (loaded: LoadedImage) => {
+      // Ignore additional paste/drop while a confirm dialog is already
+      // pending — prevents a decode-order race where two rapid paste
+      // events could otherwise resolve out-of-order via img.onload.
+      if (pendingImageRef.current !== null) {
+        return;
+      }
+      // Read shapes from the store directly so we don't have to depend on
+      // the latest `shapes` snapshot — keeping useImageLoader's listener
+      // stable across every annotation edit.
+      const hasShapes = useCanvasStore.getState().shapes.length > 0;
+      if (hasShapes) {
+        setPendingImage(loaded);
+        return;
+      }
       // Clear annotations when a new image is loaded so they don't bleed onto the next image.
       clearShapes();
       setImage(loaded);
     },
     [clearShapes],
   );
+
+  const handleConfirmReplaceImage = useCallback(() => {
+    const next = pendingImageRef.current;
+    if (next === null) return;
+    clearShapes();
+    setImage(next);
+    setPendingImage(null);
+  }, [clearShapes]);
+
+  const handleCancelReplaceImage = useCallback(() => {
+    setPendingImage(null);
+  }, []);
 
   // After a shape is placed, return to the select tool so the user can
   // immediately adjust position/size without an extra toolbar click.
@@ -287,6 +323,15 @@ function App() {
         destructive
         onConfirm={() => void confirmQuit()}
         onCancel={cancelQuit}
+      />
+      <ConfirmDialog
+        open={pendingImage !== null}
+        title="編集中の注釈があります"
+        message="新しい画像を読み込むと、現在の注釈は破棄されます。破棄して読み込みますか?"
+        confirmLabel="破棄して読み込み"
+        destructive
+        onConfirm={handleConfirmReplaceImage}
+        onCancel={handleCancelReplaceImage}
       />
     </div>
   );
