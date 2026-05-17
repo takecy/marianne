@@ -1,0 +1,90 @@
+---
+title: Releasing
+description: Maintainer guide for cutting a new Marianne release. Covers the GitHub Actions workflow, required Secrets, signing-key handling, and key management invariants.
+---
+
+import { Aside, Steps } from "@astrojs/starlight/components";
+
+This page is for **maintainers cutting a new release**. End users do not need to read it; the auto-updater takes care of distribution automatically (see [Installation](./installation/)).
+
+## Release procedure
+
+Releases are fully automated by a single GitHub Actions workflow at [`.github/workflows/tagging-release.yaml`](https://github.com/takecy/marianne/blob/main/.github/workflows/tagging-release.yaml).
+
+<Steps>
+1. **Trigger the workflow**: in the repository, go to **Actions → Tag and Release → Run workflow**.
+
+   - Pick a `bump_version` (`patch` / `minor` / `major`). Conventional Commits detection on the changelog takes precedence when applicable.
+
+2. **The `tagging` job runs on `ubuntu-latest`**:
+
+   - Computes the next version via a `dry_run`.
+   - Runs `scripts/bump-version.sh` to sync `package.json` / `src-tauri/tauri.conf.json` / `src-tauri/Cargo.toml` in a single commit.
+   - Pushes the bump commit to `main`.
+   - Pushes the `vX.Y.Z` tag.
+
+3. **The `release` job runs on `macos-14` (with `needs: tagging`)**:
+
+   - Checks out the just-tagged commit.
+   - Runs `pnpm tauri build --target aarch64-apple-darwin` to produce signed bundles.
+   - Publishes `Marianne.app.tar.gz`, `.sig`, and `latest.json` to a GitHub Release (not draft, not prerelease).
+
+4. **Existing installations fetch `latest.json` on next launch** and prompt to update.
+</Steps>
+
+<Aside type="danger" title="Manual `git push origin vX.Y.Z` is forbidden">
+A tag that did not go through `bump-version.sh` (three-file version sync) and
+the `tauri-action` signing flow is **not a valid release**. The updater will
+silently fail. Always cut releases via the workflow_dispatch button above.
+</Aside>
+
+## Supplying the signing key locally
+
+`tauri.conf.json` enables `createUpdaterArtifacts: true`, so `pnpm tauri build` / `pnpm install:local` / `pnpm build:dmg` need the updater signing key. **Builds fail in the signing phase if the env is missing.**
+
+Supply the env locally with one of these patterns:
+
+```sh
+# direnv (recommended): create .envrc in the repo root (already gitignored)
+export TAURI_SIGNING_PRIVATE_KEY="$(cat ~/.tauri/marianne.key)"
+export TAURI_SIGNING_PRIVATE_KEY_PASSWORD="<strong-passphrase-stored-in-1password>"
+```
+
+```sh
+# or export inline before running a build
+export TAURI_SIGNING_PRIVATE_KEY="$(cat ~/.tauri/marianne.key)"
+export TAURI_SIGNING_PRIVATE_KEY_PASSWORD="<strong-passphrase-stored-in-1password>"
+pnpm install:local
+```
+
+In CI these come from the `TAURI_SIGNING_PRIVATE_KEY` / `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` GitHub Secrets, wired into the release workflow.
+
+## Required GitHub Secrets
+
+Register the following in **Settings → Secrets and variables → Actions** before the workflow can complete:
+
+| Name | Value |
+|------|-------|
+| `TAURI_SIGNING_PRIVATE_KEY` | Full contents of `~/.tauri/marianne.key` |
+| `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` | Passphrase used when the key was generated (use a strong 32+ character random string) |
+
+The single-workflow design (tagging → release within one workflow run) means the default `GITHUB_TOKEN` is enough — **no PAT is needed** to chain workflows.
+
+## Key management
+
+<Aside type="caution" title="Never commit the private key">
+`~/.tauri/marianne.key` is in `.gitignore`. Double-check before any commit that
+touches `.tauri/` or similar paths.
+</Aside>
+
+- **Back up** the private key + passphrase to 1Password (or equivalent). Losing the key means existing installations can no longer verify any future release — they will be permanently unable to auto-update.
+- **The `pubkey` in `tauri.conf.json` is fixed-for-life**. Rotating it breaks updates for everyone who installed before the rotation. Treat the key as immutable; if a rotation is unavoidable, expect to ship a one-time manual-install dmg.
+
+## Why manual tag pushes break
+
+The updater on each end-user machine compares its embedded `pubkey` (from `tauri.conf.json` at install time) against the signature in `latest.json`. A tag pushed manually:
+
+- Skips the `bump-version.sh` three-file sync → `tauri.conf.json` version may not match the tag
+- Skips the `tauri-action` signing step → `latest.json` contains no valid signature
+
+Either failure causes the updater to silently reject the release. The only safe path is the workflow_dispatch flow above.

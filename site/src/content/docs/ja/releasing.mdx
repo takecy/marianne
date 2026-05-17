@@ -1,0 +1,90 @@
+---
+title: リリース手順
+description: Marianne のリリースを切るメンテナー向けガイド。GitHub Actions ワークフロー、必要な Secrets、署名鍵の扱い、鍵管理の不変条件を扱う。
+---
+
+import { Aside, Steps } from "@astrojs/starlight/components";
+
+このページは **新規リリースを切るメンテナー向け**。エンドユーザーは読む必要はない — 自動アップデーターが配信を自動的に処理する ([インストール](./installation/) 参照)。
+
+## リリース手順
+
+リリースは GitHub Actions の単一ワークフロー [`.github/workflows/tagging-release.yaml`](https://github.com/takecy/marianne/blob/main/.github/workflows/tagging-release.yaml) で完結する。
+
+<Steps>
+1. **ワークフロー起動**: リポジトリの **Actions → Tag and Release → Run workflow** を実行する。
+
+   - `bump_version` を選択する (`patch` / `minor` / `major`)。Conventional Commits が検出された場合はそちらが優先される。
+
+2. **`tagging` ジョブ (ubuntu-latest)**:
+
+   - `dry_run` で次バージョンを算出。
+   - `scripts/bump-version.sh` で `package.json` / `src-tauri/tauri.conf.json` / `src-tauri/Cargo.toml` を 1 コミットで同期。
+   - bump コミットを `main` に push。
+   - `vX.Y.Z` タグを push。
+
+3. **`release` ジョブ (macos-14、`needs: tagging`)**:
+
+   - タグ付けされた commit を checkout。
+   - `pnpm tauri build --target aarch64-apple-darwin` で署名済みバンドルを生成。
+   - `Marianne.app.tar.gz` + `.sig` + `latest.json` を GitHub Release に publish (draft なし、prerelease なし)。
+
+4. **既存ユーザーは次回起動時に `latest.json` を取得**し、アップデートモーダルが表示される。
+</Steps>
+
+<Aside type="danger" title="手動の `git push origin vX.Y.Z` は禁忌">
+`bump-version.sh` による 3 ファイル version 同期と `tauri-action` の署名フローを
+通っていないタグは **リリースとして成立しない**。updater が無言で失敗する。
+リリースは必ず上記の workflow_dispatch ボタンから実行すること。
+</Aside>
+
+## 署名 env のローカル供給
+
+`tauri.conf.json` で `createUpdaterArtifacts: true` を有効にしているため、`pnpm tauri build` / `pnpm install:local` / `pnpm build:dmg` の実行時に updater 用署名鍵が必要。**未設定だとビルドが署名フェーズで失敗する**。
+
+ローカルでの env 供給は以下のいずれか:
+
+```sh
+# direnv (推奨): リポジトリ直下に .envrc を作成 (.gitignore 済)
+export TAURI_SIGNING_PRIVATE_KEY="$(cat ~/.tauri/marianne.key)"
+export TAURI_SIGNING_PRIVATE_KEY_PASSWORD="<1password-に保管した強いパスフレーズ>"
+```
+
+```sh
+# または直接シェルに export してから build を実行
+export TAURI_SIGNING_PRIVATE_KEY="$(cat ~/.tauri/marianne.key)"
+export TAURI_SIGNING_PRIVATE_KEY_PASSWORD="<1password-に保管した強いパスフレーズ>"
+pnpm install:local
+```
+
+CI では GitHub Secrets として登録した `TAURI_SIGNING_PRIVATE_KEY` / `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` がリリースワークフローに流れる。
+
+## 必要な GitHub Secrets
+
+リリースを動かす前に、リポジトリの **Settings → Secrets and variables → Actions** で以下を登録する:
+
+| Name | Value |
+|------|-------|
+| `TAURI_SIGNING_PRIVATE_KEY` | `~/.tauri/marianne.key` の中身全文 |
+| `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` | 鍵生成時のパスフレーズ (32 文字以上のランダム文字列を推奨) |
+
+tagging → release を 1 ワークフロー内で完結させる設計のため、デフォルトの `GITHUB_TOKEN` で十分。**PAT は不要**。
+
+## 鍵管理
+
+<Aside type="caution" title="秘密鍵は絶対にコミットしない">
+`~/.tauri/marianne.key` は `.gitignore` 済み。`.tauri/` 配下に触る commit の前は
+必ず再確認すること。
+</Aside>
+
+- **バックアップ**: 秘密鍵 + パスフレーズを 1Password 等にバックアップする。紛失すると既存インストールはすべての将来リリースを検証できなくなり、永久にアップデート不可能になる。
+- **`tauri.conf.json` の `pubkey` は固定運用**: 一度配布したアプリは埋め込んだ pubkey でしか署名検証しない。途中で鍵を差し替えると変更前にインストールしたユーザー全員が永遠に更新できなくなる。鍵ローテーションが避けられない場合は、手動再インストール用 dmg の配布を覚悟する。
+
+## なぜ手動タグ push が壊れるか
+
+各エンドユーザー端末の updater は、(インストール時に `tauri.conf.json` から) 埋め込んだ `pubkey` と `latest.json` 内の署名を照合する。手動 push したタグは:
+
+- `bump-version.sh` の 3 ファイル同期をスキップ → `tauri.conf.json` の version がタグと不一致になりうる
+- `tauri-action` の署名ステップをスキップ → `latest.json` に有効な署名が入らない
+
+いずれの失敗でも updater は無言でリリースを拒否する。安全なリリース経路は上記の workflow_dispatch フローのみ。
