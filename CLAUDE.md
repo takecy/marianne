@@ -83,7 +83,12 @@ copyImageToClipboard(blobPromise); // Promise<Blob> をそのまま ClipboardIte
 
 `canvasStore.clipboardShape` は OS クリップボードとは別の、**アプリ内専用のシェイプクリップボード**。`Cmd+C` (Shift なし) で選択中シェイプを格納し、`Cmd+V` (Shift なし) で `clipboardShape` がある時のみ `preventDefault` を呼んで貼付する。`clipboardShape` が空の時は `preventDefault` をスキップするので、ブラウザのデフォルト `paste` イベントが走り `useImageLoader` が OS クリップボード経由の画像ペーストを拾える。OS の画像クリップボードとアプリ内シェイプクリップボードを 1 つの `Cmd+V` で両立させるための分岐。
 
-クローン処理本体は `src/lib/shapeClipboard.ts` の `cloneShapeAt(shape, dropPoint, imageSize)` に集約されており、内部クリップボード経由のペーストでも Option+drag 経由の複製でも同じ関数を呼ぶ。
+クローン処理は `src/lib/shapeClipboard.ts` の 2 関数に分かれている (意図的な使い分け):
+
+- `cloneShapeForPaste(source, imageSize)`: 内部クリップボード経由のペースト用。位置を `PASTE_OFFSET = 20` natural ピクセルだけ右下にずらすことで、同じ場所への連続ペーストでも階段状に並ぶ。
+- `cloneShapeAt(source, anchor, imageSize)`: Option+drag 用。`onDragEnd` で得た drop 位置を明示的な anchor として渡し、その点をシェイプの新しい原点 (rect/text/mosaic は top-left、arrow は from 端点) に据える。
+
+どちらも `clampToImage` で画像内に収めつつ、新 `id` を `crypto.randomUUID()` で発行する。Arrow は両者とも `to - from` の delta を保ち、向きと長さを保存する。新しいペーストの仕様 (固定オフセット vs 明示位置) を変えたい時は、用途側の関数だけを編集すること — 統合してしまうと逆側の UX が壊れる。
 
 **Option+drag によるシェイプ複製** (`SelectableShape.tsx`) は「**開始時 alt AND 終了時 alt**」の AND 判定。`onDragStart` で `altAtStartRef = event.evt.altKey` を記録し、`onDragEnd` で `altAtStart && event.evt.altKey` の時だけ `cloneShapeAt` を呼んで複製する (源シェイプは動かさず、ドラッグ位置に新クローンを配置)。途中で Option を離せば通常の移動として扱われる (`keyup` リスナで `showAltDragGhost` を即座に閉じる)。「終了時のみ alt」では誤発動するため、AND は必須。元位置に静的な ghost (`showAltDragGhost` state でレンダー) を描くことで「元が動かない」UX を視覚化している。
 
@@ -145,5 +150,5 @@ copyImageToClipboard(blobPromise); // Promise<Blob> をそのまま ClipboardIte
 
 リリース用の `tagging-release.yaml` 以外に 2 つの CI ワークフローが PR / push を保護している:
 
-- `.github/workflows/ci.yml`: `main` への push と PR で起動。`pnpm install` → `lint` → `typecheck` → `fmt:check` → `test:run` → `build` を 15 分タイムアウトで実行する。これが赤いと PR はマージできない。ローカルでも `pnpm fmt:check` / `pnpm lint` / `pnpm typecheck` / `pnpm test:run` を回しておくと CI 待ちを減らせる。
+- `.github/workflows/ci.yml`: `main` への push と PR で起動。`pnpm install` → `lint` → `typecheck` → `fmt:check` → `test:run` → `build` → `docs:build` を 15 分タイムアウトで実行する (`docs:build` は Astro Starlight + Mermaid SSR を含むため、Playwright Chromium を pnpm-lock.yaml ハッシュ単位でキャッシュした上で必要時のみインストールする)。これが赤いと PR はマージできない。ローカルでも `pnpm fmt:check` / `pnpm lint` / `pnpm typecheck` / `pnpm test:run` を回しておくと CI 待ちを減らせる。`docs/` 配下を変更した場合は `pnpm docs:build` も手元で通しておく (Mermaid 生成 SVG の `id` と Astro の content-hashed ファイル名が毎回変わるので strict diff 検証はせず、build 成功のみが CI のチェック対象)。
 - `.github/workflows/trivy.yaml`: PR と `workflow_dispatch` で起動。`CRITICAL` / `HIGH` の CVE のみを検出してファイルシステム全体をスキャンする。検出時は依存更新 (`pnpm up <pkg>` または `cargo update -p <crate>`) で対処。`MEDIUM` 以下は無視する設定なので、警告レベルの脆弱性で PR が止まることはない。
