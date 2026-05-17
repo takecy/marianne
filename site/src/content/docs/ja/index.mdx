@@ -1,12 +1,12 @@
 ---
 title: marianne ドキュメント
-description: marianne (Tauri v2 + React 19 製のオフライン画像アノテーションデスクトップアプリ) の contributor 向けドキュメント
+description: marianne (Tauri v2 + React 19 製のオフライン画像アノテーションデスクトップアプリ) のユーザー向け / contributor 向けドキュメント
 template: splash
 hero:
   tagline: Skitch 風オフライン画像アノテーション。Tauri v2 + React 19 + react-konva。
   actions:
-    - text: はじめに
-      link: ./getting-started/
+    - text: インストール
+      link: ./installation/
       icon: right-arrow
       variant: primary
     - text: GitHub で見る
@@ -20,22 +20,32 @@ import { Card, CardGrid, LinkCard } from "@astrojs/starlight/components";
 
 `marianne` は画像にアノテーション (矩形 / 矢印 / テキスト / モザイク) を付与する軽量デスクトップアプリで、**完全オフライン**で動作する。スクリーンショットが端末外に出ることは一切ないため、機密情報を含むコンテンツも安全に扱える。
 
-このサイトは **contributor 向け** のドキュメント。エンドユーザー向けの情報 (ダウンロード、インストール、ショートカット) はリポジトリ README に記載している。
+## ユーザー向け
 
 <CardGrid>
   <LinkCard
-    title="ユーザーの方へ"
-    description="インストール手順、機能、キーボードショートカット。"
-    href="https://github.com/takecy/marianne/blob/main/README_ja.md"
+    title="インストール"
+    description="dmg をダウンロードして数分で注釈作業を始める。"
+    href={import.meta.env.BASE_URL + "ja/installation/"}
   />
   <LinkCard
-    title="contributor の方へ"
-    description="開発環境を構築して開発を始める。"
-    href={import.meta.env.BASE_URL + "ja/getting-started/"}
+    title="機能を見る"
+    description="ツール / 色 / 線の太さ / Option+drag 複製などの機能カタログ。"
+    href={import.meta.env.BASE_URL + "ja/features/"}
+  />
+  <LinkCard
+    title="キーボードショートカット"
+    description="11 個のショートカットで素早く注釈作業。"
+    href={import.meta.env.BASE_URL + "ja/keyboard-shortcuts/"}
+  />
+  <LinkCard
+    title="画像の取り込み"
+    description="スクリーンショットや画像ファイルを marianne に取り込む 3 つの方法。"
+    href={import.meta.env.BASE_URL + "ja/image-input/"}
   />
 </CardGrid>
 
-## ナビゲーション
+## 開発者向け
 
 <CardGrid>
   <Card title="はじめに" icon="rocket">

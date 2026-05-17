@@ -1,12 +1,12 @@
 ---
 title: marianne docs
-description: Contributor documentation for marianne, an offline image annotation desktop app built with Tauri v2 + React.
+description: User and contributor documentation for marianne, an offline image annotation desktop app built with Tauri v2 + React.
 template: splash
 hero:
   tagline: Skitch-style offline image annotation. Tauri v2 + React 19 + react-konva.
   actions:
-    - text: Getting Started
-      link: ./getting-started/
+    - text: Install marianne
+      link: ./installation/
       icon: right-arrow
       variant: primary
     - text: View on GitHub
@@ -20,22 +20,32 @@ import { Card, CardGrid, LinkCard } from "@astrojs/starlight/components";
 
 `marianne` is a lightweight desktop app for annotating images — rectangles, arrows, text, and pixelation — designed to run **fully offline**. Screenshots never leave your machine, so it is safe for sensitive content.
 
-This site is the **contributor-facing** documentation. End-user instructions (download, install, keyboard shortcuts) live in the repository README.
+## For users
 
 <CardGrid>
   <LinkCard
-    title="For users"
-    description="Install instructions, features, and keyboard shortcuts."
-    href="https://github.com/takecy/marianne#readme"
+    title="Install marianne"
+    description="Download the dmg and start annotating in minutes."
+    href={import.meta.env.BASE_URL + "installation/"}
   />
   <LinkCard
-    title="For contributors"
-    description="Set up the dev environment and start hacking."
-    href={import.meta.env.BASE_URL + "getting-started/"}
+    title="Browse features"
+    description="Tools, colors, stroke widths, and the Option+drag duplicate trick."
+    href={import.meta.env.BASE_URL + "features/"}
+  />
+  <LinkCard
+    title="Keyboard shortcuts"
+    description="Master the 11 shortcuts for fast annotation."
+    href={import.meta.env.BASE_URL + "keyboard-shortcuts/"}
+  />
+  <LinkCard
+    title="Loading images"
+    description="Three ways to bring screenshots and image files into marianne."
+    href={import.meta.env.BASE_URL + "image-input/"}
   />
 </CardGrid>
 
-## Where to go next
+## For contributors
 
 <CardGrid>
   <Card title="Getting Started" icon="rocket">
