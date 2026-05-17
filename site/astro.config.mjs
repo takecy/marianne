@@ -58,6 +58,7 @@ export default defineConfig({
           items: [
             { slug: "getting-started" },
             { slug: "architecture" },
+            { slug: "releasing" },
           ],
         },
       ],

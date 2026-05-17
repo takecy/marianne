@@ -7,6 +7,19 @@ import { Aside, Steps } from "@astrojs/starlight/components";
 
 This guide walks you through setting up a local development environment for Marianne. By the end you'll have the Tauri desktop app running, the test suite passing, and the documentation site previewing locally.
 
+## Tech stack
+
+- **Desktop framework**: [Tauri v2](https://v2.tauri.app/) — Rust-based, but the application surface stays entirely on the frontend
+- **Frontend**: React 19 + TypeScript + Vite
+- **Drawing engine**: [react-konva](https://konvajs.org/docs/react/) (React wrapper around Konva.js)
+- **State**: Zustand with an identity-preserving undo / redo store (`src/store/canvasStore.ts`)
+- **Testing**: Vitest + jsdom + Testing Library (`@testing-library/react`, `@testing-library/jest-dom`)
+- **Lint**: ESLint v10 (flat config)
+- **Formatter**: `deno fmt` — *not* Prettier
+- **Docs site**: Astro Starlight (the site you're reading now), built from `site/` to `/docs/`
+
+The Tauri Rust backend is intentionally minimal — `src-tauri/src/lib.rs` exposes only four commands (`greet`, `take_pending_open_paths`, `confirm_quit`, `renderer_ready`) wired to OS integration. Almost all feature development stays inside `src/`.
+
 ## Prerequisites
 
 | Tool | Requirement |
