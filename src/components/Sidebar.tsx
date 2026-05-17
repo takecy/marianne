@@ -2,7 +2,6 @@ import { t } from "@/i18n/translate";
 import type { ColorPresetName, StrokeWidthPresetName, ToolKind } from "@/types/tool";
 import { COLOR_PRESETS, STROKE_WIDTH_PRESETS, TOOL_KINDS, TOOL_SHORTCUTS } from "@/types/tool";
 import { ArrowIcon } from "./icons/ArrowIcon";
-import { InfoIcon } from "./icons/InfoIcon";
 import { MosaicIcon } from "./icons/MosaicIcon";
 import { RectIcon } from "./icons/RectIcon";
 import { RedoIcon } from "./icons/RedoIcon";
@@ -63,9 +62,6 @@ interface SidebarProps {
   // button (not as a blocking modal) so the user can keep working. Clicking
   // the button retries the check and clears the message.
   updateErrorMessage?: string;
-  // About dialog opener. Like the update button, available regardless of
-  // whether an image is loaded.
-  onShowAbout?: () => void;
 }
 
 export function Sidebar(props: SidebarProps) {
@@ -84,7 +80,6 @@ export function Sidebar(props: SidebarProps) {
     onCheckForUpdates,
     updateButtonState = "idle",
     updateErrorMessage,
-    onShowAbout,
   } = props;
 
   return (
@@ -228,24 +223,6 @@ export function Sidebar(props: SidebarProps) {
               ⚠ Failed
             </span>
           )}
-        </div>
-      )}
-
-      {onShowAbout && (
-        <div
-          className={styles.infoGroup}
-          role="group"
-          aria-label={t("sidebar.infoGroup.label")}
-        >
-          <button
-            type="button"
-            className={styles.iconButton}
-            onClick={onShowAbout}
-            aria-label={t("about.button.label")}
-            title={t("about.button.title")}
-          >
-            <InfoIcon />
-          </button>
         </div>
       )}
     </aside>
