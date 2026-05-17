@@ -4,7 +4,7 @@ use std::sync::Mutex;
 
 use tauri::{
     image::Image,
-    menu::{MenuBuilder, MenuItemBuilder, PredefinedMenuItem, SubmenuBuilder},
+    menu::{AboutMetadata, MenuBuilder, MenuItemBuilder, PredefinedMenuItem, SubmenuBuilder},
     path::BaseDirectory,
     tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
     AppHandle, Emitter, Manager, RunEvent, Runtime, Url, WindowEvent,
@@ -256,8 +256,19 @@ pub fn run() {
             let app_quit_item = MenuItemBuilder::with_id("app-quit", "Quit Marianne")
                 .accelerator("Cmd+Q")
                 .build(app)?;
+            // Only `copyright` and `credits` are populated because the other
+            // AboutMetadata fields (authors / comments / license / website /
+            // website_label) are documented as macOS: Unsupported in Tauri
+            // 2.11 and are not forwarded to NSAboutPanel by muda's macOS
+            // backend. The U+00A9 escape (instead of a literal ©) avoids
+            // editor / diff width-handling surprises in this UTF-8 source.
+            let about_metadata = AboutMetadata {
+                credits: Some("Skitch-style offline image annotation app".to_string()),
+                copyright: Some("\u{00A9} 2026 takecy".to_string()),
+                ..Default::default()
+            };
             let app_submenu = SubmenuBuilder::new(app, "Marianne")
-                .item(&PredefinedMenuItem::about(app, None, None)?)
+                .item(&PredefinedMenuItem::about(app, None, Some(about_metadata))?)
                 .separator()
                 .item(&PredefinedMenuItem::services(app, None)?)
                 .separator()
