@@ -44,3 +44,11 @@ dist-bundle
 .envrc
 .env
 .env.local
+
+# Astro Starlight source workspace
+site/.astro
+site/dist
+site/node_modules
+
+# NOTE: docs/ is intentionally NOT ignored — it is the GitHub Pages
+# publishing source and must be committed to main.

@@ -1,0 +1,101 @@
+---
+title: はじめに
+description: marianne のローカル開発環境構築手順。docs サイトのツールチェーンも含む。
+---
+
+import { Aside, Steps } from "@astrojs/starlight/components";
+
+このガイドでは marianne のローカル開発環境を構築する。完了すると Tauri デスクトップアプリが起動し、テストが通り、ドキュメントサイトもローカルでプレビューできる状態になる。
+
+## 前提ツール
+
+| ツール | 要件 |
+|--------|------|
+| Node.js | `^20.19.0 \|\| ^22.13.0 \|\| >=24` (ESLint v10 公式 engine 要件) |
+| pnpm | 9 系以上 |
+| Rust toolchain | `rustup` で stable をインストール |
+| Xcode CLT | macOS で Tauri バンドル生成に必要 |
+| deno | フォーマッタとして使用 (`deno fmt`) |
+| gh CLI | PR 作成用 |
+
+## 初回セットアップ
+
+<Steps>
+1. リポジトリをクローンし依存をインストール
+
+   ```sh
+   git clone https://github.com/takecy/marianne.git
+   cd marianne
+   pnpm install
+   ```
+
+2. Playwright Chromium をインストール (ドキュメントの Mermaid SSR 用)
+
+   ```sh
+   pnpm --filter ./site exec playwright install chromium
+   ```
+
+   <Aside type="note">
+   このドキュメントサイトのアーキテクチャ図はビルド時に headless Chromium で
+   SVG に変換される。マシンあたり一度実行するだけでよく、ブラウザは
+   `~/Library/Caches/ms-playwright` (macOS) にキャッシュされ、以降の
+   `pnpm docs:build` で再利用される。
+   </Aside>
+
+3. ホットリロード付きでデスクトップアプリを起動
+
+   ```sh
+   pnpm tauri dev
+   ```
+
+   Vite dev server は `http://localhost:1420` で起動する。Tauri が自動で
+   ネイティブウィンドウでラップする。
+</Steps>
+
+## 検証コマンド
+
+push 前にローカルで以下を実行する。CI も同じセットを順次実行し、最初に失敗したステップで止まる。
+
+| コマンド | 内容 |
+|----------|------|
+| `pnpm typecheck` | TypeScript strict チェック (`tsc --noEmit`) |
+| `pnpm lint` | ESLint v10 flat config |
+| `pnpm fmt:check` | 全ソース + Markdown に対する `deno fmt --check` |
+| `pnpm test:run` | Vitest シングルラン |
+| `pnpm build` | React フロントエンドの Vite ビルド |
+| `pnpm docs:build` | このドキュメントサイトを `/docs/` にビルド |
+
+## worktree ベースのワークフロー
+
+軽微でない変更は必ず専用 worktree で作業する。`.worktrees/` 配下に作成する:
+
+```sh
+git worktree add .worktrees/feat/your-feature -b feat/your-feature
+cd .worktrees/feat/your-feature
+```
+
+`.worktrees/` は gitignore 済み。これによりメインのチェックアウトを汚さず、複数ブランチを `git stash` なしで並行作業できる。
+
+## このドキュメントサイトを編集する
+
+```sh
+pnpm docs:dev      # Astro dev server 起動 (localhost:4321/marianne/)
+pnpm docs:build    # /docs/ にビルド (GitHub Pages の配信元)
+pnpm docs:preview  # ビルド済み出力を確認用に配信
+```
+
+<Aside type="caution" title="コミット前に必ずビルドする">
+デプロイモデルは **GitHub Pages → Branch: main / Folder: /docs**。CI は
+コミット済み `/docs/` と `pnpm docs:build` 出力に差分があると PR を reject
+する。`site/` のソース編集と同時に `pnpm docs:build` を実行し、結果も
+コミットすること。
+</Aside>
+
+## Pull Request を送る
+
+1. worktree で feature ブランチを作成する (上記参照)
+2. 変更を実装し、すべての検証コマンドを通す
+3. Conventional Commits 形式の英語でコミットする (例: `feat(canvas): add arrow rotation`)
+4. デフォルトで draft モードで push & PR 作成する
+
+リリースは `.github/workflows/tagging-release.yaml` で完全自動化されている。メンテナー向けの手順はリポジトリ README を参照。
