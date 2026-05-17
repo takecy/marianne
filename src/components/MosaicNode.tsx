@@ -21,6 +21,7 @@ interface MosaicNodeProps {
   isSelectMode?: boolean;
   onClick?: () => void;
   onTap?: () => void;
+  onDragStart?: (event: KonvaEventObject<DragEvent>) => void;
   onDragEnd?: (event: KonvaEventObject<DragEvent>) => void;
   onTransformEnd?: (event: KonvaEventObject<Event>) => void;
 }
@@ -78,6 +79,7 @@ export const MosaicNode = forwardRef<Konva.Image, MosaicNodeProps>(
         draggable={props.isSelectMode ?? false}
         onClick={props.onClick}
         onTap={props.onTap}
+        onDragStart={props.onDragStart}
         onDragEnd={props.onDragEnd}
         onTransformEnd={props.onTransformEnd}
       />
