@@ -1,0 +1,96 @@
+.modal {
+  border: 1px solid var(--color-border-strong);
+  border-radius: 0.5rem;
+  background: var(--color-surface);
+  color: var(--color-fg);
+  padding: 0;
+  max-width: 32rem;
+  width: calc(100% - 2rem);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+}
+
+.modal::backdrop {
+  background: rgba(0, 0, 0, 0.35);
+}
+
+.body {
+  padding: 1.25rem 1.5rem 1.5rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.title {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 600;
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.version {
+  font-size: 0.8rem;
+  font-weight: 400;
+  color: var(--color-fg-muted, var(--color-fg));
+  opacity: 0.7;
+}
+
+.tagline {
+  margin: 0 0 0.25rem 0;
+  font-size: 0.85rem;
+  color: var(--color-fg-muted, var(--color-fg));
+  opacity: 0.85;
+}
+
+.paragraph {
+  margin: 0;
+  font-size: 0.875rem;
+  line-height: 1.55;
+}
+
+.disclaimer {
+  margin: 0.25rem 0 0 0;
+  font-size: 0.72rem;
+  line-height: 1.45;
+  color: var(--color-fg-muted, var(--color-fg));
+  opacity: 0.75;
+}
+
+.link {
+  color: var(--color-accent);
+  text-decoration: underline;
+}
+
+.link:hover,
+.link:focus-visible {
+  color: var(--color-accent-hover);
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.primaryButton {
+  padding: 0.4rem 1rem;
+  border: 1px solid var(--color-accent);
+  background: var(--color-accent);
+  color: var(--color-on-accent);
+  border-radius: 0.375rem;
+  cursor: pointer;
+  font-size: 0.875rem;
+  transition: background 0.12s ease;
+}
+
+.primaryButton:hover {
+  background: var(--color-accent-hover);
+}
+
+.primaryButton:focus-visible {
+  outline: 2px solid var(--color-accent-hover);
+  outline-offset: 1px;
+}

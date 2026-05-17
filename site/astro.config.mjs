@@ -61,6 +61,14 @@ export default defineConfig({
             { slug: "releasing" },
           ],
         },
+        {
+          label: "About",
+          translations: { ja: "このプロジェクトについて" },
+          collapsed: true,
+          items: [
+            { slug: "tribute" },
+          ],
+        },
       ],
       social: [
         { icon: "github", label: "GitHub", href: "https://github.com/takecy/marianne" },

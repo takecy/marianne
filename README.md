@@ -8,9 +8,13 @@
 
 ## Why Marianne?
 
+- **A tribute to Skitch**: Marianne was born from years of using Skitch (Plasq → Evernote). Active development on the Mac app effectively ceased and it has become an unmaintained legacy Intel-only binary. Marianne is a forward-looking replacement built in Skitch's spirit, anticipating the eventual loss of Intel-binary support on macOS. [Read the full tribute →](https://takecy.github.io/marianne/tribute/)
 - **Privacy-first**: Annotations and screenshots never leave your machine. The only outbound calls are auto-update checks against GitHub Releases — once on launch and again when you click the manual "Check for updates" button in the toolbar.
-- **A spiritual successor to Skitch**: After Skitch was discontinued, lightweight, fast, fully offline screenshot-annotation tools became rare. Marianne fills that gap.
 - **Mosaic for visual redaction**: Mosaic blocks are rasterised into the exported PNG — the underlying pixels are not recoverable from the exported file. Use this for visually obscuring screenshot regions; for high-stakes secrets (passwords, full tokens) consider a separate pre-export tool that overwrites the pixels with a solid colour.
+
+### The name "Marianne"
+
+Named after Marianne (Ms. Goldenweek), a painter character from ONE PIECE by Eiichiro Oda — a painter's name for an image annotation app. The full story is on the [tribute page](https://takecy.github.io/marianne/tribute/).
 
 ## Design philosophy
 
@@ -49,4 +53,8 @@ Once installed, paste a screenshot (`Cmd + V`) or drag an image into the window 
 
 ## License
 
-[MIT](./LICENSE) © 2026 takecy
+[PolyForm Noncommercial 1.0.0](./LICENSE) © 2026 takecy
+
+Personal and noncommercial use is permitted. Use in proprietary products and resale are not. See the [license text](./LICENSE) for the full terms.
+
+This project is not affiliated with or endorsed by Plasq, Evernote, Shueisha, or Eiichiro Oda. "Skitch" and "ONE PIECE" are trademarks of their respective owners.

@@ -19,6 +19,7 @@ export const en = {
   "sidebar.strokeWidthGroup.label": "Stroke width",
   "sidebar.historyGroup.label": "History",
   "sidebar.updateGroup.label": "Updates",
+  "sidebar.infoGroup.label": "Information",
 
   // history + update actions (Sidebar)
   "action.undo.label": "Undo",
@@ -79,6 +80,23 @@ export const en = {
   "error.imageLoadFailed": "Failed to load image",
   "error.update.generic": "An error occurred during the update process",
   "error.update.infoLost": "Update information was lost. Please check again.",
+
+  // About dialog (Sidebar info button + AboutDialog content)
+  "about.button.label": "About",
+  "about.button.title": "About Marianne",
+  "about.title": "About Marianne",
+  "about.tagline": "Skitch-style offline image annotation",
+  "about.tribute":
+    "A tribute to Skitch (Plasq → Evernote). With Skitch unmaintained and Intel support fading from macOS, Marianne is a forward-looking replacement built in Skitch's spirit.",
+  "about.nameOrigin":
+    "Named after Marianne (Ms. Goldenweek), a painter character from ONE PIECE by Eiichiro Oda.",
+  "about.license.prefix": "Licensed under",
+  "about.license.suffix":
+    " © 2026 takecy. Personal and noncommercial use is free; proprietary integration and resale are not.",
+  "about.tributeLink": "Read the full tribute →",
+  "about.disclaimer":
+    'Not affiliated with or endorsed by Plasq, Evernote, Shueisha, or Eiichiro Oda. "Skitch" and "ONE PIECE" are trademarks of their respective owners.',
+  "about.close": "Close",
 } as const;
 
 export type TranslationKey = keyof typeof en;

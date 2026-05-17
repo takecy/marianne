@@ -1,0 +1,54 @@
+---
+title: トリビュートと由来
+description: Marianne が存在する理由 — Skitch への敬意と、名前の元になった画家キャラクターについて。
+---
+
+import { Aside } from "@astrojs/starlight/components";
+
+このページは作者から読者へ向けた個人的なメモ。Marianne がなぜ存在するか、どこからインスパイアされているか、借りている名前との関係性を記した。
+
+## Skitch へのトリビュート
+
+[Skitch](https://ja.wikipedia.org/wiki/Skitch) は [Plasq](https://www.plasq.com/) により **2007 年**に作られ、**2011 年**に [Evernote](https://evernote.com/) が買収した。長年 macOS で軽量に使えるスクリーンショット注釈ツールの定番で、矩形・矢印・テキスト・ピクセル化・少数の色 — それだけが揃っていた。
+
+**2016 年 1 月**、Evernote は [Skitch の Windows / iOS / Android 版をディスコン](https://www.pcworld.com/article/418827/evernote-drops-dead-weight-with-demise-of-clearly-pebble-app-and-most-skitch-versions.html) した。Mac 版はその後もしばらくサポートが続いたが、現在は**メンテナンスされていない legacy Intel-only バイナリ**として放置されている。
+
+2026 年現在、Apple Silicon Mac でも [Rosetta 2](https://support.apple.com/ja-jp/102527) 経由で Intel バイナリは動作するため、Skitch Mac 版は今のところ多くのユーザーで動く。ただし Apple は今後の macOS で Rosetta 2 を deprecate していくと公式に発表しており、そのタイミングで長年の Skitch ユーザーは代替を探すことになる。
+
+Marianne はその時のための「先に作っておいた代替」。
+
+## なぜ作ったか
+
+作者は長年の Skitch ユーザー。将来 macOS が Skitch を動かせなくなることが避けられないと分かったうえで、その日が来た時に Apple Silicon ネイティブで動き、継続メンテナンスされ、Skitch と同じように振る舞うツールを手元に持っておくため、Marianne を作った。
+
+## Skitch から継承したもの
+
+設計思想は意図的に Skitch ライク:
+
+- **4 ツール / 8 色 / 4 段階の太さ**。固定された小さな表面が、何でも入った巨大なツールバーよりも勝る。
+- **完全オフライン**。テレメトリ・クラウド同期・サインインなし。スクリーンショットは端末外に出ない。外部通信は GitHub Releases へのアップデートチェックのみ。
+- **クリップボード起点の UX**。画像をペースト → 注釈 → コピー or PNG 保存。それだけ。
+- **macOS ネイティブ**。Tauri v2 製のネイティブシェルで、システムクリップボード / ダイアログ / updater に統合。
+
+## Skitch から意図的に変えたもの
+
+- **モザイクツールを追加**。エクスポート時に PNG にラスタライズされるため、エクスポートされたファイルから下のピクセルを復元することはできない。スクリーンショットの一部を視覚的に隠す用途向け — パスワードや完全なトークンなどハイリスクな機密情報には、別途ピクセルを単色で塗りつぶす事前ツールの併用を推奨。
+- **ライセンスは PolyForm Noncommercial 1.0.0** (MIT ではない)。オリジナルの Skitch は無料で配布されたプロプライエタリソフトウェアだった。Marianne は「個人利用は自由 / 再販や商用組込は不可」という Skitch のオリジナルな哲学に倣う source-available ライセンスを採用。詳細は [LICENSE](https://github.com/takecy/marianne/blob/main/LICENSE) を参照。
+
+## 名前「Marianne」について
+
+プロジェクト名 **Marianne** は、漫画 [ONE PIECE](https://one-piece.com/character/Ms_Goldenweek/index.html) ([尾田栄一郎](https://ja.wikipedia.org/wiki/%E5%B0%BE%E7%94%B0%E6%A0%84%E4%B8%80%E9%83%8E)・[集英社](https://www.shueisha.co.jp/)) に登場する画家キャラクター「ミス・ゴールデンウィーク」の**本名** Marianne から取った。
+
+画家の名前を画像注釈アプリにつけるという小さな遊び心 — 個人プロジェクトを「自分の場所」と感じさせる類のディテール。
+
+<Aside type="note" title="ONE PIECE のアートワークは使用していない">
+Marianne は ONE PIECE のキャラクターアート、公式ロゴ、スクリーンショットを一切埋め込んでいない。本ページの言及はテキストのみ。
+</Aside>
+
+## 商標・著作権の表記
+
+- **Skitch** は権利者 (Evernote / Plasq 系譜) の商標。Marianne は Plasq・Evernote のいずれとも提携・公式承認関係はない。
+- **「ONE PIECE」** は集英社の商標で、原作は尾田栄一郎による。Marianne は集英社・尾田栄一郎のいずれとも提携・公式承認関係はない。
+- 本ページに記載のその他の製品名は各権利者の所有物。
+
+本ページは Marianne を可能にしたインスピレーションへの敬意を表し、名前の由来を明確にするために存在する。Skitch に長寿を。ミス・ゴールデンウィークをくれた尾田氏に感謝を。
