@@ -74,6 +74,35 @@ describe("canvasStore", () => {
     expect(ids).toEqual(["a", "b"]);
   });
 
+  it("addShapes appends every shape in the batch in order", () => {
+    useCanvasStore.getState().addShapes([sampleRect("a"), sampleRect("b"), sampleRect("c")]);
+    const ids = useCanvasStore.getState().shapes.map((s) => s.id);
+    expect(ids).toEqual(["a", "b", "c"]);
+  });
+
+  it("addShapes records the batch as a single history snapshot", () => {
+    useCanvasStore.getState().addShapes([sampleRect("a"), sampleRect("b")]);
+    expect(useCanvasStore.getState().past.length).toBe(1);
+  });
+
+  it("undo after addShapes removes the entire batch in one step", () => {
+    useCanvasStore.getState().addShape(sampleRect("pre"));
+    useCanvasStore.getState().addShapes([sampleRect("a"), sampleRect("b"), sampleRect("c")]);
+    expect(useCanvasStore.getState().shapes.map((s) => s.id)).toEqual(["pre", "a", "b", "c"]);
+    useCanvasStore.getState().undo();
+    expect(useCanvasStore.getState().shapes.map((s) => s.id)).toEqual(["pre"]);
+  });
+
+  it("addShapes with an empty array is a no-op that does not pollute history", () => {
+    useCanvasStore.getState().addShape(sampleRect("a"));
+    const shapesBefore = useCanvasStore.getState().shapes;
+    const pastBefore = useCanvasStore.getState().past.length;
+    useCanvasStore.getState().addShapes([]);
+    const state = useCanvasStore.getState();
+    expect(state.shapes).toBe(shapesBefore);
+    expect(state.past.length).toBe(pastBefore);
+  });
+
   it("updateRect merges the patch into the matching rect", () => {
     useCanvasStore.getState().addShape(sampleRect("a"));
     useCanvasStore.getState().updateRect("a", { color: "blue", width: 200 });

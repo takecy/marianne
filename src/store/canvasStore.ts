@@ -18,6 +18,7 @@ interface CanvasState {
   future: Shape[][];
   clipboardShape: Shape | null;
   addShape: (shape: Shape) => void;
+  addShapes: (shapes: Shape[]) => void;
   updateRect: (id: string, patch: RectPatch) => void;
   updateText: (id: string, patch: TextPatch) => void;
   updateArrow: (id: string, patch: ArrowPatch) => void;
@@ -76,6 +77,16 @@ export const useCanvasStore = create<CanvasState>((set) => ({
   future: [],
   clipboardShape: null,
   addShape: (shape) => set((state) => withHistory(state, [...state.shapes, shape])),
+  // Append multiple shapes as a single history transaction. One undo rewinds
+  // the entire batch — used by mosaic stacking, where one user drag may emit a
+  // base shape plus per-overlap strength overlays.
+  addShapes: (shapes) =>
+    set((state) => {
+      if (shapes.length === 0) {
+        return state;
+      }
+      return withHistory(state, [...state.shapes, ...shapes]);
+    }),
   updateRect: (id, patch) =>
     set((state) => withHistory(state, patchByType(state.shapes, id, "rect", patch))),
   updateText: (id, patch) =>
