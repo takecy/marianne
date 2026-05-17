@@ -30,7 +30,7 @@ export default defineConfig({
   },
   integrations: [
     starlight({
-      title: "marianne docs",
+      title: "Marianne docs",
       defaultLocale: "root",
       locales: {
         root: { label: "English", lang: "en" },

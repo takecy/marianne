@@ -1,4 +1,4 @@
-# marianne
+# Marianne
 
 **English** | [日本語](./README_ja.md)
 
