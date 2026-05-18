@@ -13,6 +13,17 @@ import type { FitRect, Point, Size as FitSize } from "@/lib/imageFit";
 import type { CropRect } from "@/lib/cropImage";
 import { defaultCropRect, MIN_CROP_DIM } from "@/lib/cropImage";
 import { finalizeDraft, moveDraft, startDraft } from "@/lib/drawingGesture";
+import {
+  applyCenteredZoom,
+  applyPointerCenteredZoom,
+  DEFAULT_ZOOM_STATE,
+  fitPointToStagePoint,
+  nextZoomIn,
+  nextZoomOut,
+  stagePointToFitPoint,
+  wheelDeltaToZoomFactor,
+  type ZoomState,
+} from "@/lib/zoomGesture";
 import { splitMosaicByOverlap } from "@/lib/mosaicStrength";
 import { partitionShapesByMosaicFirst } from "@/lib/shapeZOrder";
 import { useThemeMode } from "@/lib/useThemeMode";
@@ -77,6 +88,11 @@ interface CanvasAreaProps {
   onExportToFile: () => void;
   onExportToClipboard: () => void;
   onEditingTextChange?: (isEditing: boolean) => void;
+  // View-only canvas zoom state (Stage scaleX/scaleY/x/y). Owned by App so
+  // StatusBar can display the current percentage. Reset to DEFAULT on image
+  // swap via App's useEffect — CanvasArea never resets it directly.
+  zoomState: ZoomState;
+  onZoomChange: (next: ZoomState) => void;
 }
 
 const RESIZE_ANCHORS: readonly string[] = [
@@ -97,10 +113,22 @@ const TEXT_RESIZE_ANCHORS: readonly string[] = [
   "bottom-right",
 ];
 
-function getStagePointer(event: KonvaEventObject<MouseEvent>): Point | null {
+// Returns the pointer position in fit-internal screen coordinates (i.e. the
+// coordinate space `screenToImage` expects). `Stage.getPointerPosition()`
+// returns canvas-absolute coords that DO NOT reflect Stage scale/x/y in
+// Konva 10.x, so `stagePointToFitPoint` must be applied here for natural-
+// space conversions to remain correct under view zoom. With DEFAULT_ZOOM_STATE
+// this is the identity, preserving pre-zoom behavior exactly.
+function getStagePointer(
+  event: KonvaEventObject<MouseEvent>,
+  zoom: ZoomState,
+): Point | null {
   const stage = event.target.getStage();
   const pos = stage?.getPointerPosition();
-  return pos ? { x: pos.x, y: pos.y } : null;
+  if (!pos) {
+    return null;
+  }
+  return stagePointToFitPoint({ x: pos.x, y: pos.y }, zoom);
 }
 
 interface MosaicDraftColors {
@@ -222,6 +250,8 @@ export function CanvasArea(props: CanvasAreaProps) {
     onExportToFile,
     onExportToClipboard,
     onEditingTextChange,
+    zoomState,
+    onZoomChange,
   } = props;
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [size, setSize] = useState({ width: 0, height: 0 });
@@ -434,6 +464,28 @@ export function CanvasArea(props: CanvasAreaProps) {
         return;
       }
 
+      // Cmd/Ctrl + + / - / 0 for view zoom. Both `=` (Cmd+= without shift)
+      // and `+` (Cmd+Shift+= on US layouts) are accepted as zoom-in.
+      // Ignored when no image is loaded — matches the disabled-toolbar pattern.
+      if ((e.metaKey || e.ctrlKey) && (e.key === "+" || e.key === "=")) {
+        if (image === null) return;
+        e.preventDefault();
+        onZoomChange(applyCenteredZoom(zoomState, size, nextZoomIn(zoomState.scale)));
+        return;
+      }
+      if ((e.metaKey || e.ctrlKey) && e.key === "-") {
+        if (image === null) return;
+        e.preventDefault();
+        onZoomChange(applyCenteredZoom(zoomState, size, nextZoomOut(zoomState.scale)));
+        return;
+      }
+      if ((e.metaKey || e.ctrlKey) && e.key === "0") {
+        if (image === null) return;
+        e.preventDefault();
+        onZoomChange(DEFAULT_ZOOM_STATE);
+        return;
+      }
+
       // Cmd/Ctrl + C: copy the selected shape (select mode only).
       if (
         (e.metaKey || e.ctrlKey) &&
@@ -514,6 +566,9 @@ export function CanvasArea(props: CanvasAreaProps) {
     onExportToFile,
     onExportToClipboard,
     onCropImage,
+    zoomState,
+    onZoomChange,
+    size,
   ]);
 
   const imageSize: FitSize | null = image
@@ -565,7 +620,7 @@ export function CanvasArea(props: CanvasAreaProps) {
       return;
     }
 
-    const screen = getStagePointer(event);
+    const screen = getStagePointer(event, zoomState);
     if (!screen) {
       return;
     }
@@ -587,7 +642,7 @@ export function CanvasArea(props: CanvasAreaProps) {
     if (!draft || !fit || !imageSize) {
       return;
     }
-    const screen = getStagePointer(event);
+    const screen = getStagePointer(event, zoomState);
     if (!screen) {
       return;
     }
@@ -612,6 +667,24 @@ export function CanvasArea(props: CanvasAreaProps) {
       }
     }
     setDraft(null);
+  };
+
+  // Trackpad pinch and Ctrl+wheel zoom. `ctrlKey` is true for both on macOS
+  // WKWebView, where trackpad pinch is synthesized into wheel events with
+  // ctrlKey=true. Plain scroll is ignored — pan is out of scope.
+  const handleWheel = (event: KonvaEventObject<WheelEvent>) => {
+    if (!image) {
+      return;
+    }
+    const native = event.evt;
+    if (!native.ctrlKey) {
+      return;
+    }
+    native.preventDefault();
+    const stage = event.target.getStage();
+    const pointer = stage?.getPointerPosition() ?? { x: 0, y: 0 };
+    const factor = wheelDeltaToZoomFactor(native.deltaY);
+    onZoomChange(applyPointerCenteredZoom(zoomState, pointer, zoomState.scale * factor));
   };
 
   const confirmText = (text: string) => {
@@ -718,9 +791,14 @@ export function CanvasArea(props: CanvasAreaProps) {
           <Stage
             width={size.width}
             height={size.height}
+            scaleX={zoomState.scale}
+            scaleY={zoomState.scale}
+            x={zoomState.offsetX}
+            y={zoomState.offsetY}
             onMouseDown={handleMouseDown}
             onMouseMove={handleMouseMove}
             onMouseUp={handleMouseUp}
+            onWheel={handleWheel}
           >
             <Layer listening={false}>
               {image && fit
@@ -788,8 +866,14 @@ export function CanvasArea(props: CanvasAreaProps) {
                 flipEnabled={false}
                 keepRatio={selectedShape?.type === "text"}
                 enabledAnchors={enabledAnchors as string[]}
-                boundBoxFunc={(oldBox, newBox) =>
-                  newBox.width >= 8 && newBox.height >= 8 ? newBox : oldBox}
+                boundBoxFunc={(oldBox, newBox) => {
+                  // newBox dimensions are in Stage-absolute coords. Compare
+                  // against the 8px minimum in fit-internal space so the
+                  // threshold remains consistent at any view zoom level.
+                  const fitWidth = newBox.width / zoomState.scale;
+                  const fitHeight = newBox.height / zoomState.scale;
+                  return fitWidth >= 8 && fitHeight >= 8 ? newBox : oldBox;
+                }}
               />
             </Layer>
             <Layer listening={false}>
@@ -853,14 +937,18 @@ export function CanvasArea(props: CanvasAreaProps) {
                       strokeWidth={2}
                       draggable
                       dragBoundFunc={(pos) => {
-                        // Clamp the screen-space drag so the rect cannot leave
-                        // the image's letterboxed render area.
+                        // `pos` is in Stage-absolute coordinates (post Stage
+                        // transform), not the fit-internal space `fit.x..` uses.
+                        // Round-trip through fit-internal space so the clamp
+                        // works correctly at any zoom level.
+                        const fitPos = stagePointToFitPoint(pos, zoomState);
                         const maxX = fit.x + fit.width - cropScreenRect.width;
                         const maxY = fit.y + fit.height - cropScreenRect.height;
-                        return {
-                          x: Math.max(fit.x, Math.min(maxX, pos.x)),
-                          y: Math.max(fit.y, Math.min(maxY, pos.y)),
+                        const clamped = {
+                          x: Math.max(fit.x, Math.min(maxX, fitPos.x)),
+                          y: Math.max(fit.y, Math.min(maxY, fitPos.y)),
                         };
+                        return fitPointToStagePoint(clamped, zoomState);
                       }}
                       onDragEnd={(e) => {
                         const node = e.target;
@@ -908,17 +996,26 @@ export function CanvasArea(props: CanvasAreaProps) {
                       flipEnabled={false}
                       enabledAnchors={RESIZE_ANCHORS as string[]}
                       boundBoxFunc={(oldBox, newBox) => {
-                        // Reject sizes below the minimum or that would push
-                        // the rect outside the image's render area.
-                        if (newBox.width < MIN_CROP_DIM || newBox.height < MIN_CROP_DIM) {
+                        // `newBox.{x,y,width,height}` are in Stage-absolute
+                        // coords. Convert to fit-internal space before applying
+                        // the existing image-range and MIN_CROP_DIM constraints
+                        // (which are themselves expressed in fit-internal /
+                        // natural-pixel units). zoom=DEFAULT is the identity.
+                        const topLeft = stagePointToFitPoint(
+                          { x: newBox.x, y: newBox.y },
+                          zoomState,
+                        );
+                        const fitWidth = newBox.width / zoomState.scale;
+                        const fitHeight = newBox.height / zoomState.scale;
+                        if (fitWidth < MIN_CROP_DIM || fitHeight < MIN_CROP_DIM) {
                           return oldBox;
                         }
-                        if (newBox.x < fit.x - 0.5 || newBox.y < fit.y - 0.5) {
+                        if (topLeft.x < fit.x - 0.5 || topLeft.y < fit.y - 0.5) {
                           return oldBox;
                         }
                         if (
-                          newBox.x + newBox.width > fit.x + fit.width + 0.5 ||
-                          newBox.y + newBox.height > fit.y + fit.height + 0.5
+                          topLeft.x + fitWidth > fit.x + fit.width + 0.5 ||
+                          topLeft.y + fitHeight > fit.y + fit.height + 0.5
                         ) {
                           return oldBox;
                         }

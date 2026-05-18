@@ -37,6 +37,7 @@ import {
   buildShapeNode,
   copyImageToClipboard,
   defaultExportFileName,
+  exportToBlob,
   generateExportFilename,
   saveBlobToFile,
 } from "./exportImage";
@@ -220,5 +221,19 @@ describe("buildShapeNode (mosaic strength)", () => {
   it("falls back to base pixelSize (24) when strengthLevel is undefined", () => {
     const node = buildShapeNode(mosaic(undefined), buildLoadedImage());
     expect(node.getAttr("pixelSize")).toBe(24);
+  });
+});
+
+// View-zoom isolation: the export pipeline must NEVER accept a zoom argument.
+// If a future refactor adds zoom to the signature, the natural-pixel-space
+// invariant of the exported PNG would be broken. This signature pin makes the
+// breakage loud at test time as a backup to the TypeScript compile check.
+describe("exportToBlob / buildShapeNode view-zoom isolation", () => {
+  it("exportToBlob signature accepts exactly 2 arguments (image, shapes)", () => {
+    expect(exportToBlob.length).toBe(2);
+  });
+
+  it("buildShapeNode signature accepts exactly 2 arguments (shape, image)", () => {
+    expect(buildShapeNode.length).toBe(2);
   });
 });

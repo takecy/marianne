@@ -4,6 +4,7 @@ import styles from "./StatusBar.module.css";
 
 interface StatusBarProps {
   image: LoadedImage | null;
+  zoom: number;
 }
 
 const SOURCE_LABELS: Record<LoadedImage["source"], string> = {
@@ -28,7 +29,7 @@ function extensionOf(fileName: string | undefined): string {
 // would announce dimension/path changes every time the image is swapped.
 // `aria-label` alone gives the element an accessible name without the live
 // semantics.
-export function StatusBar({ image }: StatusBarProps) {
+export function StatusBar({ image, zoom }: StatusBarProps) {
   if (image === null) {
     return <div className={styles.statusBar} aria-label={t("statusBar.imageInfo.label")} />;
   }
@@ -37,10 +38,12 @@ export function StatusBar({ image }: StatusBarProps) {
   const ext = extensionOf(image.sourceFileName);
   const dimensions = `${image.naturalWidth}×${image.naturalHeight}`;
   const rightText = ext ? `${ext} : ${dimensions}` : dimensions;
+  const zoomText = `${Math.round(zoom * 100)}%`;
 
   return (
     <div className={styles.statusBar} aria-label={t("statusBar.imageInfo.label")}>
       <span className={styles.left} title={leftText}>{leftText}</span>
+      <span className={styles.zoom}>{zoomText}</span>
       <span className={styles.right}>{rightText}</span>
     </div>
   );
