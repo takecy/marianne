@@ -1,47 +1,45 @@
 # Marianne
 
-[English](./README.md) | **日本語**
+[English](./README.md) | 日本語
 
-> Skitch 風オフライン画像アノテーション (macOS 専用)。機密情報を含むスクリーンショット向け。
+> Skitch 風オフライン画像アノテーション用アプリケーション (Apple Silicon向け)
 
-![Marianne in action](./assets/design/marianne_app.png)
+<div align="center">
+  <img src="./assets/design/marianne_app.png" alt="Marianne アプリのスクリーンショット" width="400" />
+</div>
 
-## なぜ Marianne なのか
+## なぜ今さら別の画像アノテーションアプリを作ったのか？
 
-- **Skitch へのトリビュート**: Marianne は長年 Skitch (Plasq → Evernote) を愛用してきた作者によるリプレイス。Mac 版 Skitch はすでにアクティブ開発が止まり、今はメンテナンスされていない legacy Intel-only バイナリ。macOS から Intel サポートが消える将来を見越し、Skitch の精神を継ぐ作り直しとして 2026 年に作成。[トリビュートの全文 →](https://takecy.github.io/marianne/ja/tribute/)
-- **プライバシー第一**: 注釈もスクリーンショットも端末外に出ない。外部通信は GitHub Releases へのアップデートチェックのみ — 起動時に 1 回、ツールバーの「Check for updates」を押した時にもう 1 回。
-- **モザイクによる視覚的 redaction**: モザイクブロックはエクスポート時に PNG にラスタライズされ、エクスポートされたファイルから下のピクセルを復元することはできない。スクリーンショットの一部を視覚的に隠す用途に最適 — ただしパスワードや完全なトークンなどハイリスクな機密情報には、別途ピクセルを単色で塗りつぶす事前ツールの併用を推奨する。
+- **Skitch が使えなくなる**: 長年 Skitch (Evernote製) を愛用してきた。毎日何度も起動し、画像に矢印とテキストをつけまくってきた。しかし、Skitchは今はメンテナンスおらず、Intel CPU 向けのみ。[macOS から Intel サポートが消え](https://developer.apple.com/documentation/apple-silicon/about-the-rosetta-translation-environment/)、Skitchが動かなくなる警告が表示されたことをきっかけに、Skitch の精神を継ぐApple Silicon対応アプリとして作成。
+- **最小限の機能**: Skitchの代替アプリケーションは多く存在し、どれも素晴らしい出来だが、私の用途には機能が多すぎた。手元の画像に矢印とテキスト、たまにモザイクが入れられば十分だった。
+- **矢印の形**: Skitchの矢印の形が本当に大好きだった。あの矢印の形をアノテーションできるアプリを見つけられず、自作することにした。あの見慣れたスタイルのテキストも。
 
-### 名前「Marianne」について
+### 名前について
 
-漫画『ONE PIECE』(尾田栄一郎・集英社) に登場する画家キャラ「ミス・ゴールデンウィーク」の本名 Marianne から命名 — 画家の名前を画像注釈アプリにつけた。詳細は[トリビュートページ](https://takecy.github.io/marianne/ja/tribute/)へ。
+私が大好きな漫画「ONE PIECE」に登場する画家「[ミス・ゴールデンウィーク](https://one-piece.com/character/Ms_Goldenweek/index.html)」の本名。
 
 ## 設計思想
 
-- **完全オフライン**: テレメトリ・クラウド同期・外部サーバー通信なし (updater が GitHub Releases へ問い合わせる以外)。
-- **依存を最小に**: npm パッケージよりもプラットフォーム機能を優先する。ブラウザ / Node / Konva で済む場合は依存を増やさない。
-- **Skitch のようにシンプル**: 5 ツール / 8 色 / 4 段階の太さ。固定された小さな表面を、何でも入った巨大なツールバーよりも好む。
-- **AI エージェント親和性の高いスタック**: TypeScript + React + Konva の組み合わせは、コーディングエージェント (Cursor / Claude Code 等) が精度の高いコードを生成しやすい。
+- **オフライン**: ログインなし、テレメトリ・クラウド同期・外部サーバー通信なし (アップデートチェックのみ)。
+- **シンプル**: 矢印、矩形、テキストのアノテーションにモザイク、それとちょっとしたクロップができるだけ。
+- **小さく高速**: [TAURI](https://v2.tauri.app/) をベースにアプリサイズは20MB以下。 起動も爆速。
 
 ## スクリーンショット
 
-![Marianne アプリ画面](./assets/design/marianne_app.png)
-
-![メニューバーアイコン](./assets/design/marianne_menubar.png)
-
-_アニメーション GIF のデモは将来のリリースで追加予定。_
+<div align="center">
+  <img src="./assets/design/example_01.png" alt="Marianne でのアノテーション例" width="600" />
+</div>
 
 ## クイックインストール
 
-**Apple Silicon Mac 専用** (M1 / M2 / M3、macOS 11+)。
+> [!NOTE]\
+> Apple Silicon Mac 専用です
 
 1. [Releases](https://github.com/takecy/marianne/releases) から最新の `Marianne_<version>_aarch64.dmg` をダウンロード。
 2. dmg をマウントし、`Marianne.app` を `/Applications` フォルダにドラッグ。
 3. 初回起動時、Gatekeeper の警告が出たらアプリを右クリック →「開く」で承認する (本ビルドはコード署名なし)。または `xattr -dr com.apple.quarantine /Applications/Marianne.app` をターミナルで一度実行する。
 
-インストール後、スクリーンショットをペースト (`Cmd + V`) するかウィンドウに画像をドラッグして注釈作業を始められる。
-
-→ 詳細なインストールガイド: [Marianne docs / インストール](https://takecy.github.io/marianne/ja/installation/)
+スクリーンショットをペースト (`Cmd + V`) 、ウィンドウに画像をドラッグ、画像の右クリックメニューの`このアプリケーションで開く`から注釈作業を始められる。
 
 ## ドキュメント
 
@@ -53,8 +51,7 @@ _アニメーション GIF のデモは将来のリリースで追加予定。_
 
 ## ライセンス
 
-[PolyForm Noncommercial 1.0.0](./LICENSE) © 2026 takecy
+[PolyForm Noncommercial 1.0.0](./LICENSE)
 
-個人利用および非商用利用は自由。プロプライエタリな製品への組込や再販は不可。詳細は[ライセンス本文](./LICENSE)を参照。
-
-本プロジェクトは Plasq、Evernote、集英社、尾田栄一郎いずれとも提携・公式承認関係はない。「Skitch」「ONE PIECE」は各権利者の商標。
+個人利用および非商用利用は自由。プロプライエタリな製品への組込や再販は不可。\
+本プロジェクトは Plasq、Evernote、集英社、尾田栄一郎いずれとも無関係。「Skitch」「ONE PIECE」は各権利者の商標。
