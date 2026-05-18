@@ -1058,37 +1058,46 @@ export function CanvasArea(props: CanvasAreaProps) {
         )
         : null}
       {isCropMode && cropScreenRect
-        ? (
-          <div
-            className={styles.cropOverlay}
-            // Anchor the buttons just below the crop rectangle's bottom-left
-            // corner so the user sees them without obscuring the rect itself.
-            style={{
-              left: cropScreenRect.x,
-              top: cropScreenRect.y + cropScreenRect.height + 8,
-            }}
-          >
-            <button
-              type="button"
-              className={`${styles.cropButton} ${styles.cropButtonConfirm}`}
-              onClick={handleCropConfirm}
-              disabled={cropConfirmDisabled}
-              aria-label={t("crop.confirm.label")}
-              title={t("crop.confirm.title")}
+        ? (() => {
+          // cropScreenRect is in fit-internal screen coords. Stage zoom
+          // transform applies to Konva nodes but not to DOM overlays, so
+          // convert the rect's bottom-left to viewport (DOM) coords via
+          // fitPointToStagePoint. The 8px gap is added AFTER the transform
+          // so it stays at UI scale instead of being multiplied by zoom.
+          const cropDomAnchor = fitPointToStagePoint(
+            { x: cropScreenRect.x, y: cropScreenRect.y + cropScreenRect.height },
+            zoomState,
+          );
+          return (
+            <div
+              className={styles.cropOverlay}
+              style={{
+                left: cropDomAnchor.x,
+                top: cropDomAnchor.y + 8,
+              }}
             >
-              {t("crop.confirm.label")}
-            </button>
-            <button
-              type="button"
-              className={styles.cropButton}
-              onClick={handleCropCancel}
-              aria-label={t("crop.cancel.label")}
-              title={t("crop.cancel.title")}
-            >
-              {t("crop.cancel.label")}
-            </button>
-          </div>
-        )
+              <button
+                type="button"
+                className={`${styles.cropButton} ${styles.cropButtonConfirm}`}
+                onClick={handleCropConfirm}
+                disabled={cropConfirmDisabled}
+                aria-label={t("crop.confirm.label")}
+                title={t("crop.confirm.title")}
+              >
+                {t("crop.confirm.label")}
+              </button>
+              <button
+                type="button"
+                className={styles.cropButton}
+                onClick={handleCropCancel}
+                aria-label={t("crop.cancel.label")}
+                title={t("crop.cancel.title")}
+              >
+                {t("crop.cancel.label")}
+              </button>
+            </div>
+          );
+        })()
         : null}
       {image === null
         ? (
