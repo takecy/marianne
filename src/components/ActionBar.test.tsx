@@ -50,14 +50,70 @@ describe("ActionBar", () => {
     expect(onExportToClipboard).not.toHaveBeenCalled();
   });
 
-  it("does not render tool / history / update buttons", () => {
+  it("does not render tool / update buttons", () => {
     render(<ActionBar onExportToFile={vi.fn()} onExportToClipboard={vi.fn()} />);
 
-    expect(screen.queryByRole("button", { name: t("action.undo.label") })).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: t("action.redo.label") })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: t("action.checkUpdates.label") }))
       .not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: t("tool.select") })).not.toBeInTheDocument();
+  });
+
+  it("renders undo/redo buttons and invokes their callbacks when canUndo / canRedo are true", async () => {
+    const user = userEvent.setup();
+    const onUndo = vi.fn();
+    const onRedo = vi.fn();
+    render(
+      <ActionBar onUndo={onUndo} onRedo={onRedo} canUndo canRedo />,
+    );
+
+    await user.click(screen.getByRole("button", { name: t("action.undo.label") }));
+    expect(onUndo).toHaveBeenCalledTimes(1);
+
+    await user.click(screen.getByRole("button", { name: t("action.redo.label") }));
+    expect(onRedo).toHaveBeenCalledTimes(1);
+  });
+
+  it("disables undo/redo buttons when canUndo / canRedo are false", async () => {
+    const user = userEvent.setup();
+    const onUndo = vi.fn();
+    const onRedo = vi.fn();
+    render(
+      <ActionBar
+        onUndo={onUndo}
+        onRedo={onRedo}
+        canUndo={false}
+        canRedo={false}
+      />,
+    );
+
+    expect(screen.getByRole("button", { name: t("action.undo.label") })).toBeDisabled();
+    expect(screen.getByRole("button", { name: t("action.redo.label") })).toBeDisabled();
+
+    await user.click(screen.getByRole("button", { name: t("action.undo.label") }));
+    expect(onUndo).not.toHaveBeenCalled();
+    await user.click(screen.getByRole("button", { name: t("action.redo.label") }));
+    expect(onRedo).not.toHaveBeenCalled();
+  });
+
+  // The history controls are intentionally independent of the action bar's
+  // `disabled` prop. `disabled` covers both "no image" and "text-editing in
+  // progress"; the latter must still allow undo/redo (matching the previous
+  // Sidebar behavior, where `disabled = image === null` only).
+  it("keeps undo/redo enabled even when the action bar is disabled, as long as canUndo/canRedo are true", () => {
+    render(
+      <ActionBar
+        disabled
+        onUndo={vi.fn()}
+        onRedo={vi.fn()}
+        canUndo
+        canRedo
+      />,
+    );
+
+    expect(screen.getByRole("button", { name: t("action.undo.label") })).not.toBeDisabled();
+    expect(screen.getByRole("button", { name: t("action.redo.label") })).not.toBeDisabled();
+    expect(screen.getByRole("button", { name: t("action.save.label") })).toBeDisabled();
+    expect(screen.getByRole("button", { name: t("action.copy.label") })).toBeDisabled();
   });
 
   it("renders idle copy state by default: copy icon, no success class, empty status", () => {

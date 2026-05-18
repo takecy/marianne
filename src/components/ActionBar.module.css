@@ -4,13 +4,21 @@
   flex: 0 0 44px;
   display: flex;
   align-items: center;
-  justify-content: flex-end;
+  justify-content: space-between;
   gap: 8px;
   padding: 0 12px;
   background: var(--color-surface);
   border-bottom: 1px solid var(--color-border-subtle);
 }
 
+.historyGroup,
+.exportGroup {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.iconButton,
 .exportButton {
   width: 32px;
   height: 32px;
@@ -26,15 +34,18 @@
   transition: background 0.12s ease, border-color 0.12s ease, color 0.12s ease;
 }
 
+.iconButton:hover:not(:disabled),
 .exportButton:hover:not(:disabled) {
   background: var(--color-surface-hover);
 }
 
+.iconButton:focus-visible,
 .exportButton:focus-visible {
   outline: 2px solid var(--color-accent);
   outline-offset: 1px;
 }
 
+.iconButton:disabled,
 .exportButton:disabled {
   cursor: not-allowed;
   opacity: 0.55;

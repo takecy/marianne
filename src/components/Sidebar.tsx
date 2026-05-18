@@ -5,10 +5,8 @@ import { ArrowIcon } from "./icons/ArrowIcon";
 import { CropIcon } from "./icons/CropIcon";
 import { MosaicIcon } from "./icons/MosaicIcon";
 import { RectIcon } from "./icons/RectIcon";
-import { RedoIcon } from "./icons/RedoIcon";
 import { SelectIcon } from "./icons/SelectIcon";
 import { TextIcon } from "./icons/TextIcon";
-import { UndoIcon } from "./icons/UndoIcon";
 import { UpdateIcon } from "./icons/UpdateIcon";
 import styles from "./Sidebar.module.css";
 
@@ -53,10 +51,6 @@ interface SidebarProps {
   activeStrokeWidth: StrokeWidthPresetName;
   onStrokeWidthChange: (next: StrokeWidthPresetName) => void;
   disabled?: boolean;
-  onUndo?: () => void;
-  onRedo?: () => void;
-  canUndo?: boolean;
-  canRedo?: boolean;
   // Updater button is independent of `disabled` so the user can check for
   // updates even before loading an image. `checking` disables it briefly.
   onCheckForUpdates?: () => void;
@@ -76,10 +70,6 @@ export function Sidebar(props: SidebarProps) {
     activeStrokeWidth,
     onStrokeWidthChange,
     disabled = false,
-    onUndo,
-    onRedo,
-    canUndo = false,
-    canRedo = false,
     onCheckForUpdates,
     updateButtonState = "idle",
     updateErrorMessage,
@@ -162,35 +152,6 @@ export function Sidebar(props: SidebarProps) {
             </button>
           );
         })}
-      </div>
-
-      <div className={styles.divider} aria-hidden />
-
-      <div
-        className={styles.historyGroup}
-        role="group"
-        aria-label={t("sidebar.historyGroup.label")}
-      >
-        <button
-          type="button"
-          className={styles.iconButton}
-          disabled={disabled || !canUndo}
-          onClick={onUndo}
-          aria-label={t("action.undo.label")}
-          title={t("action.undo.title")}
-        >
-          <UndoIcon />
-        </button>
-        <button
-          type="button"
-          className={styles.iconButton}
-          disabled={disabled || !canRedo}
-          onClick={onRedo}
-          aria-label={t("action.redo.label")}
-          title={t("action.redo.title")}
-        >
-          <RedoIcon />
-        </button>
       </div>
 
       {onCheckForUpdates && (
