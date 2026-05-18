@@ -1,6 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import { beforeAll, vi } from "vitest";
 import { t } from "@/i18n/translate";
+import { DEFAULT_ZOOM_STATE } from "@/lib/zoomGesture";
 import type { LoadedImage } from "@/types/image";
 import type { Shape } from "@/types/shape";
 import { CanvasArea } from "./CanvasArea";
@@ -80,6 +81,7 @@ function renderCanvas(
     onRedo: vi.fn(),
     onExportToFile: vi.fn(),
     onExportToClipboard: vi.fn(),
+    onZoomChange: vi.fn(),
   };
   const shapes: Shape[] = [];
   render(
@@ -92,6 +94,7 @@ function renderCanvas(
       activeStrokeWidth="thick"
       selectedShapeId={null}
       hasClipboardShape={false}
+      zoomState={DEFAULT_ZOOM_STATE}
       {...handlers}
       {...overrides}
     />,
@@ -310,5 +313,60 @@ describe("CanvasArea copy/paste shortcuts", () => {
     });
     window.dispatchEvent(new KeyboardEvent("keydown", { key: "v", metaKey: true }));
     expect(onPasteShape).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("CanvasArea zoom shortcuts", () => {
+  it("zooms in on Cmd+= (Meta + equals)", () => {
+    const { onZoomChange } = renderCanvas({ image: makeLoadedImage() });
+    window.dispatchEvent(new KeyboardEvent("keydown", { key: "=", metaKey: true }));
+    expect(onZoomChange).toHaveBeenCalledTimes(1);
+    const next = onZoomChange.mock.calls[0]?.[0];
+    expect(next?.scale).toBeGreaterThan(1);
+  });
+
+  it("zooms in on Cmd++ (Meta + Shift + equals on US layouts)", () => {
+    const { onZoomChange } = renderCanvas({ image: makeLoadedImage() });
+    window.dispatchEvent(
+      new KeyboardEvent("keydown", { key: "+", metaKey: true, shiftKey: true }),
+    );
+    expect(onZoomChange).toHaveBeenCalledTimes(1);
+    expect(onZoomChange.mock.calls[0]?.[0]?.scale).toBeGreaterThan(1);
+  });
+
+  it("zooms out on Cmd+-", () => {
+    const { onZoomChange } = renderCanvas({
+      image: makeLoadedImage(),
+      zoomState: { scale: 4, offsetX: 0, offsetY: 0 },
+    });
+    window.dispatchEvent(new KeyboardEvent("keydown", { key: "-", metaKey: true }));
+    expect(onZoomChange).toHaveBeenCalledTimes(1);
+    expect(onZoomChange.mock.calls[0]?.[0]?.scale).toBeLessThan(4);
+  });
+
+  it("resets to DEFAULT_ZOOM_STATE on Cmd+0", () => {
+    const { onZoomChange } = renderCanvas({
+      image: makeLoadedImage(),
+      zoomState: { scale: 2.5, offsetX: 30, offsetY: 50 },
+    });
+    window.dispatchEvent(new KeyboardEvent("keydown", { key: "0", metaKey: true }));
+    expect(onZoomChange).toHaveBeenCalledTimes(1);
+    expect(onZoomChange.mock.calls[0]?.[0]).toEqual(DEFAULT_ZOOM_STATE);
+  });
+
+  it("ignores zoom shortcuts when no image is loaded", () => {
+    const { onZoomChange } = renderCanvas({ image: null });
+    window.dispatchEvent(new KeyboardEvent("keydown", { key: "=", metaKey: true }));
+    window.dispatchEvent(new KeyboardEvent("keydown", { key: "-", metaKey: true }));
+    window.dispatchEvent(new KeyboardEvent("keydown", { key: "0", metaKey: true }));
+    expect(onZoomChange).not.toHaveBeenCalled();
+  });
+
+  it("also accepts Ctrl+= / Ctrl+- / Ctrl+0 for non-mac platforms", () => {
+    const { onZoomChange } = renderCanvas({ image: makeLoadedImage() });
+    window.dispatchEvent(new KeyboardEvent("keydown", { key: "=", ctrlKey: true }));
+    window.dispatchEvent(new KeyboardEvent("keydown", { key: "-", ctrlKey: true }));
+    window.dispatchEvent(new KeyboardEvent("keydown", { key: "0", ctrlKey: true }));
+    expect(onZoomChange).toHaveBeenCalledTimes(3);
   });
 });

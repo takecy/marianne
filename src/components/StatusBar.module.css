@@ -21,6 +21,12 @@
   white-space: nowrap;
 }
 
+.zoom {
+  flex: 0 0 auto;
+  white-space: nowrap;
+  opacity: 0.75;
+}
+
 .right {
   flex: 0 0 auto;
   white-space: nowrap;

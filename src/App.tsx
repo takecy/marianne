@@ -26,6 +26,7 @@ import { useQuitConfirm } from "./lib/useQuitConfirm";
 import { useUpdater } from "./lib/useUpdater";
 import { applyWindowSizeForImage } from "./lib/windowResize";
 import { cropLoadedImage, type CropRect, transformShapesForCrop } from "./lib/cropImage";
+import { DEFAULT_ZOOM_STATE, type ZoomState } from "./lib/zoomGesture";
 import { useCanvasStore } from "./store/canvasStore";
 import type { LoadedImage } from "./types/image";
 import type { Shape } from "./types/shape";
@@ -71,6 +72,20 @@ function App() {
   const [isEditingText, setIsEditingText] = useState(false);
   const [copyState, setCopyState] = useState<"idle" | "success">("idle");
   const copyResetTimer = useRef<number | null>(null);
+  // View-only canvas zoom (pinch + Cmd+/-/0). Local state, not part of the
+  // shape history — undo/redo must not touch zoom. Reset to DEFAULT whenever
+  // the underlying HTMLImageElement instance changes (paste / drop / Open
+  // With / replace-confirm / crop), so a fresh image always starts at 100%.
+  // Uses render-time prev/curr comparison (React docs: "Adjusting state based
+  // on prior state") instead of useEffect+setState — same pattern as the
+  // tool/image cleanup in CanvasArea.tsx — to avoid the cascading-render
+  // warning from react-hooks/set-state-in-effect.
+  const [zoomState, setZoomState] = useState<ZoomState>(DEFAULT_ZOOM_STATE);
+  const prevImageElForZoomRef = useRef(image?.element);
+  if (prevImageElForZoomRef.current !== image?.element) {
+    prevImageElForZoomRef.current = image?.element;
+    setZoomState(DEFAULT_ZOOM_STATE);
+  }
 
   useEffect(() => {
     return () => {
@@ -348,8 +363,10 @@ function App() {
           onExportToFile={handleExportToFile}
           onExportToClipboard={handleExportToClipboard}
           onEditingTextChange={setIsEditingText}
+          zoomState={zoomState}
+          onZoomChange={setZoomState}
         />
-        <StatusBar image={image} />
+        <StatusBar image={image} zoom={zoomState.scale} />
       </div>
       <UpdateModal
         state={updateState}
