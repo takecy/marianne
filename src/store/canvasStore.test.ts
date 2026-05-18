@@ -198,6 +198,18 @@ describe("canvasStore", () => {
     expect(state.future).toEqual([]);
   });
 
+  it("resetShapes replaces shapes atomically and clears selection + history", () => {
+    useCanvasStore.getState().addShape(sampleRect("old"));
+    useCanvasStore.getState().selectShape("old");
+    const replacement = [sampleRect("new-1"), sampleRect("new-2")];
+    useCanvasStore.getState().resetShapes(replacement);
+    const state = useCanvasStore.getState();
+    expect(state.shapes).toEqual(replacement);
+    expect(state.selectedShapeId).toBeNull();
+    expect(state.past).toEqual([]);
+    expect(state.future).toEqual([]);
+  });
+
   // --- history ---
 
   it("addShape records the prior shapes onto past and clears future", () => {

@@ -5,6 +5,7 @@ export const en = {
   "tool.rect": "Rectangle",
   "tool.text": "Text",
   "tool.mosaic": "Mosaic",
+  "tool.crop": "Crop",
 
   // stroke width labels (Sidebar STROKE_WIDTH_LABELS)
   "strokeWidth.thin": "Thin",
@@ -74,6 +75,12 @@ export const en = {
     "Loading a new image will discard the current annotations. Discard and load?",
   "dialog.imageReplace.confirm": "Discard and load",
   "dialog.cancel": "Cancel",
+
+  // Crop mode (CanvasArea overlay)
+  "crop.confirm.label": "Apply",
+  "crop.confirm.title": "Apply (Enter)",
+  "crop.cancel.label": "Cancel",
+  "crop.cancel.title": "Cancel (Esc)",
 
   // Error messages
   "error.imageLoadFailed": "Failed to load image",

@@ -7,6 +7,7 @@ export const ja: Record<TranslationKey, string> = {
   "tool.rect": "四角",
   "tool.text": "テキスト",
   "tool.mosaic": "モザイク",
+  "tool.crop": "クロップ",
 
   // stroke width labels (Sidebar STROKE_WIDTH_LABELS)
   "strokeWidth.thin": "細",
@@ -76,6 +77,12 @@ export const ja: Record<TranslationKey, string> = {
     "新しい画像を読み込むと、現在の注釈は破棄されます。破棄して読み込みますか?",
   "dialog.imageReplace.confirm": "破棄して読み込み",
   "dialog.cancel": "キャンセル",
+
+  // Crop mode (CanvasArea overlay)
+  "crop.confirm.label": "適用",
+  "crop.confirm.title": "適用 (Enter)",
+  "crop.cancel.label": "中止",
+  "crop.cancel.title": "中止 (Esc)",
 
   // Error messages
   "error.imageLoadFailed": "画像の読み込みに失敗しました",

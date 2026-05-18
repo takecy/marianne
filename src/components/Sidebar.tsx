@@ -2,6 +2,7 @@ import { t } from "@/i18n/translate";
 import type { ColorPresetName, StrokeWidthPresetName, ToolKind } from "@/types/tool";
 import { COLOR_PRESETS, STROKE_WIDTH_PRESETS, TOOL_KINDS, TOOL_SHORTCUTS } from "@/types/tool";
 import { ArrowIcon } from "./icons/ArrowIcon";
+import { CropIcon } from "./icons/CropIcon";
 import { MosaicIcon } from "./icons/MosaicIcon";
 import { RectIcon } from "./icons/RectIcon";
 import { RedoIcon } from "./icons/RedoIcon";
@@ -17,6 +18,7 @@ const TOOL_LABELS: Record<ToolKind, string> = {
   rect: t("tool.rect"),
   text: t("tool.text"),
   mosaic: t("tool.mosaic"),
+  crop: t("tool.crop"),
 };
 
 const STROKE_WIDTH_LABELS: Record<StrokeWidthPresetName, string> = {
@@ -32,6 +34,7 @@ const TOOL_ICONS: Record<ToolKind, () => React.ReactElement> = {
   rect: RectIcon,
   text: TextIcon,
   mosaic: MosaicIcon,
+  crop: CropIcon,
 };
 
 // State exposed by the updater hook in `useUpdater`. Used only to set the

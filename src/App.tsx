@@ -25,6 +25,7 @@ import { useImageLoader } from "./lib/useImageLoader";
 import { useQuitConfirm } from "./lib/useQuitConfirm";
 import { useUpdater } from "./lib/useUpdater";
 import { applyWindowSizeForImage } from "./lib/windowResize";
+import { cropLoadedImage, type CropRect, transformShapesForCrop } from "./lib/cropImage";
 import { useCanvasStore } from "./store/canvasStore";
 import type { LoadedImage } from "./types/image";
 import type { Shape } from "./types/shape";
@@ -103,6 +104,7 @@ function App() {
     (s) => s.setSelectedShapeStrokeWidth,
   );
   const clearShapes = useCanvasStore((s) => s.clearShapes);
+  const resetShapes = useCanvasStore((s) => s.resetShapes);
   const copyShape = useCanvasStore((s) => s.copyShape);
   const pasteShape = useCanvasStore((s) => s.pasteShape);
   const hasClipboardShape = useCanvasStore((s) => s.clipboardShape !== null);
@@ -196,6 +198,32 @@ function App() {
   const handleImageError = useCallback((message: string) => {
     console.error(message);
   }, []);
+
+  // Apply a confirmed crop selection. The crop pipeline replaces the image
+  // element with a freshly decoded cropped copy, translates all existing
+  // shapes into the new image's natural pixel space (line clipping for
+  // arrows, see transformShapesForCrop), and resets the undo/redo history
+  // since the previous image's history cannot be replayed against the new
+  // image. setActiveTool returns the user to the select tool so they can
+  // start adjusting the cropped result immediately.
+  const handleCropImage = useCallback(
+    async (rect: CropRect) => {
+      if (!image) return;
+      try {
+        const newImage = await cropLoadedImage(image, rect);
+        const newShapes = transformShapesForCrop(
+          useCanvasStore.getState().shapes,
+          rect,
+        );
+        resetShapes(newShapes);
+        setImage(newImage);
+        setActiveTool("select");
+      } catch (error) {
+        console.error("Crop failed:", error);
+      }
+    },
+    [image, resetShapes],
+  );
 
   const { isDraggingOver } = useImageLoader({
     onImageLoaded: handleImageLoaded,
@@ -307,6 +335,7 @@ function App() {
           onShapesAdded={handleShapesAdded}
           onSelectShape={selectShape}
           onDeleteShape={deleteShape}
+          onCropImage={(rect) => void handleCropImage(rect)}
           onUpdateRect={updateRect}
           onUpdateText={updateText}
           onUpdateArrow={updateArrow}

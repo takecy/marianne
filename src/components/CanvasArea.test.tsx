@@ -68,6 +68,7 @@ function renderCanvas(
     onShapesAdded: vi.fn(),
     onSelectShape: vi.fn(),
     onDeleteShape: vi.fn(),
+    onCropImage: vi.fn(),
     onUpdateRect: vi.fn(),
     onUpdateText: vi.fn(),
     onUpdateArrow: vi.fn(),
