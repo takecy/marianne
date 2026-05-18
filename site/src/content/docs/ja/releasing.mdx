@@ -14,28 +14,47 @@ import { Aside, Steps } from "@astrojs/starlight/components";
 <Steps>
 1. **ワークフロー起動**: リポジトリの **Actions → Tag and Release → Run workflow** を実行する。
 
-   - `bump_version` を選択する (`patch` / `minor` / `major`)。Conventional Commits が検出された場合はそちらが優先される。
+   - 次バージョンは Conventional Commits から自動算出される (`feat:` → minor、`fix:` その他 → patch、`BREAKING CHANGE:` → major)。検出に失敗した場合は patch にフォールバック。
+   - manifest (`package.json` / `src-tauri/tauri.conf.json` / `src-tauri/Cargo.toml`) の version は `main` 上では bump しない。リリース version は runner 上で `tauri.conf.json` のみ書き換えてビルドに注入される。
 
 2. **`tagging` ジョブ (ubuntu-latest)**:
 
-   - `dry_run` で次バージョンを算出。
-   - `scripts/bump-version.sh` で `package.json` / `src-tauri/tauri.conf.json` / `src-tauri/Cargo.toml` を 1 コミットで同期。
-   - bump コミットを `main` に push。
-   - `vX.Y.Z` タグを push。
+   - `mathieudutour/github-tag-action` が次バージョンを算出し、`vX.Y.Z` タグを push (タグ ref のみ。`main` への push なし)。
+   - `getLatestRelease` で直前のリリースタグを取得し、`generateReleaseNotes` で changelog を自動生成。
+   - **`draft: true` で release を作成** し、`release.id` を job output として export。この時点では `/releases/latest` は依然旧 release を指す。
 
 3. **`release` ジョブ (macos-14、`needs: tagging`)**:
 
-   - タグ付けされた commit を checkout。
-   - `pnpm tauri build --target aarch64-apple-darwin` で署名済みバンドルを生成。
-   - `Marianne.app.tar.gz` + `.sig` + `latest.json` を GitHub Release に publish (draft なし、prerelease なし)。
+   - 新タグを checkout。
+   - `jq` で `src-tauri/tauri.conf.json` の `version` を新タグの値に上書き (runner ローカルのみ、commit しない)。
+   - `tauri-action` が `--target aarch64-apple-darwin` で署名済みバンドルを生成し、`releaseId` 指定で draft release に `Marianne_<version>_aarch64.dmg` / `*.app.tar.gz` / `*.app.tar.gz.sig` / `latest.json` を upload。
+   - **`Verify draft release assets` ステップ** が必須 asset の存在と `latest.json` 内の `version` / `platforms["darwin-aarch64"].url` / `platforms["darwin-aarch64"].signature` を検証。1 つでも欠けると release は draft のまま終了 (旧 latest は維持される)。
+   - **`Promote draft release to published` ステップ** が `gh release edit "$TAG" --draft=false --latest` で publish。この瞬間に `/releases/latest` が新リリースに切り替わる。
 
 4. **既存ユーザーは次回起動時に `latest.json` を取得**し、アップデートモーダルが表示される。
 </Steps>
 
 <Aside type="danger" title="手動の `git push origin vX.Y.Z` は禁忌">
-`bump-version.sh` による 3 ファイル version 同期と `tauri-action` の署名フローを
-通っていないタグは **リリースとして成立しない**。updater が無言で失敗する。
-リリースは必ず上記の workflow_dispatch ボタンから実行すること。
+ワークフロー外で打ったタグは auto-generated note も `releaseId` 紐付けも asset 検証も
+通っていない。`tauri.conf.json` の version 注入もないので `latest.json` の `version` が
+タグと不一致になり、updater が正しく検知できない可能性がある。リリースは必ず上記の
+workflow_dispatch ボタンから実行すること。
+</Aside>
+
+<Aside type="caution" title="`draft → upload → verify → publish` シーケンスは不変条件">
+Tauri v2 updater は no-update を `204 No Content` で表現し、`404` は `check()` の reject
+として扱われる。`@tauri-apps/plugin-updater` の `check()` が失敗すると Marianne 側
+(`src/lib/useUpdater.ts`) は error state に昇格させ、UI に「⚠ Failed」を表示する。
+最初から publish 状態で release を作って `latest.json` upload までの 15–30 分間
+`/releases/latest/download/latest.json` を 404 にすると、その間に起動した既存ユーザー
+全員に更新エラーが見える。**必ず draft → 検証 → publish の順序を守ること**。
+</Aside>
+
+<Aside type="note" title="並行 release run の直列化">
+ワークフローには `concurrency: { group: tagging-release, cancel-in-progress: false }`
+が設定されている。2 本の run が並行すると、後から `--latest` を実行した古い run が
+`/releases/latest` を巻き戻してしまうことがある (downgrade update が既存ユーザーに
+配信される)。直列化により後発 run は前の run が終わるまで待機する。
 </Aside>
 
 ## 署名 env のローカル供給
@@ -80,11 +99,8 @@ tagging → release を 1 ワークフロー内で完結させる設計のため
 - **バックアップ**: 秘密鍵 + パスフレーズを 1Password 等にバックアップする。紛失すると既存インストールはすべての将来リリースを検証できなくなり、永久にアップデート不可能になる。
 - **`tauri.conf.json` の `pubkey` は固定運用**: 一度配布したアプリは埋め込んだ pubkey でしか署名検証しない。途中で鍵を差し替えると変更前にインストールしたユーザー全員が永遠に更新できなくなる。鍵ローテーションが避けられない場合は、手動再インストール用 dmg の配布を覚悟する。
 
-## なぜ手動タグ push が壊れるか
+## 失敗時のリカバリ
 
-各エンドユーザー端末の updater は、(インストール時に `tauri.conf.json` から) 埋め込んだ `pubkey` と `latest.json` 内の署名を照合する。手動 push したタグは:
-
-- `bump-version.sh` の 3 ファイル同期をスキップ → `tauri.conf.json` の version がタグと不一致になりうる
-- `tauri-action` の署名ステップをスキップ → `latest.json` に有効な署名が入らない
-
-いずれの失敗でも updater は無言でリリースを拒否する。安全なリリース経路は上記の workflow_dispatch フローのみ。
+- **`Verify draft release assets` で失敗**: release は draft のまま、`/releases/latest` は旧 release を指したまま終了する。既存ユーザーへの影響はゼロ。原因 (`tauri-action` が `latest.json` を生成しなかった等) を調査し、draft release を `gh release delete "$TAG" --yes --cleanup-tag` で消してから再実行。
+- **`Promote draft release to published` で失敗**: asset は揃っているが publish のみ失敗した状態。手動で `gh release edit "$TAG" --draft=false --latest` を叩けばリカバリ可能。
+- **タグだけ作って release 作成前に失敗**: `git push --delete origin "$TAG"` でタグを消してから再実行。
