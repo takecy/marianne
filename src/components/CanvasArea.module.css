@@ -42,3 +42,39 @@
   margin: 0;
   color: var(--color-fg-muted);
 }
+
+/* Confirm / Cancel buttons rendered above the crop rectangle while the crop
+   tool is active. Position is computed in CanvasArea.tsx based on the crop
+   rect's screen-space top-right corner. */
+.cropOverlay {
+  position: absolute;
+  display: flex;
+  gap: 0.5rem;
+  pointer-events: auto;
+  z-index: 10;
+}
+
+.cropButton {
+  padding: 0.4rem 0.75rem;
+  border-radius: 6px;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-fg);
+  font-size: 0.85rem;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.18);
+}
+
+.cropButton:hover {
+  background: var(--color-surface-hover, var(--color-surface));
+}
+
+.cropButtonConfirm {
+  background: var(--color-accent);
+  color: var(--color-on-accent, #fff);
+  border-color: var(--color-accent);
+}
+
+.cropButtonConfirm:hover {
+  filter: brightness(1.05);
+}

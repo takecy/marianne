@@ -10,6 +10,8 @@ import {
   screenToImage,
 } from "@/lib/imageFit";
 import type { FitRect, Point, Size as FitSize } from "@/lib/imageFit";
+import type { CropRect } from "@/lib/cropImage";
+import { defaultCropRect, MIN_CROP_DIM } from "@/lib/cropImage";
 import { finalizeDraft, moveDraft, startDraft } from "@/lib/drawingGesture";
 import { splitMosaicByOverlap } from "@/lib/mosaicStrength";
 import { partitionShapesByMosaicFirst } from "@/lib/shapeZOrder";
@@ -60,6 +62,9 @@ interface CanvasAreaProps {
   onShapesAdded: (shapes: Shape[]) => void;
   onSelectShape: (id: string | null) => void;
   onDeleteShape: (id: string) => void;
+  // Invoked when the user confirms a crop selection. The rect is in image
+  // natural pixel space. App.tsx replaces the loaded image and resets shapes.
+  onCropImage: (rect: CropRect) => void;
   onUpdateRect: (id: string, patch: RectPatch) => void;
   onUpdateText: (id: string, patch: TextPatch) => void;
   onUpdateArrow: (id: string, patch: ArrowPatch) => void;
@@ -204,6 +209,7 @@ export function CanvasArea(props: CanvasAreaProps) {
     onShapesAdded,
     onSelectShape,
     onDeleteShape,
+    onCropImage,
     onUpdateRect,
     onUpdateText,
     onUpdateArrow,
@@ -222,14 +228,20 @@ export function CanvasArea(props: CanvasAreaProps) {
   const [draft, setDraft] = useState<DraftShape | null>(null);
   const [textInput, setTextInput] = useState<Point | null>(null);
   const [editingTextId, setEditingTextId] = useState<string | null>(null);
+  // Active crop selection rectangle (natural pixel space). null when crop mode
+  // is not active. The rect node is rendered when this is non-null.
+  const [cropRect, setCropRect] = useState<CropRect | null>(null);
   const nodeMap = useRef<Map<string, Konva.Node>>(new Map());
   const transformerRef = useRef<Konva.Transformer | null>(null);
+  const cropRectRef = useRef<Konva.Rect | null>(null);
+  const cropTransformerRef = useRef<Konva.Transformer | null>(null);
   const themeMode = useThemeMode();
   const mosaicDraftColors = themeMode === "dark"
     ? MOSAIC_DRAFT_COLORS_DARK
     : MOSAIC_DRAFT_COLORS_LIGHT;
 
   const isSelectMode = activeTool === "select";
+  const isCropMode = activeTool === "crop";
 
   useEffect(() => {
     const el = containerRef.current;
@@ -253,6 +265,8 @@ export function CanvasArea(props: CanvasAreaProps) {
   // eslint-disable-next-line react-hooks/refs
   if (prevToolRef.current !== activeTool || prevImageElRef.current !== image?.element) {
     // eslint-disable-next-line react-hooks/refs
+    const prevTool = prevToolRef.current;
+    // eslint-disable-next-line react-hooks/refs
     prevToolRef.current = activeTool;
 
     prevImageElRef.current = image?.element;
@@ -264,6 +278,17 @@ export function CanvasArea(props: CanvasAreaProps) {
     }
     if (editingTextId !== null) {
       setEditingTextId(null);
+    }
+    // Initialise the crop selection on entry to crop mode; tear it down on
+    // any exit (tool change, image swap). Using the render-time pattern keeps
+    // this synchronous with the activeTool change so the Stage already sees
+    // the right cropRect on its first render after the transition.
+    if (activeTool === "crop" && prevTool !== "crop" && image) {
+      setCropRect(
+        defaultCropRect({ width: image.naturalWidth, height: image.naturalHeight }),
+      );
+    } else if (activeTool !== "crop" && cropRect !== null) {
+      setCropRect(null);
     }
   }
 
@@ -291,6 +316,23 @@ export function CanvasArea(props: CanvasAreaProps) {
     }
     transformer.getLayer()?.batchDraw();
   }, [isSelectMode, selectedShapeId, editingTextId, shapes]);
+
+  // Attach the crop transformer to the crop rectangle whenever the cropRect
+  // mounts. Detach immediately when crop mode ends so a stale Transformer
+  // pointing at a removed node does not throw on the next batchDraw.
+  useEffect(() => {
+    const transformer = cropTransformerRef.current;
+    if (!transformer) {
+      return;
+    }
+    const node = cropRectRef.current;
+    if (isCropMode && cropRect !== null && node) {
+      transformer.nodes([node]);
+    } else {
+      transformer.nodes([]);
+    }
+    transformer.getLayer()?.batchDraw();
+  }, [isCropMode, cropRect]);
 
   // Clear editingTextId during render if the target shape vanished from
   // `shapes` (e.g. after undo replays an older snapshot that did not
@@ -340,6 +382,23 @@ export function CanvasArea(props: CanvasAreaProps) {
           target.isContentEditable)
       ) {
         return;
+      }
+
+      // Crop mode: Enter confirms, Escape cancels. Handled before the generic
+      // shortcuts so they never steal the keys.
+      if (isCropMode && cropRect !== null) {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          if (cropRect.width >= MIN_CROP_DIM && cropRect.height >= MIN_CROP_DIM) {
+            onCropImage(cropRect);
+          }
+          return;
+        }
+        if (e.key === "Escape") {
+          e.preventDefault();
+          onToolChange("select");
+          return;
+        }
       }
 
       if (
@@ -438,6 +497,8 @@ export function CanvasArea(props: CanvasAreaProps) {
     return () => window.removeEventListener("keydown", onKey);
   }, [
     isSelectMode,
+    isCropMode,
+    cropRect,
     selectedShapeId,
     textInput,
     editingTextId,
@@ -452,6 +513,7 @@ export function CanvasArea(props: CanvasAreaProps) {
     onRedo,
     onExportToFile,
     onExportToClipboard,
+    onCropImage,
   ]);
 
   const imageSize: FitSize | null = image
@@ -493,6 +555,13 @@ export function CanvasArea(props: CanvasAreaProps) {
       if (event.target === event.target.getStage()) {
         onSelectShape(null);
       }
+      return;
+    }
+
+    // In crop mode the only interactive node is the crop rectangle itself
+    // (drag + transformer). Clicking elsewhere on the stage is a no-op so
+    // accidental clicks do not exit the mode or start a fresh draft.
+    if (isCropMode) {
       return;
     }
 
@@ -613,6 +682,35 @@ export function CanvasArea(props: CanvasAreaProps) {
     })()
     : undefined;
 
+  // Screen-space coordinates of the active crop selection, derived from the
+  // natural-space cropRect. Used for Konva node positioning and for placing
+  // the Confirm / Cancel overlay buttons.
+  const cropScreenRect = cropRect && fit && imageSize
+    ? (() => {
+      const tl = imageToScreen({ x: cropRect.x, y: cropRect.y }, fit, imageSize);
+      const { scaleX, scaleY } = imageToScreenScale(fit, imageSize);
+      return {
+        x: tl.x,
+        y: tl.y,
+        width: cropRect.width * scaleX,
+        height: cropRect.height * scaleY,
+      };
+    })()
+    : null;
+
+  const cropConfirmDisabled = cropRect === null ||
+    cropRect.width < MIN_CROP_DIM ||
+    cropRect.height < MIN_CROP_DIM;
+
+  const handleCropConfirm = () => {
+    if (cropRect === null || cropConfirmDisabled) return;
+    onCropImage(cropRect);
+  };
+
+  const handleCropCancel = () => {
+    onToolChange("select");
+  };
+
   return (
     <div ref={containerRef} className={className} aria-label={t("canvas.label")}>
       {size.width > 0 && size.height > 0
@@ -699,6 +797,138 @@ export function CanvasArea(props: CanvasAreaProps) {
                 ? renderDraft(draft, fit, imageSize, mosaicDraftColors)
                 : null}
             </Layer>
+            <Layer listening={isCropMode}>
+              {isCropMode && cropScreenRect && cropRect && fit && imageSize
+                ? (
+                  <>
+                    {
+                      /* Dim mask: four strips covering everything outside the
+                        crop rectangle (within the image fit area). Non-interactive. */
+                    }
+                    <Rect
+                      x={fit.x}
+                      y={fit.y}
+                      width={fit.width}
+                      height={Math.max(0, cropScreenRect.y - fit.y)}
+                      fill="rgba(0,0,0,0.5)"
+                      listening={false}
+                    />
+                    <Rect
+                      x={fit.x}
+                      y={cropScreenRect.y + cropScreenRect.height}
+                      width={fit.width}
+                      height={Math.max(
+                        0,
+                        fit.y + fit.height - (cropScreenRect.y + cropScreenRect.height),
+                      )}
+                      fill="rgba(0,0,0,0.5)"
+                      listening={false}
+                    />
+                    <Rect
+                      x={fit.x}
+                      y={cropScreenRect.y}
+                      width={Math.max(0, cropScreenRect.x - fit.x)}
+                      height={cropScreenRect.height}
+                      fill="rgba(0,0,0,0.5)"
+                      listening={false}
+                    />
+                    <Rect
+                      x={cropScreenRect.x + cropScreenRect.width}
+                      y={cropScreenRect.y}
+                      width={Math.max(
+                        0,
+                        fit.x + fit.width - (cropScreenRect.x + cropScreenRect.width),
+                      )}
+                      height={cropScreenRect.height}
+                      fill="rgba(0,0,0,0.5)"
+                      listening={false}
+                    />
+                    <Rect
+                      ref={cropRectRef}
+                      x={cropScreenRect.x}
+                      y={cropScreenRect.y}
+                      width={cropScreenRect.width}
+                      height={cropScreenRect.height}
+                      stroke="#3b82f6"
+                      strokeWidth={2}
+                      draggable
+                      dragBoundFunc={(pos) => {
+                        // Clamp the screen-space drag so the rect cannot leave
+                        // the image's letterboxed render area.
+                        const maxX = fit.x + fit.width - cropScreenRect.width;
+                        const maxY = fit.y + fit.height - cropScreenRect.height;
+                        return {
+                          x: Math.max(fit.x, Math.min(maxX, pos.x)),
+                          y: Math.max(fit.y, Math.min(maxY, pos.y)),
+                        };
+                      }}
+                      onDragEnd={(e) => {
+                        const node = e.target;
+                        const naturalPos = screenToImage(
+                          { x: node.x(), y: node.y() },
+                          fit,
+                          imageSize,
+                        );
+                        setCropRect({
+                          x: Math.round(naturalPos.x),
+                          y: Math.round(naturalPos.y),
+                          width: cropRect.width,
+                          height: cropRect.height,
+                        });
+                      }}
+                      onTransformEnd={(e) => {
+                        const node = e.target as Konva.Rect;
+                        const newWidthScreen = node.width() * node.scaleX();
+                        const newHeightScreen = node.height() * node.scaleY();
+                        const naturalPos = screenToImage(
+                          { x: node.x(), y: node.y() },
+                          fit,
+                          imageSize,
+                        );
+                        const { scaleX: imgScaleX, scaleY: imgScaleY } = imageToScreenScale(
+                          fit,
+                          imageSize,
+                        );
+                        // Reset scale on the node so the next React-driven
+                        // render reads our rounded natural-space dimensions
+                        // without Konva re-applying scale on top.
+                        node.scaleX(1);
+                        node.scaleY(1);
+                        setCropRect({
+                          x: Math.round(naturalPos.x),
+                          y: Math.round(naturalPos.y),
+                          width: Math.round(newWidthScreen / imgScaleX),
+                          height: Math.round(newHeightScreen / imgScaleY),
+                        });
+                      }}
+                    />
+                    <Transformer
+                      ref={cropTransformerRef}
+                      rotateEnabled={false}
+                      flipEnabled={false}
+                      enabledAnchors={RESIZE_ANCHORS as string[]}
+                      boundBoxFunc={(oldBox, newBox) => {
+                        // Reject sizes below the minimum or that would push
+                        // the rect outside the image's render area.
+                        if (newBox.width < MIN_CROP_DIM || newBox.height < MIN_CROP_DIM) {
+                          return oldBox;
+                        }
+                        if (newBox.x < fit.x - 0.5 || newBox.y < fit.y - 0.5) {
+                          return oldBox;
+                        }
+                        if (
+                          newBox.x + newBox.width > fit.x + fit.width + 0.5 ||
+                          newBox.y + newBox.height > fit.y + fit.height + 0.5
+                        ) {
+                          return oldBox;
+                        }
+                        return newBox;
+                      }}
+                    />
+                  </>
+                )
+                : null}
+            </Layer>
           </Stage>
         )
         : null}
@@ -728,6 +958,39 @@ export function CanvasArea(props: CanvasAreaProps) {
             onConfirm={confirmEditText}
             onCancel={cancelEditText}
           />
+        )
+        : null}
+      {isCropMode && cropScreenRect
+        ? (
+          <div
+            className={styles.cropOverlay}
+            // Anchor the buttons just below the crop rectangle's bottom-left
+            // corner so the user sees them without obscuring the rect itself.
+            style={{
+              left: cropScreenRect.x,
+              top: cropScreenRect.y + cropScreenRect.height + 8,
+            }}
+          >
+            <button
+              type="button"
+              className={`${styles.cropButton} ${styles.cropButtonConfirm}`}
+              onClick={handleCropConfirm}
+              disabled={cropConfirmDisabled}
+              aria-label={t("crop.confirm.label")}
+              title={t("crop.confirm.title")}
+            >
+              {t("crop.confirm.label")}
+            </button>
+            <button
+              type="button"
+              className={styles.cropButton}
+              onClick={handleCropCancel}
+              aria-label={t("crop.cancel.label")}
+              title={t("crop.cancel.title")}
+            >
+              {t("crop.cancel.label")}
+            </button>
+          </div>
         )
         : null}
       {image === null

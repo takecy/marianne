@@ -28,6 +28,10 @@ interface CanvasState {
   deleteShape: (id: string) => void;
   selectShape: (id: string | null) => void;
   clearShapes: () => void;
+  // Atomically replace the entire shape list and reset undo/redo history.
+  // Used when the underlying image changes mid-session (e.g. after a crop)
+  // so the previous image's history cannot be restored.
+  resetShapes: (shapes: Shape[]) => void;
   copyShape: (id: string) => void;
   pasteShape: (imageSize: Size) => void;
   undo: () => void;
@@ -161,6 +165,7 @@ export const useCanvasStore = create<CanvasState>((set) => ({
     }),
   selectShape: (id) => set({ selectedShapeId: id }),
   clearShapes: () => set({ shapes: [], selectedShapeId: null, past: [], future: [] }),
+  resetShapes: (shapes) => set({ shapes, selectedShapeId: null, past: [], future: [] }),
   copyShape: (id) =>
     set((state) => {
       const shape = state.shapes.find((s) => s.id === id);

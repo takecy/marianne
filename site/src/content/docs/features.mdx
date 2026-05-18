@@ -5,7 +5,7 @@ description: A tour of Marianne's annotation tools, color presets, stroke widths
 
 import { Aside, Card, CardGrid } from "@astrojs/starlight/components";
 
-Marianne keeps the annotation surface small on purpose. Four shapes, eight colors, four stroke widths, and a handful of gestures cover almost every screenshot review you will ever do.
+Marianne keeps the annotation surface small on purpose. Four annotation shapes plus an image crop tool, eight colors, four stroke widths, and a handful of gestures cover almost every screenshot review you will ever do.
 
 ## Annotation tools
 
@@ -24,7 +24,20 @@ Marianne keeps the annotation surface small on purpose. Four shapes, eight color
   </Card>
 </CardGrid>
 
-Switch tools from the left sidebar or with single-key shortcuts (`v` / `a` / `r` / `t` / `m`) — see [Keyboard shortcuts](./keyboard-shortcuts/).
+Switch tools from the left sidebar or with single-key shortcuts (`v` / `a` / `r` / `t` / `m` / `x`) — see [Keyboard shortcuts](./keyboard-shortcuts/).
+
+## Image crop
+
+The crop tool (sidebar icon or shortcut `x`) replaces the loaded image with a freshly cut region. On entry a default selection (the centre 80% of the image) appears with eight resize handles; drag the body to move it, drag a handle to resize. **Enter** or the **Apply** button commits, **Escape** or **Cancel** discards.
+
+<Aside type="caution">
+Crop is treated like loading a new image: the **undo / redo history is reset**
+on commit. There is no way to undo back to the pre-crop canvas — save first
+if you need a backup. Annotations that fall fully outside the crop region are
+deleted; rectangles, mosaics, and arrows that straddle the boundary are
+clipped to the new image bounds (arrows that miss the crop rectangle entirely
+are deleted, not clamped to the edge).
+</Aside>
 
 ## Color presets
 

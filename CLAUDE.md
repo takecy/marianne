@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## プロジェクト概要
 
-**Marianne** は完全オフラインで動作する Skitch 風の画像注釈デスクトップアプリ（MVP）。画像に対して矩形 / 矢印 / テキスト / モザイクのアノテーションを付与し、PNG としてファイル保存またはクリップボードへコピーする。外部ネットワーク通信は一切行わない。
+**Marianne** は完全オフラインで動作する Skitch 風の画像注釈デスクトップアプリ（MVP）。画像に対して矩形 / 矢印 / テキスト / モザイクのアノテーションを付与し、クロップで不要な領域を切り落とし、PNG としてファイル保存またはクリップボードへコピーする。外部ネットワーク通信は一切行わない。
 
 技術スタック: **Tauri v2（Rust シェル）+ React 19 + TypeScript + Vite + react-konva + Zustand**。Tauri バックエンドは意図的に最小限（`src-tauri/src/lib.rs` の `greet` / `take_pending_open_paths` / `confirm_quit` / `renderer_ready` の 4 コマンドのみ。`greet` はサンプル、残りは OS 統合用のグルーコード）で、機能開発はほぼ `src/` 内で完結する。
 
@@ -68,6 +68,17 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 `MOSAIC_NATURAL_PIXEL_SIZE = 24`（`MosaicNode.tsx` で定義）は natural 画像座標でのブロックサイズ。画面側ノードもエクスポートパイプラインもこの同じ定数を import する。値を変えると過去にエクスポート / 表示済みのモザイクの粗さが変わるので、UX 上の判断として固定運用する。
 
+### クロップ — 画像差し替えとシェイプ平行移動の原子性
+
+クロップは「画像 element の差し替え」「全シェイプの `(-cropX, -cropY)` 平行移動」「履歴の完全リセット」の 3 つを同時に行う、座標系の不変条件を最も激しく揺さぶる操作:
+
+- 純粋ヘルパーは `src/lib/cropImage.ts` に集約 (`cropLoadedImage` / `transformShapesForCrop` / `liangBarskyClip` / `defaultCropRect`)。Konva / React 非依存で単体テスト (`cropImage.test.ts`) が回帰を保護する。
+- `App.tsx` の `handleCropImage(rect)` は `cropLoadedImage` → `transformShapesForCrop(shapes, rect)` → `resetShapes(newShapes)` → `setImage(newImage)` → `setActiveTool("select")` の順で実行する。**この順序を変えない**: `resetShapes` で履歴を消す前に `setImage` を呼ぶと、新画像 + 旧 shapes が一瞬描画されてフリッカーする。
+- `resetShapes` (新規 store action、引数あり) は `clearShapes()` + `addShapes()` の置き換えとして導入した。`addShapes` は `withHistory` 経由で past に `[]` が積まれてしまうため、クロップ後の純粋な履歴リセット要件を満たせない。両者の使い分けはコメントで明示済み。
+- モザイクの `crop` 数式 (`exportImage.ts:92-97` / `MosaicNode.tsx`) は「画像 element の natural pixel space」を直接参照する設計のため、画像差し替えとシェイプ平行移動が同時に起きれば自動的に新画像内の正しいピクセル領域を指す。**この性質に依存しているコードを書き換える際は、双方の同期更新を必ず維持すること**。
+- arrow は **Liang-Barsky 線分クリッピング** が必須。両端点を独立にクランプする単純実装は、矩形を通らない矢印でも矩形辺上に偽の矢印を生成する致命的バグになる。`transformShapesForCrop` の test (`cropImage.test.ts` の「DELETES an arrow that misses the crop rectangle entirely」) が回帰を検出する。
+- クロップ後は履歴がリセットされるため undo で元画像に戻れない仕様 (Issue #58 で合意済み)。これを undo-able にする要望が来た場合は `image` 自体を `canvasStore` の履歴に含める大改修が必要。
+
 ### クリップボードへのエクスポート — 同期的な Promise ハンドオフ
 
 `App.tsx` の `handleExportToClipboard` は **`async` ではなく**、blob を **`await` しない**:
@@ -106,16 +117,18 @@ copyImageToClipboard(blobPromise); // Promise<Blob> をそのまま ClipboardIte
 
 `CanvasArea.tsx` の `keydown` リスナが管理（テキスト入力にフォーカスが当たっている時 / textarea や input にフォーカスがある時はネイティブの編集を尊重するため bail out する）:
 
-| キー                        | 動作                                               | 補足                                                                                    |
-| --------------------------- | -------------------------------------------------- | --------------------------------------------------------------------------------------- |
-| `Cmd/Ctrl + Shift + S`      | PNG をファイル保存                                 | ネイティブの保存ダイアログを開く                                                        |
-| `Cmd/Ctrl + Shift + C`      | PNG をシステムクリップボードへコピー               | 同期的 Promise ハンドオフが必須 (後述)                                                  |
-| `Cmd/Ctrl + Z`              | undo                                               |                                                                                         |
-| `Cmd/Ctrl + Shift + Z`      | redo                                               |                                                                                         |
-| `Cmd/Ctrl + C`              | 選択中シェイプをアプリ内クリップボードへコピー     | 選択モードかつシェイプ選択時のみ                                                        |
-| `Cmd/Ctrl + V`              | アプリ内クリップボードのシェイプを貼付             | `clipboardShape` が無い時は `preventDefault` を呼ばないので OS の画像ペーストが動作する |
-| `v` / `a` / `r` / `t` / `m` | ツール切替 (select / arrow / rect / text / mosaic) | 画像未読み込み時は無視。`TOOL_SHORTCUTS` (`src/types/tool.ts`) で定義                   |
-| `Delete` / `Backspace`      | 選択中シェイプの削除                               | 選択モード時のみ                                                                        |
+| キー                              | 動作                                                      | 補足                                                                                    |
+| --------------------------------- | --------------------------------------------------------- | --------------------------------------------------------------------------------------- |
+| `Cmd/Ctrl + Shift + S`            | PNG をファイル保存                                        | ネイティブの保存ダイアログを開く                                                        |
+| `Cmd/Ctrl + Shift + C`            | PNG をシステムクリップボードへコピー                      | 同期的 Promise ハンドオフが必須 (後述)                                                  |
+| `Cmd/Ctrl + Z`                    | undo                                                      |                                                                                         |
+| `Cmd/Ctrl + Shift + Z`            | redo                                                      |                                                                                         |
+| `Cmd/Ctrl + C`                    | 選択中シェイプをアプリ内クリップボードへコピー            | 選択モードかつシェイプ選択時のみ                                                        |
+| `Cmd/Ctrl + V`                    | アプリ内クリップボードのシェイプを貼付                    | `clipboardShape` が無い時は `preventDefault` を呼ばないので OS の画像ペーストが動作する |
+| `v` / `a` / `r` / `t` / `m` / `x` | ツール切替 (select / arrow / rect / text / mosaic / crop) | 画像未読み込み時は無視。`TOOL_SHORTCUTS` (`src/types/tool.ts`) で定義                   |
+| `Enter`                           | クロップ矩形の確定 (crop モード時のみ)                    | `cropImage.ts` の `MIN_CROP_DIM` (8px) 未満ならボタンも Enter も無効                    |
+| `Escape`                          | クロップのキャンセル (crop モード時のみ)                  | `onToolChange("select")` を呼んで select モードへ戻す                                   |
+| `Delete` / `Backspace`            | 選択中シェイプの削除                                      | 選択モード時のみ                                                                        |
 
 `Cmd+C` / `Cmd+V` (Shift なし) は OS クリップボードには触れずアプリ内専用クリップボードで動作する一方、`Cmd+Shift+C` は PNG 出力という別経路の機能。エクスポートを `Cmd+E` に振り直すなどしないこと: 既存ユーザーの筋肉記憶を壊すうえ、`Cmd+V` の挙動と意味的に対をなしている。
 
