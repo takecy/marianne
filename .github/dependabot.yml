@@ -1,0 +1,45 @@
+# Dependabot configuration. Controls automated PR generation for security
+# and version updates.
+# Docs: https://docs.github.com/en/code-security/dependabot/dependabot-version-updates/configuration-options-for-the-dependabot.yml-file
+version: 2
+updates:
+  - package-ecosystem: cargo
+    directory: "/src-tauri"
+    schedule:
+      interval: weekly
+    # Version-update PRs are not desired (the maintainer drives `cargo update`
+    # manually). `open-pull-requests-limit: 0` halts version-update PRs
+    # entirely. The `updates` block must still exist so the `ignore` rule
+    # below remains a documented signal for future security-update behavior.
+    open-pull-requests-limit: 0
+    ignore:
+      # GHSA-wrw7-89jp-8q8g: glib < 0.20 has an unsoundness in
+      # VariantStrIter, but on the macOS aarch64 target this crate is gated
+      # behind cfg(target_os = "linux") via libappindicator / webkit2gtk
+      # and never enters the dependency graph. Verified empirically with
+      # `cargo tree -e normal --target aarch64-apple-darwin -i glib`
+      # returning empty. Marianne ships as aarch64-apple-darwin only, so
+      # the vulnerability is unreachable in distributed binaries.
+      #
+      # glib is transitively pinned through webkit2gtk -> wry -> tauri,
+      # so a standalone bump is physically impossible until upstream wry
+      # advances. We therefore omit `versions:` and ignore all glib
+      # updates here (note: Dependabot's `ignore.versions` specifies
+      # update-target ranges, not vulnerable-current ranges -- a
+      # `versions: ["< 0.20"]` rule would NOT suppress security PRs
+      # targeting 0.20+).
+      #
+      # Remove this entry once upstream wry / tauri advance to glib 0.20+
+      # (at which point the unreachable-on-macOS premise no longer holds
+      # and the alert should resurface).
+      - dependency-name: "glib"
+  - package-ecosystem: npm
+    directory: "/"
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 0
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 0
