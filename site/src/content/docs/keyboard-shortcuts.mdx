@@ -1,6 +1,6 @@
 ---
 title: Keyboard shortcuts
-description: Master Marianne with eleven keyboard shortcuts covering export, edit history, the in-app shape clipboard, and one-key tool switching.
+description: Master Marianne's keyboard shortcuts covering export, edit history, the in-app shape clipboard, one-key tool switching, and crop-mode confirmation.
 ---
 
 import { Aside } from "@astrojs/starlight/components";
@@ -49,8 +49,20 @@ chat apps, or other tools.
 | `r` | Rectangle |
 | `t` | Text |
 | `m` | Mosaic |
+| `x` | Crop |
 
 Tool shortcuts are **modifier-less single keys** (no Cmd / Ctrl / Shift / Alt). They are ignored when no image is loaded, which keeps `v` etc. from intercepting key presses on the empty start screen.
+
+## Crop mode
+
+While the crop tool is active, two additional keys handle the selection:
+
+| Shortcut | Action |
+|----------|--------|
+| `Enter` | Apply the crop (same as the **Apply** button) |
+| `Escape` | Cancel and return to the select tool (same as **Cancel**) |
+
+See [Features → Image crop](./features/#image-crop) for the behaviour and history-reset semantics.
 
 ## Discoverability tips
 

@@ -20,7 +20,7 @@ Named after Marianne (Ms. Goldenweek), a painter character from ONE PIECE by Eii
 
 - **Fully offline**: no telemetry, no cloud sync, no external server calls (except the updater hitting GitHub Releases).
 - **Lean dependency tree**: prefer platform primitives over npm packages. Browser, Node, and Konva cover most cases — only add deps when the platform cannot.
-- **Skitch-like simplicity**: four tools, eight colors, four stroke widths. A small fixed surface beats a kitchen-sink toolbar.
+- **Skitch-like simplicity**: five tools, eight colors, four stroke widths. A small fixed surface beats a kitchen-sink toolbar.
 - **AI-friendly stack**: TypeScript + React + Konva chosen for high LLM affinity — coding agents (Cursor, Claude Code, etc.) produce accurate code with this combination.
 
 ## Screenshots
