@@ -1,4 +1,4 @@
-import type { Point, Size } from "@/lib/imageFit";
+import type { FitRect, Point, Size } from "@/lib/imageFit";
 
 export const MIN_ZOOM = 0.1;
 export const MAX_ZOOM = 8.0;
@@ -92,4 +92,37 @@ export function fitPointToStagePoint(fitPoint: Point, zoom: ZoomState): Point {
     x: zoom.offsetX + zoom.scale * fitPoint.x,
     y: zoom.offsetY + zoom.scale * fitPoint.y,
   };
+}
+
+// Constrain a ZoomState's offset so the image cannot escape the Stage.
+// Per-axis behavior:
+//   - boundsRange [minOffset, maxOffset] where
+//       minOffset = stageSize - (fit + fit.size) * scale  (image right/bottom edge glued to Stage)
+//       maxOffset = -fit * scale                          (image left/top edge glued to Stage)
+//   - When the image overflows the Stage on this axis (minOffset <= maxOffset),
+//     clamp into boundsRange (hard clamp).
+//   - When the image fits within the Stage (minOffset > maxOffset), the
+//     containment range [maxOffset, minOffset] is inverted; preserve the
+//     offset when it already lies inside, otherwise minimally correct it
+//     to the nearest containmentRange edge using
+//     `Math.max(maxOffset, Math.min(minOffset, offset))`.
+// Pure and idempotent: a state already in range round-trips unchanged.
+//
+// The "two-finger swipe is a no-op while the image fits" UX requirement is
+// enforced at the call site (handleWheel pan branch zeros the wheel delta
+// on a fit axis), not here, so this function stays a single-mode contract.
+export function clampPan(zoom: ZoomState, stageSize: Size, fit: FitRect): ZoomState {
+  const minOffsetX = stageSize.width - (fit.x + fit.width) * zoom.scale;
+  const maxOffsetX = -fit.x * zoom.scale;
+  const offsetX = minOffsetX <= maxOffsetX
+    ? Math.max(minOffsetX, Math.min(maxOffsetX, zoom.offsetX))
+    : Math.max(maxOffsetX, Math.min(minOffsetX, zoom.offsetX));
+
+  const minOffsetY = stageSize.height - (fit.y + fit.height) * zoom.scale;
+  const maxOffsetY = -fit.y * zoom.scale;
+  const offsetY = minOffsetY <= maxOffsetY
+    ? Math.max(minOffsetY, Math.min(maxOffsetY, zoom.offsetY))
+    : Math.max(maxOffsetY, Math.min(minOffsetY, zoom.offsetY));
+
+  return { scale: zoom.scale, offsetX, offsetY };
 }

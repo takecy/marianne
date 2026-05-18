@@ -16,6 +16,7 @@ import { finalizeDraft, moveDraft, startDraft } from "@/lib/drawingGesture";
 import {
   applyCenteredZoom,
   applyPointerCenteredZoom,
+  clampPan,
   DEFAULT_ZOOM_STATE,
   fitPointToStagePoint,
   nextZoomIn,
@@ -273,6 +274,15 @@ export function CanvasArea(props: CanvasAreaProps) {
   const isSelectMode = activeTool === "select";
   const isCropMode = activeTool === "crop";
 
+  // Derived layout: image natural size + Stage letterbox fit rect.
+  // Declared above the keydown/wheel handlers so they can clamp pan
+  // offsets against the current fit without forward-referencing it
+  // (which would cause TDZ + react-hooks/exhaustive-deps issues).
+  const imageSize: FitSize | null = image
+    ? { width: image.naturalWidth, height: image.naturalHeight }
+    : null;
+  const fit: FitRect | null = imageSize ? fitContain(imageSize, size) : null;
+
   useEffect(() => {
     const el = containerRef.current;
     if (!el) {
@@ -468,20 +478,25 @@ export function CanvasArea(props: CanvasAreaProps) {
       // and `+` (Cmd+Shift+= on US layouts) are accepted as zoom-in.
       // Ignored when no image is loaded — matches the disabled-toolbar pattern.
       if ((e.metaKey || e.ctrlKey) && (e.key === "+" || e.key === "=")) {
-        if (image === null) return;
+        if (image === null || !fit) return;
         e.preventDefault();
-        onZoomChange(applyCenteredZoom(zoomState, size, nextZoomIn(zoomState.scale)));
+        const zoomed = applyCenteredZoom(zoomState, size, nextZoomIn(zoomState.scale));
+        onZoomChange(clampPan(zoomed, size, fit));
         return;
       }
       if ((e.metaKey || e.ctrlKey) && e.key === "-") {
-        if (image === null) return;
+        if (image === null || !fit) return;
         e.preventDefault();
-        onZoomChange(applyCenteredZoom(zoomState, size, nextZoomOut(zoomState.scale)));
+        const zoomed = applyCenteredZoom(zoomState, size, nextZoomOut(zoomState.scale));
+        onZoomChange(clampPan(zoomed, size, fit));
         return;
       }
       if ((e.metaKey || e.ctrlKey) && e.key === "0") {
         if (image === null) return;
         e.preventDefault();
+        // DEFAULT_ZOOM_STATE (scale=1, offset=0) is always valid: at zoom=1
+        // the image fully fits the Stage by construction of `fitContain`,
+        // so clampPan would round-trip to the same value.
         onZoomChange(DEFAULT_ZOOM_STATE);
         return;
       }
@@ -569,12 +584,8 @@ export function CanvasArea(props: CanvasAreaProps) {
     zoomState,
     onZoomChange,
     size,
+    fit,
   ]);
-
-  const imageSize: FitSize | null = image
-    ? { width: image.naturalWidth, height: image.naturalHeight }
-    : null;
-  const fit: FitRect | null = imageSize ? fitContain(imageSize, size) : null;
 
   const selectedShape = useMemo(
     () => shapes.find((shape) => shape.id === selectedShapeId) ?? null,
@@ -669,22 +680,49 @@ export function CanvasArea(props: CanvasAreaProps) {
     setDraft(null);
   };
 
-  // Trackpad pinch and Ctrl+wheel zoom. `ctrlKey` is true for both on macOS
-  // WKWebView, where trackpad pinch is synthesized into wheel events with
-  // ctrlKey=true. Plain scroll is ignored — pan is out of scope.
+  // macOS WKWebView wheel routing:
+  //   - ctrlKey === true  : trackpad pinch (and explicit Ctrl+wheel) -> zoom
+  //   - ctrlKey === false : trackpad 2-finger swipe (or mouse wheel)  -> pan
+  // Both branches finish with `clampPan` so the image cannot escape the
+  // Stage; this also re-clamps after zoom changes that may leave a
+  // previously-panned offset out of range (e.g. pan to edge at 400% then
+  // pinch out to 200%). The "panning is disabled when the image fits the
+  // window" requirement is enforced in the pan branch by zeroing the
+  // wheel delta on any axis where the image already fits.
   const handleWheel = (event: KonvaEventObject<WheelEvent>) => {
-    if (!image) {
+    if (!image || !fit) {
       return;
     }
     const native = event.evt;
-    if (!native.ctrlKey) {
+    native.preventDefault();
+
+    if (native.ctrlKey) {
+      const stage = event.target.getStage();
+      const pointer = stage?.getPointerPosition() ?? { x: 0, y: 0 };
+      const factor = wheelDeltaToZoomFactor(native.deltaY);
+      const zoomed = applyPointerCenteredZoom(zoomState, pointer, zoomState.scale * factor);
+      onZoomChange(clampPan(zoomed, size, fit));
       return;
     }
-    native.preventDefault();
-    const stage = event.target.getStage();
-    const pointer = stage?.getPointerPosition() ?? { x: 0, y: 0 };
-    const factor = wheelDeltaToZoomFactor(native.deltaY);
-    onZoomChange(applyPointerCenteredZoom(zoomState, pointer, zoomState.scale * factor));
+
+    // Pan branch. Raw wheel deltas are applied directly so macOS natural
+    // scrolling sign convention is preserved. On any axis where the
+    // scaled image already fits, the delta is dropped so panning becomes
+    // a no-op (issue #64 requirement). We do NOT early-return when both
+    // deltas are zero — `clampPan` must still run because the existing
+    // offset may be stale relative to the current `size`/`fit` (e.g.
+    // after a window resize that turned an overflow axis into a fit
+    // axis). `clampPan` is idempotent on valid states.
+    const scaledFitWidth = fit.width * zoomState.scale;
+    const scaledFitHeight = fit.height * zoomState.scale;
+    const dx = scaledFitWidth > size.width ? native.deltaX : 0;
+    const dy = scaledFitHeight > size.height ? native.deltaY : 0;
+    const panned: ZoomState = {
+      scale: zoomState.scale,
+      offsetX: zoomState.offsetX - dx,
+      offsetY: zoomState.offsetY - dy,
+    };
+    onZoomChange(clampPan(panned, size, fit));
   };
 
   const confirmText = (text: string) => {

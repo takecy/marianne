@@ -1,6 +1,8 @@
+import { fitContain, type FitRect, type Size } from "./imageFit";
 import {
   applyCenteredZoom,
   applyPointerCenteredZoom,
+  clampPan,
   clampZoomScale,
   DEFAULT_ZOOM,
   DEFAULT_ZOOM_STATE,
@@ -149,5 +151,86 @@ describe("stagePointToFitPoint / fitPointToStagePoint", () => {
     const back = fitPointToStagePoint(fit, zoom);
     expect(back.x).toBeCloseTo(stage.x, 6);
     expect(back.y).toBeCloseTo(stage.y, 6);
+  });
+});
+
+describe("clampPan", () => {
+  // A symmetric configuration: a 1000x800 stage with a 400x300 image
+  // produces fit = { x: 300, y: 250, width: 400, height: 300 } when zoom = 1.
+  // At scale = 2 the image overflows neither axis (800x600 still fits in 1000x800),
+  // so this gives us a clean "fit axis" scenario for both X and Y.
+  const stageSize: Size = { width: 1000, height: 800 };
+  const fit: FitRect = fitContain({ width: 400, height: 300 }, stageSize);
+
+  it("is identity on DEFAULT_ZOOM_STATE", () => {
+    const result = clampPan(DEFAULT_ZOOM_STATE, stageSize, fit);
+    expect(result.scale).toBe(DEFAULT_ZOOM);
+    expect(result.offsetX).toBeCloseTo(0, 6);
+    expect(result.offsetY).toBeCloseTo(0, 6);
+  });
+
+  it("preserves a valid in-containment offset when image fits within stage on this axis", () => {
+    // scale = 2: X containment range = [maxOffsetX, minOffsetX] = [-fit.x*2, stageW - (fit.x+fit.width)*2]
+    // fit.x = 300, fit.width = 400 -> maxOffsetX = -600, minOffsetX = 1000 - 1400 = -400.
+    // Any offsetX in [-600, -400] places the image fully within the Stage; pick -500.
+    const zoom: ZoomState = { scale: 2, offsetX: -500, offsetY: 0 };
+    const result = clampPan(zoom, stageSize, fit);
+    expect(result.offsetX).toBe(-500);
+  });
+
+  it("minimally corrects offset that escapes Stage right (fit axis)", () => {
+    // offsetX = -250 is outside containmentRange [-600, -400] (image right edge sticks out);
+    // expect snap to minOffsetX = -400.
+    const zoom: ZoomState = { scale: 2, offsetX: -250, offsetY: 0 };
+    const result = clampPan(zoom, stageSize, fit);
+    expect(result.offsetX).toBe(-400);
+  });
+
+  it("minimally corrects offset that escapes Stage left (fit axis)", () => {
+    // offsetX = -700 is below maxOffsetX = -600; expect snap to -600.
+    const zoom: ZoomState = { scale: 2, offsetX: -700, offsetY: 0 };
+    const result = clampPan(zoom, stageSize, fit);
+    expect(result.offsetX).toBe(-600);
+  });
+
+  it("clamps offsetX to maxOffsetX when panned too far right (overflow axis)", () => {
+    // scale = 4: scaled width = 1600 > 1000, so X overflows.
+    // maxOffsetX = -fit.x * 4 = -1200, minOffsetX = 1000 - (300 + 400) * 4 = -1800.
+    const zoom: ZoomState = { scale: 4, offsetX: 999999, offsetY: 0 };
+    const result = clampPan(zoom, stageSize, fit);
+    expect(result.offsetX).toBe(-fit.x * 4);
+  });
+
+  it("clamps offsetX to minOffsetX when panned too far left (overflow axis)", () => {
+    const zoom: ZoomState = { scale: 4, offsetX: -999999, offsetY: 0 };
+    const result = clampPan(zoom, stageSize, fit);
+    expect(result.offsetX).toBe(stageSize.width - (fit.x + fit.width) * 4);
+  });
+
+  it("processes X and Y independently (X fits with non-center offset, Y overflows)", () => {
+    // A tall image scaled so Y overflows the Stage but X stays in containment.
+    // Use a 200x800 image in a 1000x800 stage; fitContain caps at ratio 1 (image fits),
+    // giving fit = { x: 400, y: 0, width: 200, height: 800 }.
+    // At scale = 2 -> scaledWidth = 400 <= 1000 (X fits), scaledHeight = 1600 > 800 (Y overflows).
+    const tallFit = fitContain({ width: 200, height: 800 }, stageSize);
+    expect(tallFit).toEqual({ x: 400, y: 0, width: 200, height: 800 });
+    // X containment: maxOffsetX = -800, minOffsetX = 1000 - 1200 = -200 -> range [-800, -200].
+    // Pick offsetX = -500 (in range, preserved).
+    // Y overflow: maxOffsetY = 0, minOffsetY = 800 - 1600 = -800 -> clamp +Infinity to 0.
+    const zoom: ZoomState = { scale: 2, offsetX: -500, offsetY: 999999 };
+    const result = clampPan(zoom, stageSize, tallFit);
+    expect(result.offsetX).toBe(-500);
+    // Use toBeCloseTo because `-fit.y * scale` evaluates to -0 here (fit.y === 0),
+    // and JS distinguishes +0 from -0 via Object.is.
+    expect(result.offsetY).toBeCloseTo(0, 6);
+  });
+
+  it("passes through valid offsets within the clamp range unchanged (overflow axis)", () => {
+    // scale = 4, X overflows: range [-1800, -1200]. Y also overflows when scaledHeight 1200 > 800:
+    // maxOffsetY = -fit.y * 4 = -1000, minOffsetY = 800 - (250+300)*4 = -1400.
+    const zoom: ZoomState = { scale: 4, offsetX: -1500, offsetY: -1200 };
+    const result = clampPan(zoom, stageSize, fit);
+    expect(result.offsetX).toBe(-1500);
+    expect(result.offsetY).toBe(-1200);
   });
 });
