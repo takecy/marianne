@@ -157,13 +157,6 @@
   border-radius: 1px;
 }
 
-.historyGroup {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  align-items: center;
-}
-
 .updateGroup {
   margin-top: auto;
   display: flex;

@@ -321,10 +321,6 @@ function App() {
         activeStrokeWidth={activeStrokeWidth}
         onStrokeWidthChange={handleStrokeWidthChange}
         disabled={image === null}
-        onUndo={undo}
-        onRedo={redo}
-        canUndo={canUndo}
-        canRedo={canRedo}
         onCheckForUpdates={() => void checkForUpdates()}
         updateButtonState={deriveUpdateButtonState(updateState.kind)}
         updateErrorMessage={updateState.kind === "error" ? updateState.message : undefined}
@@ -335,6 +331,10 @@ function App() {
           onExportToFile={handleExportToFile}
           onExportToClipboard={handleExportToClipboard}
           copyState={copyState}
+          onUndo={undo}
+          onRedo={redo}
+          canUndo={canUndo}
+          canRedo={canRedo}
         />
         <CanvasArea
           image={image}
