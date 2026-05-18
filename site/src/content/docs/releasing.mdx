@@ -14,28 +14,51 @@ Releases are fully automated by a single GitHub Actions workflow at [`.github/wo
 <Steps>
 1. **Trigger the workflow**: in the repository, go to **Actions → Tag and Release → Run workflow**.
 
-   - Pick a `bump_version` (`patch` / `minor` / `major`). Conventional Commits detection on the changelog takes precedence when applicable.
+   - The next version is computed automatically from Conventional Commits (`feat:` → minor, `fix:` and others → patch, `BREAKING CHANGE:` → major). When detection fails the workflow falls back to a patch bump.
+   - The manifest version (`package.json` / `src-tauri/tauri.conf.json` / `src-tauri/Cargo.toml`) is intentionally NOT bumped on `main`. The released version is injected into `tauri.conf.json` only on the runner, never committed.
 
 2. **The `tagging` job runs on `ubuntu-latest`**:
 
-   - Computes the next version via a `dry_run`.
-   - Runs `scripts/bump-version.sh` to sync `package.json` / `src-tauri/tauri.conf.json` / `src-tauri/Cargo.toml` in a single commit.
-   - Pushes the bump commit to `main`.
-   - Pushes the `vX.Y.Z` tag.
+   - `mathieudutour/github-tag-action` computes the next version and pushes the `vX.Y.Z` tag (tag ref only; no push to `main`).
+   - `getLatestRelease` fetches the previous release tag, and `generateReleaseNotes` produces the changelog.
+   - **A release is created with `draft: true`** and its `release.id` is exported as a job output. At this point `/releases/latest` still resolves to the previous release.
 
 3. **The `release` job runs on `macos-14` (with `needs: tagging`)**:
 
-   - Checks out the just-tagged commit.
-   - Runs `pnpm tauri build --target aarch64-apple-darwin` to produce signed bundles.
-   - Publishes `Marianne.app.tar.gz`, `.sig`, and `latest.json` to a GitHub Release (not draft, not prerelease).
+   - Checks out the new tag.
+   - Rewrites `src-tauri/tauri.conf.json`'s `version` with `jq` to match the new tag (runner-local only; never committed).
+   - `tauri-action` builds signed bundles for `aarch64-apple-darwin` and uploads `Marianne_<version>_aarch64.dmg` / `*.app.tar.gz` / `*.app.tar.gz.sig` / `latest.json` to the draft release using `releaseId`.
+   - The **`Verify draft release assets` step** checks that every required asset is present and that `latest.json` contains a matching `version`, a valid `platforms["darwin-aarch64"].url`, and a non-empty `signature`. If any check fails, the release stays in draft and the previous release remains as `/releases/latest`.
+   - The **`Promote draft release to published` step** runs `gh release edit "$TAG" --draft=false --latest`, atomically flipping `/releases/latest` to the new release.
 
 4. **Existing installations fetch `latest.json` on next launch** and prompt to update.
 </Steps>
 
 <Aside type="danger" title="Manual `git push origin vX.Y.Z` is forbidden">
-A tag that did not go through `bump-version.sh` (three-file version sync) and
-the `tauri-action` signing flow is **not a valid release**. The updater will
-silently fail. Always cut releases via the workflow_dispatch button above.
+A tag pushed outside this workflow never went through the auto-generated note,
+`releaseId` wiring, or asset verification. Without the runner-side
+`tauri.conf.json` version injection the `latest.json` `version` may not match
+the tag, and the updater may misidentify the available release. Always cut
+releases via the workflow_dispatch button above.
+</Aside>
+
+<Aside type="caution" title="The `draft → upload → verify → publish` sequence is an invariant">
+Tauri v2's updater treats no-update as `204 No Content`; a `404` is propagated
+as a rejection of `check()`. When `@tauri-apps/plugin-updater`'s `check()` is
+rejected, Marianne (`src/lib/useUpdater.ts`) surfaces it as an error state and
+the UI shows "⚠ Failed". If we created the release as published immediately,
+the 15–30 minute window before `latest.json` finishes uploading would 404
+`/releases/latest/download/latest.json` for every existing user who launched
+the app — they would all see a visible update failure. **The draft → verify →
+publish order is mandatory.**
+</Aside>
+
+<Aside type="note" title="Serializing parallel release runs">
+The workflow declares `concurrency: { group: tagging-release, cancel-in-progress: false }`.
+If two runs ran in parallel, an older run finishing `--latest` after a newer
+one would roll `/releases/latest` back to an earlier release (silently shipping
+a downgrade to existing users). Serialization makes later runs wait until the
+prior run finishes.
 </Aside>
 
 ## Supplying the signing key locally
@@ -80,11 +103,8 @@ touches `.tauri/` or similar paths.
 - **Back up** the private key + passphrase to 1Password (or equivalent). Losing the key means existing installations can no longer verify any future release — they will be permanently unable to auto-update.
 - **The `pubkey` in `tauri.conf.json` is fixed-for-life**. Rotating it breaks updates for everyone who installed before the rotation. Treat the key as immutable; if a rotation is unavoidable, expect to ship a one-time manual-install dmg.
 
-## Why manual tag pushes break
+## Recovery from failures
 
-The updater on each end-user machine compares its embedded `pubkey` (from `tauri.conf.json` at install time) against the signature in `latest.json`. A tag pushed manually:
-
-- Skips the `bump-version.sh` three-file sync → `tauri.conf.json` version may not match the tag
-- Skips the `tauri-action` signing step → `latest.json` contains no valid signature
-
-Either failure causes the updater to silently reject the release. The only safe path is the workflow_dispatch flow above.
+- **`Verify draft release assets` fails**: the release stays in draft and `/releases/latest` continues pointing at the previous release. No impact to existing users. Diagnose the cause (e.g. `tauri-action` did not produce `latest.json`), then delete the draft release with `gh release delete "$TAG" --yes --cleanup-tag` and rerun.
+- **`Promote draft release to published` fails**: assets are uploaded but the draft was never flipped. Run `gh release edit "$TAG" --draft=false --latest` manually to recover.
+- **Tag pushed but release creation failed**: delete the tag with `git push --delete origin "$TAG"` before re-running.
