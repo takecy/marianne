@@ -86,6 +86,18 @@ export function useMenuAction(options: MenuActionOptions): void {
             }
             break;
           case "edit-delete":
+            // Defense-in-depth: even though the menu item has no
+            // `Backspace` accelerator (so a Backspace keystroke reaches
+            // JS keydown's bail-out instead of routing here), a menu
+            // *click* on Edit → Delete while a text input is focused
+            // would still wipe the selected shape. Mirror the same
+            // bail-out so menu click and keydown behave identically.
+            // We do not call `execCommand("delete")` because that is
+            // forward-delete (Cmd+Delete) and would not match the
+            // user-facing Backspace mental model.
+            if (isInTextEditContext()) {
+              break;
+            }
             opts.onDelete();
             break;
           default:

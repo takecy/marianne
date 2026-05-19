@@ -372,13 +372,18 @@ pub fn run() {
             let edit_redo = MenuItemBuilder::with_id("edit-redo", "Redo")
                 .accelerator("Cmd+Shift+Z")
                 .build(app)?;
-            // `Backspace` accelerator may or may not parse cleanly in
-            // muda; we register it optimistically and the JS keydown
-            // handler in `CanvasArea.tsx` keeps Delete/Backspace working
-            // even if the accelerator is dropped at the menu level.
-            let edit_delete = MenuItemBuilder::with_id("edit-delete", "Delete")
-                .accelerator("Backspace")
-                .build(app)?;
+            // Intentionally **no accelerator** on Delete. macOS routes a
+            // keystroke registered as a menu accelerator straight to the
+            // menu handler and suppresses the corresponding keydown — so
+            // registering `Backspace` here would steal text-edit Backspace
+            // (typing a character) and turn it into a canvas shape
+            // deletion while the user has a text input focused. The
+            // existing JS keydown in `CanvasArea.tsx` already handles
+            // Backspace / Delete with the proper text-edit bail-out, so
+            // we leave the menu item as a click-only entry. The shortcut
+            // hint is omitted from menubar but the JS path keeps the
+            // expected `Backspace` / `Delete` behaviour.
+            let edit_delete = MenuItemBuilder::with_id("edit-delete", "Delete").build(app)?;
             let edit_submenu = SubmenuBuilder::new(app, "Edit")
                 .item(&edit_undo)
                 .item(&edit_redo)
