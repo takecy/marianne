@@ -33,6 +33,14 @@ The real name of "[Ms. Goldenweek](https://one-piece.com/character/Ms_Goldenweek
 
 ## Install
 
+> [!NOTE]
+> Haven't paid the Apple tax ($99/year), so first launch shows a Gatekeeper warning.
+> Approve it from **System Settings → Privacy & Security**, or run the following once in a terminal:
+>
+> ```bash
+> xattr -dr com.apple.quarantine /Applications/Marianne.app
+> ```
+
 ### From release
 
 > [!NOTE]
@@ -40,9 +48,11 @@ The real name of "[Ms. Goldenweek](https://one-piece.com/character/Ms_Goldenweek
 
 1. Download the latest `Marianne_<version>_aarch64.dmg` from [Releases](https://github.com/takecy/marianne/releases).
 2. Mount the dmg and drag `Marianne.app` into `/Applications`.
-3. First launch: right-click the app and choose **Open** to clear the Gatekeeper warning (haven't paid the $99/year Apple tax). Alternative: `xattr -dr com.apple.quarantine /Applications/Marianne.app` once in a terminal.
+3. On first launch, if Gatekeeper warns about the app, approve it from **System Settings → Privacy & Security**. Alternative: run the following once in a terminal.
 
-Paste a screenshot (`Cmd + V`), drag an image into the window, or use **Open with this application** from an image's right-click menu to start annotating.
+```bash
+xattr -dr com.apple.quarantine /Applications/Marianne.app
+```
 
 ### From source
 
@@ -53,7 +63,11 @@ Paste a screenshot (`Cmd + V`), drag an image into the window, or use **Open wit
 1. Clone this repository
 1. Install dependencies with `pnpm install --frozen-lockfile`
 1. Install into `/Applications/Marianne.app` with `pnpm install:local:unsigned`
-1. On first launch, if Gatekeeper warns about the app, right-click it and choose **Open** to accept. Alternative: `xattr -dr com.apple.quarantine /Applications/Marianne.app` once in a terminal.
+1. On first launch, if Gatekeeper warns about the app, approve it from **System Settings → Privacy & Security**. Alternative: run the following once in a terminal.
+
+```bash
+xattr -dr com.apple.quarantine /Applications/Marianne.app
+```
 
 > [!NOTE]
 > Auto-update is disabled in this build. To upgrade, run `git pull && pnpm install:local:unsigned` again.
