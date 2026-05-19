@@ -57,6 +57,7 @@ export default defineConfig({
           collapsed: true,
           items: [
             { slug: "getting-started" },
+            { slug: "running-locally" },
             { slug: "architecture" },
             { slug: "releasing" },
           ],

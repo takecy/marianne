@@ -1,6 +1,6 @@
 ---
 title: Tribute & Origins
-description: Why Marianne exists — the Skitch legacy it honors and the painter character it is named after.
+description: Why Marianne exists — a tribute and thanks to the Skitch legacy, and the painter character it is named after.
 ---
 
 import { Aside } from "@astrojs/starlight/components";
@@ -9,41 +9,19 @@ This page is a personal note from the author about why Marianne exists, where it
 
 ## A tribute to Skitch
 
-[Skitch](https://en.wikipedia.org/wiki/Skitch) was created by [Plasq](https://www.plasq.com/) in **2007** and acquired by [Evernote](https://evernote.com/) in **2011**. For many years it was the go-to lightweight tool on macOS for screenshot annotation: rectangles, arrows, text, pixelation, and a few colors — nothing more, nothing less.
+[Skitch](https://en.wikipedia.org/wiki/Skitch) was created by [Plasq](https://www.plasq.com/) in 2007 and acquired by [Evernote](https://evernote.com/) in 2011. For many years it was the go-to lightweight tool on macOS for screenshot annotation: rectangles, arrows, text, pixelation, and a few colors — nothing more, nothing less.
 
-In **January 2016**, Evernote [announced](https://www.pcworld.com/article/418827/evernote-drops-dead-weight-with-demise-of-clearly-pebble-app-and-most-skitch-versions.html) that Skitch's Windows, iOS, and Android editions would be discontinued. The Mac app continued to receive limited support afterward but has since become an **unmaintained legacy Intel-only binary**.
+In January 2016, Evernote [announced](https://www.pcworld.com/article/418827/evernote-drops-dead-weight-with-demise-of-clearly-pebble-app-and-most-skitch-versions.html) that Skitch's Windows, iOS, and Android editions would be discontinued. The Mac app continued to receive limited support afterward, but it now sits unmaintained as a legacy Intel-only binary.
 
-As of 2026, Apple Silicon Macs can still run Intel binaries via [Rosetta 2](https://support.apple.com/en-ca/102527), so Skitch for Mac technically still works for many users. However, Apple has stated that Rosetta 2 will be deprecated in future macOS releases. When that happens, every long-time Skitch user will be looking for a replacement.
-
-Marianne is that replacement, built **before** the deprecation lands.
+As of 2026, Apple Silicon Macs can still run Intel binaries via [Rosetta 2](https://support.apple.com/en-ca/102527), so Skitch for Mac technically still works for now. However, Apple has [officially announced that Rosetta 2 will be deprecated in future macOS releases](https://developer.apple.com/documentation/apple-silicon/about-the-rosetta-translation-environment/), and in the near future Skitch will stop working.
 
 ## Why I built Marianne
 
-I have been a Skitch user for years. Faced with the inevitability of Skitch breaking on a future macOS release, I built Marianne so that — when the day comes — I have a tool I trust that runs natively on Apple Silicon, is maintained, and behaves the way Skitch always did.
+I had been a Skitch devotee for years — using it on every document and presentation. Its minimal feature set and snappy performance were exactly what I needed. Then one day macOS popped up a warning that Skitch would soon stop working, and I was devastated. I tried a handful of alternatives, but none of them matched my workflow the way Skitch did. So I decided to build a Mac app of my own — one that runs natively on Apple Silicon and behaves the way Skitch always did.
 
-## What Marianne inherits from Skitch
+## About the name
 
-The design philosophy is intentionally Skitch-like:
-
-- **Four tools, eight colors, four stroke widths.** A small, fixed surface beats a kitchen-sink toolbar.
-- **Fully offline.** No telemetry, no cloud sync, no sign-in. Screenshots never leave your machine. The only outbound call is the auto-update check against GitHub Releases.
-- **Clipboard-first UX.** Paste an image. Annotate. Copy back or save as PNG. That's it.
-- **macOS native.** Built with Tauri v2 — a native shell that integrates with system clipboard, dialogs, and updater.
-
-## What Marianne intentionally changes
-
-- **Adds a mosaic tool** that rasterises into the exported PNG, so the underlying pixels are not recoverable from the exported file. This is for visually obscuring screenshot regions — for high-stakes secrets like passwords or full tokens, consider an additional pre-export tool that overwrites pixels with a solid color.
-- **License is PolyForm Noncommercial 1.0.0**, not MIT. The original Skitch was distributed as free-but-proprietary software; Marianne adopts a source-available license that mirrors the spirit of "free for individuals, not for resale or proprietary product integration." See the [LICENSE file](https://github.com/takecy/marianne/blob/main/LICENSE) for the full terms.
-
-## The name "Marianne"
-
-The project is named after **Marianne** — better known as **Ms. Goldenweek** — a painter character from the manga [ONE PIECE](https://one-piece.com/character/Ms_Goldenweek/index.html) by [Eiichiro Oda](https://en.wikipedia.org/wiki/Eiichiro_Oda) (published by [Shueisha](https://www.shueisha.co.jp/)).
-
-Choosing a painter's name for an image annotation app was a small piece of personal whimsy — the kind of detail that makes a side project feel like home.
-
-<Aside type="note" title="No ONE PIECE artwork is used">
-Marianne does not embed any ONE PIECE character art, official logos, or screenshots. The name is a textual reference only.
-</Aside>
+The app's name **Marianne** comes from the real name of [Ms. Goldenweek](https://one-piece.com/character/Ms_Goldenweek/index.html), a painter character from the manga ONE PIECE.
 
 ## Trademark & copyright notices
 
@@ -51,4 +29,4 @@ Marianne does not embed any ONE PIECE character art, official logos, or screensh
 - **"ONE PIECE"** is a trademark of Shueisha. ONE PIECE was created by Eiichiro Oda. Marianne is **not** affiliated with or endorsed by Shueisha or Eiichiro Oda.
 - All other product names mentioned on this page are properties of their respective owners.
 
-This page exists to honor the inspirations that made Marianne possible, and to set the record straight about the source of the name. Long live Skitch. Thank you to Mr. Oda for Ms. Goldenweek.
+This page exists to honor the inspirations that made Marianne possible and to set the record straight about the name. Long live Skitch. May ONE PIECE run to 300 volumes.

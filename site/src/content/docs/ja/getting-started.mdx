@@ -9,14 +9,16 @@ import { Aside, Steps } from "@astrojs/starlight/components";
 
 ## 技術スタック
 
-- **デスクトップフレームワーク**: [Tauri v2](https://v2.tauri.app/) — Rust ベースだが、アプリの表側は完全にフロントエンドのみで完結する
-- **フロントエンド**: React 19 + TypeScript + Vite
-- **描画エンジン**: [react-konva](https://konvajs.org/docs/react/) (Konva.js の React ラッパー)
-- **状態管理**: Zustand + identity-preserving な undo / redo (`src/store/canvasStore.ts`)
-- **テスト**: Vitest + jsdom + Testing Library (`@testing-library/react`, `@testing-library/jest-dom`)
-- **Lint**: ESLint v10 (flat config)
-- **フォーマッタ**: `deno fmt` — Prettier ではない
-- **docs サイト**: Astro Starlight (今読んでいるこのサイト)、`site/` から `/docs/` にビルドされる
+| 分野 | 採用ツール | 補足 |
+|------|-----------|------|
+| デスクトップフレームワーク | [Tauri v2](https://v2.tauri.app/) | [Rust](https://www.rust-lang.org/) ベース。アプリの表側はフロントエンドのみで完結 |
+| フロントエンド | [React 19](https://react.dev/) + [TypeScript](https://www.typescriptlang.org/) + [Vite](https://vite.dev/) | — |
+| 描画エンジン | [react-konva](https://konvajs.org/docs/react/) | [Konva.js](https://konvajs.org/) の React ラッパー |
+| 状態管理 | [Zustand](https://github.com/pmndrs/zustand) | identity-preserving な undo / redo (`src/store/canvasStore.ts`) |
+| テスト | [Vitest](https://vitest.dev/) + [jsdom](https://github.com/jsdom/jsdom) + [Testing Library](https://testing-library.com/) | `@testing-library/react`, `@testing-library/jest-dom` |
+| Lint | [ESLint v10](https://eslint.org/) | flat config |
+| フォーマッタ | [`deno fmt`](https://docs.deno.com/runtime/reference/cli/fmt/) | Prettier ではない |
+| docs サイト | [Astro Starlight](https://starlight.astro.build/) | 今読んでいるこのサイト。`site/` から `/docs/` にビルドされる |
 
 Tauri Rust バックエンドは意図的に最小化 — `src-tauri/src/lib.rs` には `greet` / `take_pending_open_paths` / `confirm_quit` / `renderer_ready` の 4 コマンドのみ (OS 統合用)。機能開発はほぼ全て `src/` で完結する。
 

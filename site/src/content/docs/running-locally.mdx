@@ -1,0 +1,76 @@
+---
+title: Running locally
+description: Three ways to run Marianne on your machine — hot-reload dev mode, unsigned local install, and signed local install — and when to use each.
+---
+
+import { Aside } from "@astrojs/starlight/components";
+
+There are three ways to run Marianne locally, each suited to a different task. Use **hot-reload dev mode** while iterating on the UI, or one of the **install** commands when you want behavior that matches the release dmg. Initial setup (toolchain, dependencies) is covered in [Getting started](../getting-started/).
+
+## At a glance
+
+| Command | Purpose | Signed | Auto-update |
+|---------|---------|--------|-------------|
+| `pnpm tauri dev` | Hot-reload development | No | Inactive (dev build) |
+| `pnpm install:local:unsigned` | Unsigned build into `/Applications` | No | Disabled (no updater artifacts) |
+| `pnpm install:local` | Signed build into `/Applications` | Yes (requires signing key) | Enabled (matches release dmg) |
+
+## Hot-reload dev mode (`pnpm tauri dev`)
+
+The workhorse for daily iteration. It starts the Vite dev server (`http://localhost:1420`) and a Tauri native window in parallel; every save under `src/` flows through HMR.
+
+```sh
+pnpm tauri dev
+```
+
+- The first launch builds the Rust shell with `cargo build`, taking 30 seconds to a few minutes. Subsequent launches use the cache and start in seconds.
+- Edits under `src-tauri/` (Rust) trigger a rebuild and app restart. Edits under `src/` (frontend) flow through HMR without restart.
+- Quit by closing the window or hitting `Ctrl + C` in the terminal.
+
+<Aside type="caution" title="Updater is not usable in dev">
+Dev builds are not signed with the production key, so the launch-time
+update check fails signature verification. To exercise updater behavior
+on real hardware, use `pnpm install:local` (signed) below.
+</Aside>
+
+## Install unsigned into `/Applications` (`pnpm install:local:unsigned`)
+
+The shortest path for contributors who do not hold the maintainer's signing key. Produces the closest-to-release behavior achievable without keys (native menus, file associations, faster cold start) from a local build.
+
+```sh
+pnpm install:local:unsigned
+```
+
+- Internally runs `pnpm tauri build --config '{"bundle":{"createUpdaterArtifacts":false}}'` and copies `Marianne.app` to `/Applications/Marianne.app` ([`scripts/install-local-unsigned.sh`](https://github.com/takecy/marianne/blob/main/scripts/install-local-unsigned.sh)).
+- No `TAURI_SIGNING_PRIVATE_KEY` env required.
+- Auto-update is **disabled** (no updater artifacts are produced). To upgrade, rerun `git pull && pnpm install:local:unsigned`.
+- If Gatekeeper warns on first launch, follow the [Installation → First-launch Gatekeeper warning](../installation/#first-launch-gatekeeper-warning) steps.
+
+## Install signed into `/Applications` (`pnpm install:local`)
+
+Use this when you need a local build identical to the release dmg with updater enabled — handy for final pre-release smoke tests or for verifying updater regressions.
+
+```sh
+pnpm install:local
+```
+
+- Requires `TAURI_SIGNING_PRIVATE_KEY` and `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` in the environment (commonly supplied via direnv `.envrc`).
+- Runs `pnpm tauri build` and copies the bundle to `/Applications/Marianne.app`. Updater artifacts (`.app.tar.gz` / `.sig` / `latest.json`) are produced.
+
+<Aside type="caution" title="Keep the signing key private">
+`TAURI_SIGNING_PRIVATE_KEY` is the same key used to sign releases
+(`~/.tauri/marianne.key`). Leaking it would let an attacker push a
+malicious update to every existing user. Never commit or share it;
+`.gitignore` already covers `*.key`, `.tauri/`, `.envrc`, and `.env*`.
+</Aside>
+
+## Which one should I use?
+
+| Situation | Recommended command |
+|-----------|---------------------|
+| Iterating on canvas or UI code | `pnpm tauri dev` |
+| Testing native menus / shortcuts / OS integrations under release-like conditions | `pnpm install:local:unsigned` |
+| Verifying auto-update behavior on real hardware | `pnpm install:local` (requires signing key) |
+| Running just the frontend (React/Vite) in a browser without Tauri | `pnpm dev` (Vite only) |
+
+For building and shipping the release dmg itself, see [Releasing](../releasing/).

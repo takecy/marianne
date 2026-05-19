@@ -1,0 +1,76 @@
+---
+title: ローカルで起動する
+description: Marianne をローカルで動かす 3 通りの方法 — ホットリロード付き dev、署名なしインストール、署名付きインストール — の使い分けとコマンド一覧。
+---
+
+import { Aside } from "@astrojs/starlight/components";
+
+ローカルで Marianne を起動する方法は用途別に 3 つある。日常のコード変更で UI を反復したいなら **ホットリロード**、リリース dmg に近い挙動を確認したいなら **インストール系コマンド** を使う。前提となる初回セットアップは [はじめに](../getting-started/) を参照。
+
+## 一覧
+
+| コマンド | 主な用途 | 署名 | 自動アップデート |
+|----------|----------|------|------------------|
+| `pnpm tauri dev` | ホットリロードで開発する | なし | 動作しない (dev ビルド) |
+| `pnpm install:local:unsigned` | 署名なしビルドを `/Applications` にインストール | なし | 無効 (updater artifact 未生成) |
+| `pnpm install:local` | 署名付きビルドを `/Applications` にインストール | あり (要署名鍵) | 有効 (リリース dmg と等価) |
+
+## ホットリロードで開発する (`pnpm tauri dev`)
+
+開発中の主力コマンド。Vite dev server (`http://localhost:1420`) と Tauri ネイティブウィンドウを並行起動し、`src/` 配下のファイルを保存するたびにフロントエンドを HMR で更新する。
+
+```sh
+pnpm tauri dev
+```
+
+- 初回はネイティブシェルの `cargo build` が走るので 30 秒〜数分かかる。2 回目以降はキャッシュが効き数秒で立ち上がる。
+- `src-tauri/` (Rust) を変更すると自動再ビルドされアプリが再起動される。`src/` (フロント) は再起動なしで HMR が反映される。
+- 終了はウィンドウを閉じるか、ターミナルで `Ctrl + C`。
+
+<Aside type="caution" title="updater は dev では実用にならない">
+dev ビルドは本番リリースと署名鍵が異なるため、起動時のアップデート
+チェックが走っても署名検証で失敗する。updater 周りの挙動を実機で
+確認したい場合は後述の `pnpm install:local` (署名付き) を使う。
+</Aside>
+
+## 署名なしで `/Applications` にインストール (`pnpm install:local:unsigned`)
+
+メンテナーの署名鍵を持たない貢献者向けの最短経路。リリース dmg に最も近い挙動 (ネイティブメニュー、ファイル関連付け、起動高速化など) をローカルビルドで再現できる。
+
+```sh
+pnpm install:local:unsigned
+```
+
+- 内部で `pnpm tauri build --config '{"bundle":{"createUpdaterArtifacts":false}}'` を実行し、`Marianne.app` を `/Applications/Marianne.app` にコピーする ([`scripts/install-local-unsigned.sh`](https://github.com/takecy/marianne/blob/main/scripts/install-local-unsigned.sh))。
+- 環境変数 `TAURI_SIGNING_PRIVATE_KEY` は不要。
+- 自動アップデートは **無効** (updater artifact が生成されないため)。新バージョンに上げるには `git pull && pnpm install:local:unsigned` を再実行する。
+- 初回起動時に Gatekeeper の警告が出る場合は、[インストール → 初回起動時の Gatekeeper 警告](../installation/#初回起動時の-gatekeeper-警告) と同じ手順で承認する。
+
+## 署名付きで `/Applications` にインストール (`pnpm install:local`)
+
+リリース dmg と同じ updater 有効ビルドを手元で再現したい時に使う。新リリース直前の最終確認や、updater 周りのリグレッション検証用。
+
+```sh
+pnpm install:local
+```
+
+- 実行前に `TAURI_SIGNING_PRIVATE_KEY` と `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` を環境変数として供給する必要がある (direnv 等で `.envrc` に登録するのが一般的)。
+- 内部で `pnpm tauri build` を実行し、`/Applications/Marianne.app` にコピーする。updater artifact (`.app.tar.gz` / `.sig` / `latest.json`) も生成される。
+
+<Aside type="caution" title="署名鍵は門外不出">
+`TAURI_SIGNING_PRIVATE_KEY` はリリース署名と同じ鍵 (`~/.tauri/marianne.key`)。
+流出させると既存ユーザー全員に悪意あるアップデートを配信できる致命的
+リスクがあるため、リポジトリにコミットしない・他人と共有しない。
+`.gitignore` には `*.key` / `.tauri/` / `.envrc` / `.env*` が登録済み。
+</Aside>
+
+## どれを使えばいい？
+
+| 目的 | 推奨コマンド |
+|------|-------------|
+| キャンバスや UI コードを反復編集したい | `pnpm tauri dev` |
+| ネイティブメニュー / ショートカット / OS 統合をリリース相当の環境で試したい | `pnpm install:local:unsigned` |
+| 自動アップデートを実機で検証したい | `pnpm install:local` (要署名鍵) |
+| Tauri を介さずフロント (React/Vite) だけブラウザで確認したい | `pnpm dev` (Vite のみ起動) |
+
+リリース dmg そのものをビルド・配信する手順は [リリース手順](../releasing/) を参照。
