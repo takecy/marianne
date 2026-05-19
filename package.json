@@ -18,7 +18,9 @@
     "test:run": "vitest run",
     "test:ui": "vitest --ui",
     "install:local": "scripts/install-local.sh",
+    "install:local:unsigned": "scripts/install-local-unsigned.sh",
     "build:dmg": "scripts/build-dmg.sh",
+    "build:dmg:unsigned": "scripts/build-dmg-unsigned.sh",
     "docs:dev": "pnpm --filter ./site dev",
     "docs:build": "pnpm --filter ./site build",
     "docs:preview": "pnpm --filter ./site preview"

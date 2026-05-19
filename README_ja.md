@@ -31,7 +31,9 @@
   <img src="./assets/design/example_01.png" alt="Marianne でのアノテーション例" width="600" />
 </div>
 
-## クイックインストール
+## インストール
+
+### リリースから
 
 > [!NOTE]\
 > Apple Silicon Mac 専用です
@@ -41,6 +43,20 @@
 3. 初回起動時、Gatekeeper の警告が出たらアプリを右クリック →「開く」で承認する (Apple税($99/年)を未払いのため)。または `xattr -dr com.apple.quarantine /Applications/Marianne.app` をターミナルで一度実行する。
 
 スクリーンショットをペースト (`Cmd + V`) 、ウィンドウに画像をドラッグ、画像の右クリックメニューの`このアプリケーションで開く`から注釈作業を始められる。
+
+### ソースコードから
+
+1. 以下がインストールされていることを確認 (macOS の Tauri v2 公式前提に準拠)
+   - Xcode Command Line Tools: `xcode-select --install`
+   - Rust: [公式サイト](https://www.rust-lang.org/tools/install)
+   - pnpm: [公式サイト](https://pnpm.io/installation)
+1. このリポジトリをクローン
+1. `pnpm install --frozen-lockfile` で依存関係をインストール
+1. `pnpm install:local:unsigned` で `/Applications/Marianne.app` にインストール
+1. 初回起動時、Gatekeeper の警告が出たらアプリを右クリック →「開く」で承認する。または `xattr -dr com.apple.quarantine /Applications/Marianne.app` をターミナルで一度実行する。
+
+> [!NOTE]\
+> このビルドは自動アップデートが無効です。新しいバージョンに上げるには `git pull && pnpm install:local:unsigned` を再実行してください。
 
 ## ドキュメント
 
