@@ -19,10 +19,14 @@ import { Aside } from "@astrojs/starlight/components";
 
 | Shortcut | Action |
 |----------|--------|
-| `Cmd + Shift + S` | Save the annotated PNG to a file (opens the native save dialog). Also available as **File → Save As...** menu accelerator |
-| `Cmd + Shift + C` | Copy the annotated PNG to the system clipboard. **Triple-registered** as menu (`File → Copy to Clipboard`, best-effort) + toolbar Copy button (trusted) + JS keydown (trusted). A shared de-dupe layer in `App.tsx` prevents double-firing |
+| `Cmd + Shift + S` | Save the annotated PNG to a file (opens the native save dialog). Also available as **File → Save As...** menu accelerator (menubar display only — see verification note below) |
+| `Cmd + Shift + C` | Copy the annotated PNG to the system clipboard. **Triple-registered** as menu (`File → Copy to Clipboard`) + toolbar Copy button + JS keydown. Issue #28 `[E]` verification (PR #82) confirmed all three paths actually write to the clipboard |
 
 See [Export](./export/) for the full export workflow and the difference between the two paths.
+
+<Aside type="note" title="Issue #28 [E] verification result (PR #82)">
+Manual UI verification on macOS revealed that **menu-accelerator key presses (e.g. `Cmd+Shift+C`, `Cmd+Z`, `Cmd+O`) are handled by the JS keydown handler in WKWebView, not by the macOS menu event system**. The `accelerator()` string on `MenuItemBuilder` only paints the shortcut hint in the menubar; the actual fire happens through `CanvasArea.tsx`'s keydown listener. Removing the JS keydowns would break keyboard shortcuts entirely. The menu route (mouse click on `File → Copy to Clipboard`) does work via the `MenuEvent → emit("menu-action") → useMenuAction` path, and preserves WKWebView's transient user activation — clipboard writes succeed there too.
+</Aside>
 
 ## Edit history
 

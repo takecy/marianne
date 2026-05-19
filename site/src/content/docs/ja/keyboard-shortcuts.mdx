@@ -19,10 +19,14 @@ import { Aside } from "@astrojs/starlight/components";
 
 | ショートカット | 動作 |
 |----------------|------|
-| `Cmd + Shift + S` | 注釈付き PNG をファイル保存 (ネイティブ保存ダイアログ)。**File → Save As...** メニュー accelerator にも併設 |
-| `Cmd + Shift + C` | 注釈付き PNG をシステムクリップボードへコピー。**メニュー (`File → Copy to Clipboard`、best-effort) + toolbar Copy ボタン (信頼経路) + JS keydown (信頼経路)** の三重登録。`App.tsx` の共有 de-dupe 層で二重発火を防止 |
+| `Cmd + Shift + S` | 注釈付き PNG をファイル保存 (ネイティブ保存ダイアログ)。**File → Save As...** メニュー accelerator にも併設 (menubar 表示のみ、実発火は JS keydown、下記検証ノート参照) |
+| `Cmd + Shift + C` | 注釈付き PNG をシステムクリップボードへコピー。**メニュー (`File → Copy to Clipboard`) + toolbar Copy ボタン + JS keydown** の三重登録。issue #28 `[E]` 検証 (PR #82) で 3 経路すべてが実際にクリップボードへ書き込めることを確認済み |
 
 詳しいワークフローと 2 つの経路の違いは [エクスポート](./export/) を参照。
+
+<Aside type="note" title="issue #28 [E] 検証結果 (PR #82)">
+macOS 実機での手動 UI 検証により、**メニュー accelerator のキー押下 (例: `Cmd+Shift+C`、`Cmd+Z`、`Cmd+O`) は WKWebView 内では macOS メニューイベント系統ではなく JS keydown ハンドラで処理されている**ことが判明。`MenuItemBuilder` の `accelerator()` 文字列は menubar にショートカットヒントを表示する効果のみで、実発火は `CanvasArea.tsx` の keydown リスナが担う。JS keydown を撤去するとキーボードショートカット自体が完全に動かなくなる。一方、メニューのマウスクリック経路 (`File → Copy to Clipboard`) は `MenuEvent → emit("menu-action") → useMenuAction` 経由で正常動作し、WKWebView の transient user activation も保持される — クリップボード書き込みも成功する。
+</Aside>
 
 ## 編集履歴
 
