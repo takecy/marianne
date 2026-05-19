@@ -1,10 +1,11 @@
 [package]
 name = "marianne"
 version = "0.1.0"
-description = "A Tauri App"
-authors = ["you"]
+description = "Skitch-style offline image annotation app for Apple Silicon"
+authors = ["takecy"]
 edition = "2021"
 license = "PolyForm-Noncommercial-1.0.0"
+homepage = "https://github.com/takecy/marianne"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
