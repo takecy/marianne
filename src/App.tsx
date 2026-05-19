@@ -22,8 +22,10 @@ import {
   saveLastSelectedStrokeWidth,
 } from "./lib/settingsStorage";
 import { useImageLoader } from "./lib/useImageLoader";
+import { useMenuAction } from "./lib/useMenuAction";
 import { useQuitConfirm } from "./lib/useQuitConfirm";
 import { useUpdater } from "./lib/useUpdater";
+import { invoke, isTauri } from "@tauri-apps/api/core";
 import { applyWindowSizeForImage } from "./lib/windowResize";
 import { cropLoadedImage, type CropRect, transformShapesForCrop } from "./lib/cropImage";
 import { DEFAULT_ZOOM_STATE, type ZoomState } from "./lib/zoomGesture";
@@ -311,6 +313,92 @@ function App() {
       });
   }, [image, isEditingText, shapes]);
 
+  // Drives the `File → Open... (Cmd+O)` menu item. Rust's
+  // `pick_and_open_image` command opens the native dialog, validates the
+  // chosen path through `safe_image_canonical`, and emits
+  // `file-open-requested` for `useImageLoader` to pick up — so the
+  // frontend never touches the path string directly.
+  //
+  // JS `@tauri-apps/plugin-dialog#open` is intentionally not used: it
+  // auto-grants fs scope before our Rust validation runs.
+  const handleOpenViaDialog = useCallback(async () => {
+    if (!isTauri()) return;
+    try {
+      await invoke("pick_and_open_image");
+    } catch (error) {
+      console.error("pick_and_open_image failed:", error);
+    }
+  }, []);
+
+  // Shared de-dupe layer for menu accelerator ↔ JS keydown ↔ toolbar
+  // button triple-firing. macOS may or may not suppress keydown when the
+  // menu accelerator is consumed; rather than rely on undocumented OS
+  // behaviour, we gate undo / redo / copy through a single ref-backed
+  // throttle so the second firing within 100ms of the same id is a no-op.
+  //
+  // For `copy-clipboard` the de-dupe is *source-aware*: the menu route is
+  // best-effort (transient user activation may be lost through the
+  // emit/listen round-trip) so it does not raise the flag — a subsequent
+  // keydown / toolbar firing must still be allowed to rescue the clipboard
+  // write. Trusted routes (keydown / toolbar) raise the flag normally so a
+  // subsequent menu firing is suppressed.
+  const lastFiredRef = useRef<{ id: string; ts: number } | null>(null);
+  const shouldSuppress = useCallback(
+    (id: string, opts?: { record?: boolean }): boolean => {
+      const now = performance.now();
+      const last = lastFiredRef.current;
+      if (last && last.id === id && now - last.ts < 100) return true;
+      if (opts?.record !== false) {
+        lastFiredRef.current = { id, ts: now };
+      }
+      return false;
+    },
+    [],
+  );
+  const guardedUndo = useCallback(() => {
+    if (!shouldSuppress("undo")) undo();
+  }, [undo, shouldSuppress]);
+  const guardedRedo = useCallback(() => {
+    if (!shouldSuppress("redo")) redo();
+  }, [redo, shouldSuppress]);
+  const guardedCopyToClipboard = useCallback(
+    (source: "menu" | "keydown" | "toolbar") => {
+      const record = source !== "menu";
+      if (shouldSuppress("copy-clipboard", { record })) return;
+      // Must remain synchronous inside the user-gesture handler so the
+      // Promise<Blob> handoff into ClipboardItem keeps the WebKit
+      // transient user activation alive.
+      handleExportToClipboard();
+    },
+    [handleExportToClipboard, shouldSuppress],
+  );
+  const handleMenuCopy = useCallback(
+    () => guardedCopyToClipboard("menu"),
+    [guardedCopyToClipboard],
+  );
+  const handleToolbarCopy = useCallback(
+    () => guardedCopyToClipboard("toolbar"),
+    [guardedCopyToClipboard],
+  );
+  const handleKeydownCopy = useCallback(
+    () => guardedCopyToClipboard("keydown"),
+    [guardedCopyToClipboard],
+  );
+  const handleMenuDelete = useCallback(() => {
+    if (selectedShapeId !== null) {
+      deleteShape(selectedShapeId);
+    }
+  }, [deleteShape, selectedShapeId]);
+
+  useMenuAction({
+    onOpen: () => void handleOpenViaDialog(),
+    onSaveAs: () => void handleExportToFile(),
+    onCopyToClipboard: handleMenuCopy,
+    onUndo: guardedUndo,
+    onRedo: guardedRedo,
+    onDelete: handleMenuDelete,
+  });
+
   return (
     <div className={styles.appShell}>
       <Sidebar
@@ -329,10 +417,10 @@ function App() {
         <ActionBar
           disabled={image === null || isEditingText}
           onExportToFile={handleExportToFile}
-          onExportToClipboard={handleExportToClipboard}
+          onExportToClipboard={handleToolbarCopy}
           copyState={copyState}
-          onUndo={undo}
-          onRedo={redo}
+          onUndo={guardedUndo}
+          onRedo={guardedRedo}
           canUndo={canUndo}
           canRedo={canRedo}
         />
@@ -358,10 +446,10 @@ function App() {
           onCopyShape={copyShape}
           onPasteShape={pasteShape}
           onAfterPaste={handleAfterPaste}
-          onUndo={undo}
-          onRedo={redo}
+          onUndo={guardedUndo}
+          onRedo={guardedRedo}
           onExportToFile={handleExportToFile}
-          onExportToClipboard={handleExportToClipboard}
+          onExportToClipboard={handleKeydownCopy}
           onEditingTextChange={setIsEditingText}
           zoomState={zoomState}
           onZoomChange={setZoomState}

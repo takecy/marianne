@@ -9,6 +9,7 @@ use tauri::{
     tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
     AppHandle, Emitter, Manager, RunEvent, Runtime, Url, WindowEvent,
 };
+use tauri_plugin_dialog::DialogExt;
 use tauri_plugin_fs::FsExt;
 
 #[tauri::command]
@@ -55,47 +56,65 @@ fn has_allowed_extension(path: &Path) -> bool {
         .unwrap_or(false)
 }
 
-/// Trust-boundary check for a `file://` URL delivered by `RunEvent::Opened`.
+/// Trust-boundary check for a path delivered by `RunEvent::Opened` (macOS
+/// "Open With"), `File → Open...` dialog (via `pick_and_open_image`), or any
+/// other Rust-side ingress.
 ///
-/// `Path::is_file()` follows symlinks (it calls `stat`), so a decoy such as
-/// `/tmp/decoy.png -> ~/.ssh/id_rsa` would otherwise pass the extension
-/// whitelist and end up granting read access to the symlink target through
-/// `tauri-plugin-fs` (which adds the canonicalized path to its scope).
+/// Returns `Some(canonical_path)` when the path passes all checks, or `None`
+/// if any check fails. Callers must use the returned canonical `PathBuf`
+/// (not the original input) for any subsequent `scope.allow_file()` or emit,
+/// to keep the verified-path and granted-path strings byte-identical. This
+/// removes the "path string mismatch" class of symlink decoys (e.g.
+/// `/tmp/decoy.png -> ~/.ssh/id_rsa`).
 ///
-/// Two layers of defense:
+/// Note: this is **NOT** a full TOCTOU defense. A parent-directory-controlling
+/// attacker can still swap the target between this validation and the
+/// subsequent `readFile`. Full defense (e.g. `O_NOFOLLOW` FD retention) is
+/// out of scope for this layer — see issue #28 discussion.
+///
+/// Two layers of defense kept from the previous `is_safe_image_path` design:
 ///   1. Reject if the path itself is a symlink (`symlink_metadata` = `lstat`).
 ///   2. After canonicalize, re-apply the extension whitelist so even a future
 ///      refactor that accidentally allows symlinks cannot escape the
 ///      whitelist on the resolved target.
-fn is_safe_image_path(path: &Path) -> bool {
-    let meta = match std::fs::symlink_metadata(path) {
-        Ok(m) => m,
-        Err(_) => return false,
-    };
+fn safe_image_canonical(path: &Path) -> Option<PathBuf> {
+    let meta = std::fs::symlink_metadata(path).ok()?;
     if meta.file_type().is_symlink() {
-        return false;
+        return None;
     }
     if !meta.is_file() {
-        return false;
+        return None;
     }
     if !has_allowed_extension(path) {
-        return false;
+        return None;
     }
-    match std::fs::canonicalize(path) {
-        Ok(real) => has_allowed_extension(&real),
-        Err(_) => false,
+    let canonical = std::fs::canonicalize(path).ok()?;
+    if !has_allowed_extension(&canonical) {
+        return None;
     }
+    Some(canonical)
+}
+
+/// Boolean wrapper for `safe_image_canonical`. Kept for call sites that only
+/// need a pass/fail decision and for backwards-compatible unit tests.
+#[cfg(test)]
+fn is_safe_image_path(path: &Path) -> bool {
+    safe_image_canonical(path).is_some()
 }
 
 /// Pick the first safe image path from the URL list delivered by
 /// `RunEvent::Opened`. Non-`file://` URLs, non-whitelisted extensions,
 /// non-existing paths, symlinks, and directories are all rejected here so
 /// downstream code never touches anything outside the whitelist.
+///
+/// Returns the canonicalized form of the first safe path so the caller can
+/// pass it directly to `handle_opened_image_path` without re-canonicalizing
+/// (avoids the path-string mismatch class of TOCTOU).
 fn pick_first_open_image_path(urls: &[Url]) -> Option<PathBuf> {
     urls.iter()
         .filter(|u| u.scheme() == "file")
         .filter_map(|u| u.to_file_path().ok())
-        .find(|p| is_safe_image_path(p))
+        .find_map(|p| safe_image_canonical(&p))
 }
 
 /// Forward a single vetted image path to the frontend.
@@ -117,6 +136,47 @@ fn handle_opened_image_path<R: Runtime>(app: &AppHandle<R>, path: PathBuf) {
 
     let payload = vec![path.to_string_lossy().into_owned()];
     let _ = app.emit("file-open-requested", payload);
+}
+
+/// Open a native file dialog for selecting an image, validate the chosen
+/// path through the Rust trust boundary, and forward to the existing
+/// `file-open-requested` pipeline. Used by the `File → Open... (Cmd+O)`
+/// menu item.
+///
+/// **Why a custom Rust command** instead of `@tauri-apps/plugin-dialog`'s JS
+/// `open()`: the plugin's JS path internally calls
+/// `scope.allow_file(&path)` **before** returning the path to the renderer
+/// (see `tauri-plugin-dialog-2.7.1/src/commands.rs:203`). That would widen
+/// the renderer's fs scope *before* our validation runs, breaking the
+/// "Rust-side trust boundary" requirement (issue #28 `[C-4]`). By driving
+/// the dialog directly through `DialogExt` here, the scope is only granted
+/// in the canonicalized form after `safe_image_canonical` passes.
+///
+/// The `pick_file` callback runs asynchronously on the dialog thread; the
+/// command itself returns immediately. The actual image load is delivered
+/// to the frontend through `handle_opened_image_path` → `app.emit
+/// ("file-open-requested", ...)` once the user picks a file.
+#[tauri::command]
+fn pick_and_open_image<R: Runtime>(app: AppHandle<R>) -> Result<(), String> {
+    let app_clone = app.clone();
+    app.dialog()
+        .file()
+        .add_filter("Images", &["png", "jpg", "jpeg"])
+        .pick_file(move |path_opt| {
+            let Some(file_path) = path_opt else {
+                return; // user canceled
+            };
+            // FilePath can be either an OS path or a URL (e.g. on mobile);
+            // we only handle native paths on desktop.
+            let Ok(p) = PathBuf::try_from(file_path) else {
+                return;
+            };
+            if let Some(canonical) = safe_image_canonical(&p) {
+                handle_opened_image_path(&app_clone, canonical);
+            }
+            // Silent on validation failure; UI feedback is out of scope.
+        });
+    Ok(())
 }
 
 /// Drain the cold-start buffer and return the queued paths to the frontend.
@@ -278,20 +338,62 @@ pub fn run() {
                 .separator()
                 .item(&app_quit_item)
                 .build()?;
-            // Edit submenu lets the user reach standard clipboard shortcuts
-            // (Cmd+C / Cmd+V / Cmd+X / Cmd+A) via the macOS menu when the
-            // webview does not handle them directly.
+            // File submenu: image-level actions wired to the frontend via
+            // `app.emit("menu-action", id)` in `on_menu_event` below.
+            // Open... drives the new `pick_and_open_image` command which
+            // opens a native dialog Rust-side (NOT through JS open()) so
+            // that fs scope is only granted after `safe_image_canonical`
+            // passes.
+            let file_open = MenuItemBuilder::with_id("file-open", "Open...")
+                .accelerator("Cmd+O")
+                .build(app)?;
+            let file_save_as = MenuItemBuilder::with_id("file-save-as", "Save As...")
+                .accelerator("Cmd+Shift+S")
+                .build(app)?;
+            let file_copy_clipboard =
+                MenuItemBuilder::with_id("file-copy-clipboard", "Copy to Clipboard")
+                    .accelerator("Cmd+Shift+C")
+                    .build(app)?;
+            let file_submenu = SubmenuBuilder::new(app, "File")
+                .item(&file_open)
+                .separator()
+                .item(&file_save_as)
+                .item(&file_copy_clipboard)
+                .build()?;
+
+            // Edit submenu. Undo/Redo/Delete are custom MenuItemBuilder
+            // entries so we can route them through `on_menu_event` to the
+            // frontend (canvas shape undo/redo/delete in `canvasStore`).
+            // Cut/Copy/Paste/SelectAll remain PredefinedMenuItem so the
+            // standard Cocoa text-edit behaviour applies to focused inputs.
+            let edit_undo = MenuItemBuilder::with_id("edit-undo", "Undo")
+                .accelerator("Cmd+Z")
+                .build(app)?;
+            let edit_redo = MenuItemBuilder::with_id("edit-redo", "Redo")
+                .accelerator("Cmd+Shift+Z")
+                .build(app)?;
+            // `Backspace` accelerator may or may not parse cleanly in
+            // muda; we register it optimistically and the JS keydown
+            // handler in `CanvasArea.tsx` keeps Delete/Backspace working
+            // even if the accelerator is dropped at the menu level.
+            let edit_delete = MenuItemBuilder::with_id("edit-delete", "Delete")
+                .accelerator("Backspace")
+                .build(app)?;
             let edit_submenu = SubmenuBuilder::new(app, "Edit")
-                .item(&PredefinedMenuItem::undo(app, None)?)
-                .item(&PredefinedMenuItem::redo(app, None)?)
+                .item(&edit_undo)
+                .item(&edit_redo)
+                .separator()
+                .item(&edit_delete)
                 .separator()
                 .item(&PredefinedMenuItem::cut(app, None)?)
                 .item(&PredefinedMenuItem::copy(app, None)?)
                 .item(&PredefinedMenuItem::paste(app, None)?)
                 .item(&PredefinedMenuItem::select_all(app, None)?)
                 .build()?;
+            // Order: Marianne (app) → File → Edit. macOS convention.
             let app_menu = MenuBuilder::new(app)
                 .item(&app_submenu)
+                .item(&file_submenu)
                 .item(&edit_submenu)
                 .build()?;
             app.set_menu(app_menu)?;
@@ -301,9 +403,18 @@ pub fn run() {
         .on_menu_event(|app, event| {
             // Application-menu events (from `app.set_menu` above). Tray menu
             // events go through `TrayIconBuilder::on_menu_event` separately.
-            if event.id().as_ref() == "app-quit" {
+            //
+            // `app-quit` is handled inline so the renderer-confirmation gate
+            // (see `request_quit`) stays Rust-side. All other menu ids are
+            // forwarded to the frontend over the `menu-action` channel,
+            // where `useMenuAction` dispatches them to the matching
+            // handler in `App.tsx`.
+            let id = event.id().as_ref();
+            if id == "app-quit" {
                 request_quit(app);
+                return;
             }
+            let _ = app.emit("menu-action", id.to_string());
         })
         // Close button on the main window hides instead of quitting so the
         // tray icon can later restore the window with in-flight edits intact.
@@ -322,6 +433,7 @@ pub fn run() {
             take_pending_open_paths,
             confirm_quit,
             renderer_ready,
+            pick_and_open_image,
         ])
         .build(tauri::generate_context!())
         .expect("error while running tauri application")
@@ -498,6 +610,30 @@ mod tests {
                 .map(std::fs::canonicalize)
                 .and_then(Result::ok);
             assert_eq!(canonical_picked.as_deref(), Some(canonical_expected.as_path()));
+        }
+
+        #[test]
+        fn safe_image_canonical_returns_consistent_path_on_repeated_calls() {
+            // Regression guard for issue #28: the canonical path returned
+            // by `safe_image_canonical` must be deterministic for the same
+            // input so callers can safely use it for both `scope.allow_file`
+            // and the subsequent emit without worrying about path-string
+            // mismatch (the "two different strings for the same file"
+            // class of TOCTOU).
+            let dir = tempdir().unwrap();
+            let png = dir.path().join("stable.png");
+            File::create(&png).unwrap();
+            let first = safe_image_canonical(&png).expect("first canonical");
+            let second = safe_image_canonical(&png).expect("second canonical");
+            assert_eq!(
+                first, second,
+                "canonical path must be deterministic for the same input"
+            );
+            // And the returned form must itself be a canonical absolute
+            // path (so e.g. /var/... is resolved to /private/var/... on
+            // macOS).
+            let direct = std::fs::canonicalize(&png).unwrap();
+            assert_eq!(first, direct);
         }
 
         #[test]
