@@ -92,6 +92,12 @@ copyImageToClipboard(blobPromise); // Promise<Blob> をそのまま ClipboardIte
 
 **三重登録 (menu / toolbar / JS keydown) と source-aware de-dupe**: `Cmd+Shift+C` は File → Copy to Clipboard menu accelerator / toolbar Copy button / `CanvasArea.tsx` の keydown handler の 3 経路で発火する。`App.tsx` の共有層で `guardedCopyToClipboard(source: "menu" | "keydown" | "toolbar")` + `lastFiredRef` / `shouldSuppress({ record })` の de-dupe を持っており、menu 経路は `record=false` (best-effort)、keydown/toolbar は `record=true` (信頼経路)。menu が WKWebView transient user activation を失って失敗した場合でも、続く keydown / toolbar が rescue できる設計。`Cmd+Z` / `Cmd+Shift+Z` も同じ共有層 (`guardedUndo` / `guardedRedo`) で 100ms 同一 id de-dupe が効くため、menu と keydown が二重発火しても 1 段ずつしか undo/redo されない。実装位置は `App.tsx` の `useMenuAction` 呼び出し直前のブロック。
 
+**実機検証結果 (issue #28 `[E]`、PR #82)** — 設計の前提と実機挙動の乖離を確定:
+
+1. **menu route の clipboard write は best-effort ではなく完全動作**: ケース 2 (File → Copy to Clipboard を mouse click) を 6/6 trials で paste 成功。`navigator.userActivation.isActive === true` を `MenuEvent → emit → listen` ラウンドトリップ後でも保持。難所 3 で懸念した「emit/listen で transient user activation を失う」は **不成立**
+2. **`Cmd+Shift+C` キー押下時、menu accelerator は実発火しない (重要)**: `MenuItemBuilder::with_id("file-copy-clipboard", ...).accelerator("Cmd+Shift+C")` で登録された accelerator は **menubar 表示効果のみ** で、キー押下時の event は OS で menu に吸収されず JS keydown handler に直接届く。ケース 3 (`Cmd+Shift+C` 押下) を 4/4 trials で観測した結果、すべて `source="keydown"` のみで `source="menu"` ログは 0 件。同じパターンは `Cmd+O` / `Cmd+Shift+S` / `Cmd+Z` / `Cmd+Shift+Z` でも同様と推測される (`MenuItemBuilder.accelerator(...)` 全般の挙動)
+3. **`[F]` PR (keydown 撤去) は構造的に不可**: 上記 2. により、`Cmd+Z` / `Cmd+Shift+Z` / `Cmd+Shift+S` / `Cmd+Shift+C` の JS keydown を撤去すると **キーボードショートカット自体が完全に効かなくなる** (menu accelerator は menubar 表示のみで実発火しないため)。issue #28 `[F-1]/[F-2]` の元方針は実装不可能なので、`[F]` PR は方針再考から始める必要がある。Source-aware de-dupe (`shouldSuppress({ record })`) は理論上の二重発火対策として残すが、実機では menu route と keydown route が排他的に動作するため de-dupe は冗長 (実害なし)
+
 ### シェイプの内部クリップボードと Option+drag による複製
 
 `canvasStore.clipboardShape` は OS クリップボードとは別の、**アプリ内専用のシェイプクリップボード**。`Cmd+C` (Shift なし) で選択中シェイプを格納し、`Cmd+V` (Shift なし) で `clipboardShape` がある時のみ `preventDefault` を呼んで貼付する。`clipboardShape` が空の時は `preventDefault` をスキップするので、ブラウザのデフォルト `paste` イベントが走り `useImageLoader` が OS クリップボード経由の画像ペーストを拾える。OS の画像クリップボードとアプリ内シェイプクリップボードを 1 つの `Cmd+V` で両立させるための分岐。
