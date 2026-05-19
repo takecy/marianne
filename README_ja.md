@@ -10,8 +10,8 @@
 
 ## なぜ今さら別の画像アノテーションアプリを作ったのか？
 
-- 😭 **Skitch が使えなくなる**: 長年 Skitch (Evernote製) を愛用してきた。毎日何度も起動し、画像に矢印とテキストをつけまくってきた。しかし、Skitchは今はメンテナンスおらず、Intel CPU 向けのみ。[macOS から Intel サポートが消え](https://developer.apple.com/documentation/apple-silicon/about-the-rosetta-translation-environment/)、Skitchが動かなくなる警告が表示されたことをきっかけに、Skitch の精神を継ぐApple Silicon対応アプリとして作成。
-- ✂️ **最小限の機能**: Skitchの代替アプリケーションは多く存在し、どれも素晴らしい出来だが、私の用途には機能が多すぎた。手元の画像に矢印とテキスト、たまにモザイクが入れられば十分だった。
+- 😭 **Skitch が使えなくなる**: 長年 Skitch (Evernote製) を愛用してきた。毎日何度も起動し、画像に矢印とテキストをつけまくってきた。しかし、Skitchは今はメンテナンスされておらず、Intel CPU 向けのみ。[macOS から Intel サポートが消え](https://developer.apple.com/documentation/apple-silicon/about-the-rosetta-translation-environment/)、Skitchが動かなくなる警告が表示されたことをきっかけに、Skitch の精神を継ぐApple Silicon対応アプリとして作成。
+- ✂️ **最小限の機能**: Skitchの代替アプリケーションは多く存在し、どれも素晴らしい出来だが、私の用途には機能が多すぎた。手元の画像に矢印とテキスト、たまにモザイクが入れられれば十分だった。
 - 🏹 **矢印の形**: Skitchの矢印の形が本当に大好きだった。あの矢印の形をアノテーションできるアプリを見つけられず、自作することにした。あの見慣れたスタイルのテキストも。
 
 ### 名前について
@@ -34,7 +34,7 @@
 ## インストール
 
 > [!NOTE]\
-> Apple税($99/年)を未払いのため、初回起動時に Gatekeeper の警告が出る。
+> Apple税($99/年)を未払いのため、初回起動時に Gatekeeper の警告が出る。  
 > 「プライバシーとセキュリティ」設定から承認するか、ターミナルで以下を一度実行して承認する必要がある。
 >
 > ```bash
