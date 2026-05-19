@@ -15,10 +15,11 @@ graph LR
     Clipboard[(System Clipboard)]
     Filesystem[(Filesystem)]
     Finder[Finder: Open With]
+    Menubar[File → Open... menu]
   end
 
   subgraph Tauri["Tauri v2 (Rust shell)"]
-    RustCmds["lib.rs commands<br/>greet · take_pending_open_paths<br/>confirm_quit · renderer_ready"]
+    RustCmds["lib.rs commands<br/>greet · take_pending_open_paths<br/>confirm_quit · renderer_ready<br/>pick_and_open_image"]
     Plugins["tauri-plugin-*<br/>opener · dialog · fs<br/>updater · process"]
   end
 
@@ -33,6 +34,8 @@ graph LR
   Clipboard -->|paste| Loader
   Filesystem -->|drag-drop| Loader
   Finder -->|file-open-requested| Loader
+  Menubar -->|invoke pick_and_open_image| RustCmds
+  RustCmds -->|file-open-requested| Loader
   Loader --> Canvas
   Canvas <--> Store
   UI <--> Store
@@ -108,9 +111,9 @@ stateDiagram-v2
 
 This module has its own unit tests and must never import React.
 
-## Image input — three paths
+## Image input — four paths
 
-`src/lib/useImageLoader.ts` is the **only** entry point for images. There is no file-open dialog.
+`src/lib/useImageLoader.ts` plus the new `pick_and_open_image` Rust command are the entry points for images. Three are dialog-less (paste / drag-drop / Finder "Open With"), one uses the native **File → Open... (Cmd+O)** menu.
 
 ```mermaid
 sequenceDiagram
@@ -135,10 +138,17 @@ sequenceDiagram
     Rust->>Webview: file-open-requested (listen)
     Webview->>Loader: decodeTauriFilePath
     Loader->>Webview: LoadedImage { source: "file", sourcePath }
+  else File menu (Cmd+O)
+    User->>Webview: File → Open... (Cmd+O)
+    Webview->>Rust: invoke pick_and_open_image
+    Note right of Rust: DialogExt::dialog().file().pick_file()<br/>safe_image_canonical (symlink reject + canonical)<br/>scope.allow_file(&canonical) only after validation
+    Rust->>Webview: file-open-requested (listen)
+    Webview->>Loader: decodeTauriFilePath
+    Loader->>Webview: LoadedImage { source: "file", sourcePath }
   end
 ```
 
-Path validation (extension whitelist, symlink rejection) is the Rust side's trust boundary. Frontend's `isImagePath` is defense-in-depth.
+Path validation (extension whitelist, symlink rejection, canonical-path unification through `safe_image_canonical`) is the Rust side's trust boundary. Frontend's `isImagePath` is defense-in-depth. The `File → Open...` route deliberately avoids the JS `@tauri-apps/plugin-dialog#open()` API because that plugin auto-grants fs scope before our validation can run (`tauri-plugin-dialog-2.7.1/src/commands.rs:203`); driving the dialog directly through `DialogExt` Rust-side keeps scope grant gated by validation.
 
 ## Export pipeline
 

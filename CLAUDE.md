@@ -90,6 +90,8 @@ copyImageToClipboard(blobPromise); // Promise<Blob> をそのまま ClipboardIte
 
 `copyImageToClipboard`（`src/lib/exportImage.ts`）は `Promise<Blob>` を直接 `new ClipboardItem({ "image/png": blobPromise })` に渡す。WebKit / WKWebView では `navigator.clipboard.write` をユーザージェスチャーハンドラ内で同期的に開始する必要があり、先に `await` すると transient user activation トークンを失って Tauri webview 上でクリップボード書き込みが無言で失敗する。これを `async/await` にリファクタしないこと。
 
+**三重登録 (menu / toolbar / JS keydown) と source-aware de-dupe**: `Cmd+Shift+C` は File → Copy to Clipboard menu accelerator / toolbar Copy button / `CanvasArea.tsx` の keydown handler の 3 経路で発火する。`App.tsx` の共有層で `guardedCopyToClipboard(source: "menu" | "keydown" | "toolbar")` + `lastFiredRef` / `shouldSuppress({ record })` の de-dupe を持っており、menu 経路は `record=false` (best-effort)、keydown/toolbar は `record=true` (信頼経路)。menu が WKWebView transient user activation を失って失敗した場合でも、続く keydown / toolbar が rescue できる設計。`Cmd+Z` / `Cmd+Shift+Z` も同じ共有層 (`guardedUndo` / `guardedRedo`) で 100ms 同一 id de-dupe が効くため、menu と keydown が二重発火しても 1 段ずつしか undo/redo されない。実装位置は `App.tsx` の `useMenuAction` 呼び出し直前のブロック。
+
 ### シェイプの内部クリップボードと Option+drag による複製
 
 `canvasStore.clipboardShape` は OS クリップボードとは別の、**アプリ内専用のシェイプクリップボード**。`Cmd+C` (Shift なし) で選択中シェイプを格納し、`Cmd+V` (Shift なし) で `clipboardShape` がある時のみ `preventDefault` を呼んで貼付する。`clipboardShape` が空の時は `preventDefault` をスキップするので、ブラウザのデフォルト `paste` イベントが走り `useImageLoader` が OS クリップボード経由の画像ペーストを拾える。OS の画像クリップボードとアプリ内シェイプクリップボードを 1 つの `Cmd+V` で両立させるための分岐。
@@ -105,13 +107,18 @@ copyImageToClipboard(blobPromise); // Promise<Blob> をそのまま ClipboardIte
 
 ### 画像の入力
 
-ファイルオープンダイアログは存在しない。画像は次の 3 経路でのみ入る:
+画像は次の 4 経路で入る:
 
 - ペースト (`Cmd/Ctrl + V`) — 先頭の `image/*` クリップボード item
 - ウィンドウへのドラッグ&ドロップ — 先頭の `image/*` ファイル
 - macOS の「このアプリケーションで開く」 — Finder からのファイル関連付け起動。アプリ未起動時は Rust 側の `RunEvent::Opened` でパスをキューし、フロント初期化時に `take_pending_open_paths` を invoke して取り出す (cold-start drain)。既に起動中なら `file-open-requested` イベントで warm-start listen する
+- **File → Open... (`Cmd+O`)** — macOS native メニュー accelerator (`MenuItemBuilder::with_id("file-open", ...)`) → `on_menu_event` で `app.emit("menu-action", "file-open")` → frontend `useMenuAction` が `invoke("pick_and_open_image")` を呼ぶ。Rust 側 `pick_and_open_image` command が `tauri_plugin_dialog::DialogExt` を **直接呼んで** native dialog を開き (JS `open()` の auto-scope-grant を回避)、選ばれた path に `safe_image_canonical` を適用 → 検証通過時のみ `scope.allow_file(&canonical)` + `emit("file-open-requested", [canonical])` で既存 listen 経路に乗せる
 
-`src/lib/useImageLoader.ts` が `paste` / native drag-drop / `file-open-requested` イベントを統合し、`LoadedImage`（HTMLImageElement + 自然サイズ + `source: "paste" | "drop" | "file"` + 任意の絶対パス / ファイル名）を 1 つ発行する。`tauri.conf.json` で `"dragDropEnabled": false` を設定しており、Tauri のネイティブドロップを抑制して Web レイヤで処理している (これにより drop した画像の絶対パスを Rust 側で確定できる)。パス検証 (拡張子 whitelist / symlink 拒否) は Rust 側が trust boundary。フロントの `isImagePath` は defense in depth。
+`src/lib/useImageLoader.ts` が `paste` / native drag-drop / `file-open-requested` イベントを統合し、`LoadedImage`（HTMLImageElement + 自然サイズ + `source: "paste" | "drop" | "file"` + 任意の絶対パス / ファイル名）を 1 つ発行する。`tauri.conf.json` で `"dragDropEnabled": true` (Tauri native drag-drop を有効化、`useImageLoader.ts:204-226` の `getCurrentWebview().onDragDropEvent` で直接購読) を維持しているため、drop した画像の絶対パスを Rust 側で確定できる。パス検証 (拡張子 whitelist / symlink 拒否 / canonical path 統一) は Rust の `safe_image_canonical` が trust boundary。フロントの `isImagePath` は defense in depth。
+
+**重要**: `[C-4]` の trust boundary 一本化のため、`File → Open...` は frontend の `@tauri-apps/plugin-dialog#open()` を **使わない**。`open()` は path 解決後 plugin 内部で `scope.allow_file(&path)` を自動実行する (tauri-plugin-dialog 2.7.1 / `commands.rs:203`) ため、Rust 側検証より前に renderer の fs scope が広がってしまう。新規追加した `pick_and_open_image` command で Rust 内部 `DialogExt` を直接呼ぶ設計に統一している。
+
+**TOCTOU の honest な scope**: `safe_image_canonical` は **symlink decoy 緩和 + path 文字列不一致排除のみ**。`canonicalize → allow_file → readFile` は path 文字列ベースで分離しているため、親ディレクトリ制御攻撃モデルでは residual race が残る。完全な防御 (`O_NOFOLLOW` FD 保持 / bytes 化) は別 issue で対応する。
 
 ### キーボードショートカット
 
@@ -119,8 +126,9 @@ copyImageToClipboard(blobPromise); // Promise<Blob> をそのまま ClipboardIte
 
 | キー                              | 動作                                                      | 補足                                                                                    |
 | --------------------------------- | --------------------------------------------------------- | --------------------------------------------------------------------------------------- |
-| `Cmd/Ctrl + Shift + S`            | PNG をファイル保存                                        | ネイティブの保存ダイアログを開く                                                        |
-| `Cmd/Ctrl + Shift + C`            | PNG をシステムクリップボードへコピー                      | 同期的 Promise ハンドオフが必須 (後述)                                                  |
+| `Cmd + O`                         | File → Open... 画像を読み込み                            | macOS native menu accelerator のみ (`File` 表示)。Rust の `pick_and_open_image` で dialog 開閉 + 検証 + scope grant |
+| `Cmd/Ctrl + Shift + S`            | PNG をファイル保存                                        | ネイティブの保存ダイアログを開く。File → Save As... メニューと併設 (menu accelerator)   |
+| `Cmd/Ctrl + Shift + C`            | PNG をシステムクリップボードへコピー                      | 同期的 Promise ハンドオフが必須 (後述)。File → Copy to Clipboard / toolbar Copy / JS keydown の **三重登録** (menu は best-effort、toolbar/keydown が信頼経路) |
 | `Cmd/Ctrl + Z`                    | undo                                                      |                                                                                         |
 | `Cmd/Ctrl + Shift + Z`            | redo                                                      |                                                                                         |
 | `Cmd/Ctrl + C`                    | 選択中シェイプをアプリ内クリップボードへコピー            | 選択モードかつシェイプ選択時のみ                                                        |

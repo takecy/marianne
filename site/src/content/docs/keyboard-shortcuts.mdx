@@ -7,12 +7,20 @@ import { Aside } from "@astrojs/starlight/components";
 
 `Cmd` is shown for macOS — on other platforms read it as `Ctrl`. All shortcuts are suppressed while a text-annotation overlay or any native `input` / `textarea` has focus, so the browser's own editing keys keep working in those fields.
 
+## Open
+
+| Shortcut | Action |
+|----------|--------|
+| `Cmd + O` | Open an image via the **File → Open...** menu (native file dialog, PNG / JPEG) |
+
+`Cmd + O` is registered as a macOS native menu accelerator (`MenuItemBuilder::with_id("file-open", ...)`). The chosen image flows through the same Rust-side trust boundary used by Finder's "Open With Marianne", so symlink decoys and non-whitelisted extensions are rejected before any file read occurs.
+
 ## Export
 
 | Shortcut | Action |
 |----------|--------|
-| `Cmd + Shift + S` | Save the annotated PNG to a file (opens the native save dialog) |
-| `Cmd + Shift + C` | Copy the annotated PNG to the system clipboard |
+| `Cmd + Shift + S` | Save the annotated PNG to a file (opens the native save dialog). Also available as **File → Save As...** menu accelerator |
+| `Cmd + Shift + C` | Copy the annotated PNG to the system clipboard. **Triple-registered** as menu (`File → Copy to Clipboard`, best-effort) + toolbar Copy button (trusted) + JS keydown (trusted). A shared de-dupe layer in `App.tsx` prevents double-firing |
 
 See [Export](./export/) for the full export workflow and the difference between the two paths.
 
@@ -20,9 +28,9 @@ See [Export](./export/) for the full export workflow and the difference between 
 
 | Shortcut | Action |
 |----------|--------|
-| `Cmd + Z` | Undo (up to 50 steps) |
-| `Cmd + Shift + Z` | Redo |
-| `Delete` / `Backspace` | Delete the selected shape (select mode only) |
+| `Cmd + Z` | Undo (up to 50 steps). Also available as **Edit → Undo** menu accelerator |
+| `Cmd + Shift + Z` | Redo. Also available as **Edit → Redo** menu accelerator |
+| `Delete` / `Backspace` | Delete the selected shape (select mode only). Also available as **Edit → Delete** menu accelerator |
 
 History resets when you load a new image — you cannot undo back to annotations on a previous image.
 

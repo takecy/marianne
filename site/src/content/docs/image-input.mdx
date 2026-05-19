@@ -1,19 +1,20 @@
 ---
 title: Loading images
-description: Three ways to bring an image into Marianne — clipboard paste, drag-and-drop, and macOS "Open With Marianne" from Finder.
+description: Four ways to bring an image into Marianne — clipboard paste, drag-and-drop, macOS "Open With Marianne" from Finder, and File → Open... (Cmd+O) from the menu bar.
 ---
 
 import { Aside } from "@astrojs/starlight/components";
 
-Marianne has **no file-open dialog** by design. Images enter the canvas through exactly three paths — pick whichever fits your workflow.
+Images enter the canvas through four paths — pick whichever fits your workflow. The first three follow Skitch-style frictionless input (no dialog box); the fourth is the macOS-native **File → Open...** menu for users who prefer the conventional path.
 
-## The three input paths
+## The four input paths
 
 ```mermaid
 flowchart LR
   C[macOS Clipboard] -->|Cmd + V paste| M[Marianne canvas]
   F[Image file on disk] -->|drag onto window| M
   R[Finder: right-click <br/> Open With Marianne] -->|file association| M
+  O[File menu: Open... <br/> Cmd + O] -->|native file dialog| M
 ```
 
 ### 1. Paste from clipboard
@@ -46,6 +47,14 @@ Right-click an image → **Get Info** → **Open with: Marianne** → **Change A
 to make Marianne the default opener for that file type. After that, double-
 clicking an image in Finder opens it directly in Marianne.
 </Aside>
+
+### 4. File → Open... (Cmd+O)
+
+Press **`Cmd + O`** or choose **File → Open...** from the menu bar. A native file dialog opens, filtered to **PNG / JPEG**. The selected image is loaded through the same pipeline as "Open With Marianne".
+
+This route runs entirely Rust-side: the dialog is opened by the `pick_and_open_image` command (not the frontend `@tauri-apps/plugin-dialog#open()` API), so the chosen file's read scope is only granted after the path has been validated against the symlink-rejection + extension whitelist trust boundary. There is no way for a malicious symlink or wrong-extension file to leak read access from this route.
+
+The status bar shows the full file path on the left, same as the other path-based routes.
 
 ## Replacing the current image
 

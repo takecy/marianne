@@ -15,10 +15,11 @@ graph LR
     Clipboard[(System Clipboard)]
     Filesystem[(Filesystem)]
     Finder[Finder: Open With]
+    Menubar[File → Open... メニュー]
   end
 
   subgraph Tauri["Tauri v2 (Rust shell)"]
-    RustCmds["lib.rs commands<br/>greet · take_pending_open_paths<br/>confirm_quit · renderer_ready"]
+    RustCmds["lib.rs commands<br/>greet · take_pending_open_paths<br/>confirm_quit · renderer_ready<br/>pick_and_open_image"]
     Plugins["tauri-plugin-*<br/>opener · dialog · fs<br/>updater · process"]
   end
 
@@ -33,6 +34,8 @@ graph LR
   Clipboard -->|paste| Loader
   Filesystem -->|drag-drop| Loader
   Finder -->|file-open-requested| Loader
+  Menubar -->|invoke pick_and_open_image| RustCmds
+  RustCmds -->|file-open-requested| Loader
   Loader --> Canvas
   Canvas <--> Store
   UI <--> Store
@@ -107,9 +110,9 @@ stateDiagram-v2
 
 このモジュールは独自の単体テストを持つ。React を import してはいけない。
 
-## 画像入力 — 3 つの経路
+## 画像入力 — 4 つの経路
 
-`src/lib/useImageLoader.ts` が画像入力の **唯一** の entry point。ファイルオープンダイアログは存在しない。
+`src/lib/useImageLoader.ts` と、新規追加の `pick_and_open_image` Rust command が画像入力の entry point。3 つはダイアログなし (paste / drag-drop / Finder「このアプリケーションで開く」)、1 つは native の **File → Open... (Cmd+O)** メニュー。
 
 ```mermaid
 sequenceDiagram
@@ -134,10 +137,17 @@ sequenceDiagram
     Rust->>Webview: file-open-requested (listen)
     Webview->>Loader: decodeTauriFilePath
     Loader->>Webview: LoadedImage { source: "file", sourcePath }
+  else File メニュー (Cmd+O)
+    User->>Webview: File → Open... (Cmd+O)
+    Webview->>Rust: invoke pick_and_open_image
+    Note right of Rust: DialogExt::dialog().file().pick_file()<br/>safe_image_canonical (symlink 拒否 + canonical 化)<br/>scope.allow_file(&canonical) は検証通過時のみ
+    Rust->>Webview: file-open-requested (listen)
+    Webview->>Loader: decodeTauriFilePath
+    Loader->>Webview: LoadedImage { source: "file", sourcePath }
   end
 ```
 
-パス検証 (拡張子 whitelist、symlink 拒否) は Rust 側の trust boundary。フロントの `isImagePath` は defense-in-depth。
+パス検証 (拡張子 whitelist、symlink 拒否、`safe_image_canonical` による canonical path 統一) は Rust 側の trust boundary。フロントの `isImagePath` は defense-in-depth。`File → Open...` 経路は JS `@tauri-apps/plugin-dialog#open()` API を **意図的に使わない**: この plugin は path 解決後に内部で `scope.allow_file(&path)` を自動実行 (`tauri-plugin-dialog-2.7.1/src/commands.rs:203`) するため、検証より前に scope が広がってしまう。`DialogExt` を Rust 側で直接呼ぶことで scope grant を検証通過時に gating する。
 
 ## エクスポートパイプライン
 
