@@ -23,6 +23,7 @@ The real name of "[Ms. Goldenweek](https://one-piece.com/character/Ms_Goldenweek
 - **Offline**: no login, no telemetry, no cloud sync, no external server calls (update check only).
 - **Simple**: arrows, rectangles, text, mosaic, and a bit of cropping — that's the whole toolbox.
 - **Small and fast**: built on [TAURI](https://v2.tauri.app/), the app is under 20MB and launches in a flash.
+- **No AI**: no AI features. This is for me (a human) to put arrows on images.
 
 ## Screenshots
 
@@ -37,7 +38,7 @@ The real name of "[Ms. Goldenweek](https://one-piece.com/character/Ms_Goldenweek
 
 1. Download the latest `Marianne_<version>_aarch64.dmg` from [Releases](https://github.com/takecy/marianne/releases).
 2. Mount the dmg and drag `Marianne.app` into `/Applications`.
-3. First launch: right-click the app and choose **Open** to clear the Gatekeeper warning (the build is not codesigned). Alternative: `xattr -dr com.apple.quarantine /Applications/Marianne.app` once in a terminal.
+3. First launch: right-click the app and choose **Open** to clear the Gatekeeper warning (haven't paid the $99/year Apple tax). Alternative: `xattr -dr com.apple.quarantine /Applications/Marianne.app` once in a terminal.
 
 Paste a screenshot (`Cmd + V`), drag an image into the window, or use **Open with this application** from an image's right-click menu to start annotating.
 
@@ -46,8 +47,6 @@ Paste a screenshot (`Cmd + V`), drag an image into the window, or use **Open wit
 - **For users**: [Marianne docs](https://takecy.github.io/marianne/) — features, keyboard shortcuts, image input paths, export options
 - **For contributors**: [Getting started](https://takecy.github.io/marianne/getting-started/) — tech stack, dev environment, verification commands, worktree workflow
 - **For maintainers**: [Releasing](https://takecy.github.io/marianne/releasing/) — release workflow, signing keys, GitHub Secrets
-
-> The docs site is built with Astro Starlight and served from this repo's `/docs` directory. The live URLs above become active once GitHub Pages is enabled. **Until then**, browse the source on GitHub: [user guide](https://github.com/takecy/marianne/tree/main/site/src/content/docs), [getting started](https://github.com/takecy/marianne/blob/main/site/src/content/docs/getting-started.mdx), [releasing](https://github.com/takecy/marianne/blob/main/site/src/content/docs/releasing.mdx).
 
 ## License
 
