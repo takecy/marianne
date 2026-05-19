@@ -1,4 +1,4 @@
-import { fitContain, type FitRect, type Size } from "./imageFit";
+import { fitContain, type FitRect, imageToScreen, type Point, type Size } from "./imageFit";
 import {
   applyCenteredZoom,
   applyPointerCenteredZoom,
@@ -9,6 +9,7 @@ import {
   fitPointToStagePoint,
   MAX_ZOOM,
   MIN_ZOOM,
+  naturalToDomScreen,
   nextZoomIn,
   nextZoomOut,
   stagePointToFitPoint,
@@ -232,5 +233,37 @@ describe("clampPan", () => {
     const result = clampPan(zoom, stageSize, fit);
     expect(result.offsetX).toBe(-1500);
     expect(result.offsetY).toBe(-1200);
+  });
+});
+
+describe("naturalToDomScreen", () => {
+  // A 200x100 natural image fit inside an 800x600 container. fitContain caps
+  // ratio at 1 so the image renders at natural size, centered:
+  // fit = { x: 300, y: 250, width: 200, height: 100 }.
+  const imageSize: Size = { width: 200, height: 100 };
+  const fit: FitRect = fitContain(imageSize, { width: 800, height: 600 });
+  const natural: Point = { x: 50, y: 20 };
+
+  it("equals imageToScreen when zoom is DEFAULT_ZOOM_STATE (identity composition)", () => {
+    const dom = naturalToDomScreen(natural, fit, imageSize, DEFAULT_ZOOM_STATE);
+    const fitPoint = imageToScreen(natural, fit, imageSize);
+    expect(dom).toEqual(fitPoint);
+  });
+
+  it("applies Stage scale on top of the fit-internal screen coords", () => {
+    const zoom: ZoomState = { scale: 2, offsetX: 0, offsetY: 0 };
+    const dom = naturalToDomScreen(natural, fit, imageSize, zoom);
+    const fitPoint = imageToScreen(natural, fit, imageSize);
+    // offset=0 + scale * fitPoint
+    expect(dom.x).toBeCloseTo(2 * fitPoint.x, 6);
+    expect(dom.y).toBeCloseTo(2 * fitPoint.y, 6);
+  });
+
+  it("adds the zoom offset after scaling so panned views still align", () => {
+    const zoom: ZoomState = { scale: 1, offsetX: 40, offsetY: -25 };
+    const dom = naturalToDomScreen(natural, fit, imageSize, zoom);
+    const fitPoint = imageToScreen(natural, fit, imageSize);
+    expect(dom.x).toBeCloseTo(fitPoint.x + 40, 6);
+    expect(dom.y).toBeCloseTo(fitPoint.y - 25, 6);
   });
 });

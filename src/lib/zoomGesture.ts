@@ -1,3 +1,4 @@
+import { imageToScreen } from "@/lib/imageFit";
 import type { FitRect, Point, Size } from "@/lib/imageFit";
 
 export const MIN_ZOOM = 0.1;
@@ -92,6 +93,21 @@ export function fitPointToStagePoint(fitPoint: Point, zoom: ZoomState): Point {
     x: zoom.offsetX + zoom.scale * fitPoint.x,
     y: zoom.offsetY + zoom.scale * fitPoint.y,
   };
+}
+
+// Natural image-space -> DOM viewport coords. Composes `imageToScreen`
+// (natural -> fit-internal screen) with `fitPointToStagePoint`
+// (fit-internal -> Stage-absolute). Use for placing DOM overlays
+// (e.g. <textarea>) whose visible position must match Konva-rendered
+// shapes across view zoom. Konva nodes inside the Stage receive the
+// scale/x/y transform automatically; DOM siblings outside do not.
+export function naturalToDomScreen(
+  natural: Point,
+  fit: FitRect,
+  imageSize: Size,
+  zoom: ZoomState,
+): Point {
+  return fitPointToStagePoint(imageToScreen(natural, fit, imageSize), zoom);
 }
 
 // Constrain a ZoomState's offset so the image cannot escape the Stage.

@@ -19,6 +19,7 @@ import {
   clampPan,
   DEFAULT_ZOOM_STATE,
   fitPointToStagePoint,
+  naturalToDomScreen,
   nextZoomIn,
   nextZoomOut,
   stagePointToFitPoint,
@@ -776,20 +777,32 @@ export function CanvasArea(props: CanvasAreaProps) {
     ? `${styles.canvasArea} ${styles.canvasAreaDragging}`
     : styles.canvasArea;
 
+  // Stage applies view zoom via `scaleX/scaleY/x/y` to Konva nodes, but DOM
+  // siblings (e.g. <textarea>) do not inherit that transform. Use
+  // `naturalToDomScreen` so the overlay tracks zoom and pan, matching the
+  // Konva-rendered preview / shape pixel-for-pixel. Font size scales by the
+  // image-to-screen ratio (matches `Konva.Text` on-canvas scaling) AND by
+  // `zoomState.scale` so the visible glyph size mirrors the zoomed Stage.
   const textInputScreen = textInput && fit && imageSize
-    ? imageToScreen(textInput, fit, imageSize)
+    ? naturalToDomScreen(textInput, fit, imageSize, zoomState)
     : null;
+  const textInputFontSize = textInput && fit && imageSize
+    ? (() => {
+      const { scaleX, scaleY } = imageToScreenScale(fit, imageSize);
+      return TEXT_FONT_SIZE * Math.min(scaleX, scaleY) * zoomState.scale;
+    })()
+    : undefined;
 
   const editingShape: TextShape | null = editingTextId
     ? (shapes.find((s): s is TextShape => s.id === editingTextId && s.type === "text") ?? null)
     : null;
   const editingScreen = editingShape && fit && imageSize
-    ? imageToScreen({ x: editingShape.x, y: editingShape.y }, fit, imageSize)
+    ? naturalToDomScreen({ x: editingShape.x, y: editingShape.y }, fit, imageSize, zoomState)
     : null;
   const editingFontSize = editingShape && fit && imageSize
     ? (() => {
       const { scaleX, scaleY } = imageToScreenScale(fit, imageSize);
-      return (editingShape.fontSize ?? TEXT_FONT_SIZE) * Math.min(scaleX, scaleY);
+      return (editingShape.fontSize ?? TEXT_FONT_SIZE) * Math.min(scaleX, scaleY) * zoomState.scale;
     })()
     : undefined;
 
@@ -1073,6 +1086,7 @@ export function CanvasArea(props: CanvasAreaProps) {
             x={textInputScreen.x}
             y={textInputScreen.y}
             color={activeColor}
+            fontSize={textInputFontSize}
             onConfirm={confirmText}
             onCancel={cancelText}
           />
