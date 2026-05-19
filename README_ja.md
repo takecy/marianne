@@ -33,6 +33,14 @@
 
 ## インストール
 
+> [!NOTE]\
+> Apple税($99/年)を未払いのため、初回起動時に Gatekeeper の警告が出る。
+> 「プライバシーとセキュリティ」設定から承認するか、ターミナルで以下を一度実行して承認する必要がある。
+>
+> ```bash
+> xattr -dr com.apple.quarantine /Applications/Marianne.app
+> ```
+
 ### リリースから
 
 > [!NOTE]\
@@ -40,9 +48,11 @@
 
 1. [Releases](https://github.com/takecy/marianne/releases) から最新の `Marianne_<version>_aarch64.dmg` をダウンロード。
 2. dmg をマウントし、`Marianne.app` を `/Applications` フォルダにドラッグ。
-3. 初回起動時、Gatekeeper の警告が出たらアプリを右クリック →「開く」で承認する (Apple税($99/年)を未払いのため)。または `xattr -dr com.apple.quarantine /Applications/Marianne.app` をターミナルで一度実行する。
+3. 初回起動時、Gatekeeper の警告が出たら「プライバシーとセキュリティ」設定から承認する。または 下記をターミナルで一度実行する。
 
-スクリーンショットをペースト (`Cmd + V`) 、ウィンドウに画像をドラッグ、画像の右クリックメニューの`このアプリケーションで開く`から注釈作業を始められる。
+```bash
+xattr -dr com.apple.quarantine /Applications/Marianne.app
+```
 
 ### ソースコードから
 
@@ -53,7 +63,11 @@
 1. このリポジトリをクローン
 1. `pnpm install --frozen-lockfile` で依存関係をインストール
 1. `pnpm install:local:unsigned` で `/Applications/Marianne.app` にインストール
-1. 初回起動時、Gatekeeper の警告が出たらアプリを右クリック →「開く」で承認する。または `xattr -dr com.apple.quarantine /Applications/Marianne.app` をターミナルで一度実行する。
+1. 初回起動時、Gatekeeper の警告が出たら「プライバシーとセキュリティ」設定から承認する。または 下記をターミナルで一度実行する。
+
+```bash
+xattr -dr com.apple.quarantine /Applications/Marianne.app
+```
 
 > [!NOTE]\
 > このビルドは自動アップデートが無効です。新しいバージョンに上げるには `git pull && pnpm install:local:unsigned` を再実行してください。
