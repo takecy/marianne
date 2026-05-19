@@ -1,42 +1,47 @@
 ---
 title: Installation
-description: Install Marianne from the prebuilt dmg on Apple Silicon Macs and learn how the built-in auto-updater keeps you on the latest release.
+description: Install Marianne on Apple Silicon Macs from the release dmg or by building locally, and stay current via the built-in auto-updater.
 ---
 
 import { Aside, Steps } from "@astrojs/starlight/components";
 
-Marianne ships as a signed dmg for **Apple Silicon Macs**. Installation takes under a minute; after that the app keeps itself current via a built-in updater.
+Marianne ships as a dmg for **Apple Silicon Macs**. With the release dmg, installation takes under a minute and the app keeps itself current via a built-in updater. You can also build from source and install locally.
 
 ## System requirements
 
 | Item | Requirement |
 |------|-------------|
-| Hardware | Apple Silicon (M1 / M2 / M3 series) — Intel Macs are not supported |
-| macOS | 11.0 (Big Sur) or later |
+| Hardware | Apple Silicon (M series) |
+| macOS | 26.0 (Tahoe) or later |
 | Network | None required at runtime — the only outbound call is the update check on launch |
+
+\* Developed and tested on the author's environment (M5, Tahoe). Behavior on older macOS releases is not verified.
 
 <Aside type="caution" title="Intel Macs are not supported">
 The distributable is built for `aarch64-apple-darwin` only. Launching on an
 Intel Mac fails with `Bad CPU type in executable`.
 </Aside>
 
-## Install from the dmg
+## Install from the release dmg
 
 <Steps>
-1. **Mount the dmg**: double-click `Marianne_<version>_aarch64.dmg` in Finder.
+1. **Download the dmg**: grab the latest `Marianne_<version>_aarch64.dmg` from [GitHub Releases](https://github.com/takecy/marianne/releases).
 
-2. **Drag `Marianne.app` into `/Applications`**: drop it onto the Applications shortcut shown in the dmg window.
+2. **Mount the dmg**: double-click it in Finder.
 
-3. **Unmount the dmg**: eject it from the Finder sidebar to clean up.
+3. **Drag `Marianne.app` into `/Applications`**: drop it onto the Applications shortcut shown in the dmg window.
 
-4. **Launch Marianne**: open it from Launchpad or Spotlight.
+4. **Unmount the dmg**: eject it from the Finder sidebar to clean up.
+
+5. **Launch Marianne**: open it from Launchpad or Spotlight.
 </Steps>
 
 ### First-launch Gatekeeper warning
 
-The dmg is **not code-signed**, so macOS may show "Marianne cannot be opened because the developer cannot be verified" on first launch. Either of these one-time workarounds clears it:
+The dmg is **not code-signed** (the maintainer hasn't paid the Apple Developer Program's $99/year fee), so macOS may show "Marianne cannot be opened because the developer cannot be verified" on first launch. Any one of the following one-time workarounds clears it:
 
 - Right-click `Marianne.app` in `/Applications` and choose **Open** from the context menu.
+- Approve it from **System Settings → Privacy & Security**.
 - Or run this once in a terminal:
 
   ```sh
@@ -45,7 +50,34 @@ The dmg is **not code-signed**, so macOS may show "Marianne cannot be opened bec
 
 After approving once, future launches go through normally.
 
-## Auto-update
+## Install from source
+
+Build locally and place the app in `/Applications` yourself instead of using the official binary. Prerequisites match Tauri v2's official macOS requirements.
+
+### Prerequisites
+
+- **Xcode Command Line Tools**: `xcode-select --install`
+- **Rust**: use the installer at the [official site](https://www.rust-lang.org/tools/install)
+- **pnpm**: use the installer at the [official site](https://pnpm.io/installation)
+
+### Build steps
+
+<Steps>
+1. **Clone the repository**: `git clone https://github.com/takecy/marianne.git`
+
+2. **Install dependencies**: `pnpm install --frozen-lockfile`
+
+3. **Build and install locally**: run `pnpm install:local:unsigned`. This invokes `pnpm tauri build` internally and copies the bundle to `/Applications/Marianne.app`.
+
+4. **Approve the first-launch Gatekeeper warning**: follow the same steps as in "First-launch Gatekeeper warning" above.
+</Steps>
+
+<Aside type="caution" title="Source builds have auto-update disabled">
+This build has the updater explicitly disabled. To upgrade, re-run
+`git pull && pnpm install:local:unsigned`.
+</Aside>
+
+## Auto-update (release dmg only)
 
 You do not need to download new dmgs by hand — Marianne checks for releases on launch and updates itself.
 

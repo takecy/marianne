@@ -22,7 +22,7 @@ The real name of "[Ms. Goldenweek](https://one-piece.com/character/Ms_Goldenweek
 
 - 🔌 **Offline**: no login, no telemetry, no cloud sync, no external server calls (update check only).
 - 🪶 **Simple**: arrows, rectangles, text, mosaic, and a bit of cropping — that's the whole toolbox.
-- ⚡ **Small and fast**: built on [TAURI](https://v2.tauri.app/), the app is under 20MB and launches in a flash.
+- ⚡ **Small and fast**: built on [Tauri](https://v2.tauri.app/), the app is under 20MB and launches in a flash.
 - 👤 **No AI**: no AI features. This is for me (a human) to put arrows on images.
 
 ## Screenshots
