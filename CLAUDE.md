@@ -124,19 +124,19 @@ copyImageToClipboard(blobPromise); // Promise<Blob> をそのまま ClipboardIte
 
 `CanvasArea.tsx` の `keydown` リスナが管理（テキスト入力にフォーカスが当たっている時 / textarea や input にフォーカスがある時はネイティブの編集を尊重するため bail out する）:
 
-| キー                              | 動作                                                      | 補足                                                                                    |
-| --------------------------------- | --------------------------------------------------------- | --------------------------------------------------------------------------------------- |
-| `Cmd + O`                         | File → Open... 画像を読み込み                            | macOS native menu accelerator のみ (`File` 表示)。Rust の `pick_and_open_image` で dialog 開閉 + 検証 + scope grant |
-| `Cmd/Ctrl + Shift + S`            | PNG をファイル保存                                        | ネイティブの保存ダイアログを開く。File → Save As... メニューと併設 (menu accelerator)   |
+| キー                              | 動作                                                      | 補足                                                                                                                                                           |
+| --------------------------------- | --------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Cmd + O`                         | File → Open... 画像を読み込み                             | macOS native menu accelerator のみ (`File` 表示)。Rust の `pick_and_open_image` で dialog 開閉 + 検証 + scope grant                                            |
+| `Cmd/Ctrl + Shift + S`            | PNG をファイル保存                                        | ネイティブの保存ダイアログを開く。File → Save As... メニューと併設 (menu accelerator)                                                                          |
 | `Cmd/Ctrl + Shift + C`            | PNG をシステムクリップボードへコピー                      | 同期的 Promise ハンドオフが必須 (後述)。File → Copy to Clipboard / toolbar Copy / JS keydown の **三重登録** (menu は best-effort、toolbar/keydown が信頼経路) |
-| `Cmd/Ctrl + Z`                    | undo                                                      |                                                                                         |
-| `Cmd/Ctrl + Shift + Z`            | redo                                                      |                                                                                         |
-| `Cmd/Ctrl + C`                    | 選択中シェイプをアプリ内クリップボードへコピー            | 選択モードかつシェイプ選択時のみ                                                        |
-| `Cmd/Ctrl + V`                    | アプリ内クリップボードのシェイプを貼付                    | `clipboardShape` が無い時は `preventDefault` を呼ばないので OS の画像ペーストが動作する |
-| `v` / `a` / `r` / `t` / `m` / `x` | ツール切替 (select / arrow / rect / text / mosaic / crop) | 画像未読み込み時は無視。`TOOL_SHORTCUTS` (`src/types/tool.ts`) で定義                   |
-| `Enter`                           | クロップ矩形の確定 (crop モード時のみ)                    | `cropImage.ts` の `MIN_CROP_DIM` (8px) 未満ならボタンも Enter も無効                    |
-| `Escape`                          | クロップのキャンセル (crop モード時のみ)                  | `onToolChange("select")` を呼んで select モードへ戻す                                   |
-| `Delete` / `Backspace`            | 選択中シェイプの削除                                      | 選択モード時のみ                                                                        |
+| `Cmd/Ctrl + Z`                    | undo                                                      |                                                                                                                                                                |
+| `Cmd/Ctrl + Shift + Z`            | redo                                                      |                                                                                                                                                                |
+| `Cmd/Ctrl + C`                    | 選択中シェイプをアプリ内クリップボードへコピー            | 選択モードかつシェイプ選択時のみ                                                                                                                               |
+| `Cmd/Ctrl + V`                    | アプリ内クリップボードのシェイプを貼付                    | `clipboardShape` が無い時は `preventDefault` を呼ばないので OS の画像ペーストが動作する                                                                        |
+| `v` / `a` / `r` / `t` / `m` / `x` | ツール切替 (select / arrow / rect / text / mosaic / crop) | 画像未読み込み時は無視。`TOOL_SHORTCUTS` (`src/types/tool.ts`) で定義                                                                                          |
+| `Enter`                           | クロップ矩形の確定 (crop モード時のみ)                    | `cropImage.ts` の `MIN_CROP_DIM` (8px) 未満ならボタンも Enter も無効                                                                                           |
+| `Escape`                          | クロップのキャンセル (crop モード時のみ)                  | `onToolChange("select")` を呼んで select モードへ戻す                                                                                                          |
+| `Delete` / `Backspace`            | 選択中シェイプの削除                                      | 選択モード時のみ                                                                                                                                               |
 
 `Cmd+C` / `Cmd+V` (Shift なし) は OS クリップボードには触れずアプリ内専用クリップボードで動作する一方、`Cmd+Shift+C` は PNG 出力という別経路の機能。エクスポートを `Cmd+E` に振り直すなどしないこと: 既存ユーザーの筋肉記憶を壊すうえ、`Cmd+V` の挙動と意味的に対をなしている。
 
