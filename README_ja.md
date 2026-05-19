@@ -23,6 +23,7 @@
 - **オフライン**: ログインなし、テレメトリ・クラウド同期・外部サーバー通信なし (アップデートチェックのみ)。
 - **シンプル**: 矢印、矩形、テキストのアノテーションにモザイク、それとちょっとしたクロップができるだけ。
 - **小さく高速**: [TAURI](https://v2.tauri.app/) をベースにアプリサイズは20MB以下。 起動も爆速。
+- **AI機能なし**: AI関連の機能はない。私(人間)が画像に矢印を入れるためのもの。
 
 ## スクリーンショット
 
@@ -37,7 +38,7 @@
 
 1. [Releases](https://github.com/takecy/marianne/releases) から最新の `Marianne_<version>_aarch64.dmg` をダウンロード。
 2. dmg をマウントし、`Marianne.app` を `/Applications` フォルダにドラッグ。
-3. 初回起動時、Gatekeeper の警告が出たらアプリを右クリック →「開く」で承認する (本ビルドはコード署名なし)。または `xattr -dr com.apple.quarantine /Applications/Marianne.app` をターミナルで一度実行する。
+3. 初回起動時、Gatekeeper の警告が出たらアプリを右クリック →「開く」で承認する (Apple税($99/年)を未払いのため)。または `xattr -dr com.apple.quarantine /Applications/Marianne.app` をターミナルで一度実行する。
 
 スクリーンショットをペースト (`Cmd + V`) 、ウィンドウに画像をドラッグ、画像の右クリックメニューの`このアプリケーションで開く`から注釈作業を始められる。
 
@@ -46,8 +47,6 @@
 - **ユーザー向け**: [Marianne docs](https://takecy.github.io/marianne/ja/) — 機能、キーボードショートカット、画像入力経路、エクスポート方法
 - **contributor 向け**: [はじめに](https://takecy.github.io/marianne/ja/getting-started/) — 技術スタック、開発環境、検証コマンド、worktree ワークフロー
 - **メンテナー向け**: [リリース手順](https://takecy.github.io/marianne/ja/releasing/) — リリースワークフロー、署名鍵、GitHub Secrets
-
-> このドキュメントサイトは Astro Starlight でビルドされ、このリポジトリの `/docs` ディレクトリから配信される。上記の本番 URL は GitHub Pages が有効化された時点で生きるようになる。**それまでは** GitHub 上のソースを参照: [ユーザーガイド](https://github.com/takecy/marianne/tree/main/site/src/content/docs/ja)、[はじめに](https://github.com/takecy/marianne/blob/main/site/src/content/docs/ja/getting-started.mdx)、[リリース手順](https://github.com/takecy/marianne/blob/main/site/src/content/docs/ja/releasing.mdx)。
 
 ## ライセンス
 
