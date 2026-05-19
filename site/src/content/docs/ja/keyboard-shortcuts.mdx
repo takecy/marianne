@@ -7,12 +7,20 @@ import { Aside } from "@astrojs/starlight/components";
 
 `Cmd` は macOS 表記 — 他プラットフォームでは `Ctrl` に読み替える。テキストアノテーションの編集オーバーレイ表示中、およびネイティブ `input` / `textarea` にフォーカスがある間は、ブラウザ標準の編集キーを尊重するため全ショートカットが無効化される。
 
+## 開く
+
+| ショートカット | 動作 |
+|----------------|------|
+| `Cmd + O` | **File → Open...** メニューから画像を開く (ネイティブファイルダイアログ、PNG / JPEG) |
+
+`Cmd + O` は macOS native メニュー accelerator (`MenuItemBuilder::with_id("file-open", ...)`) として登録される。選択された画像は Finder の「このアプリケーションで開く」と同じ Rust 側の trust boundary を通り、symlink decoy や非 whitelist 拡張子はファイル読み取り前に拒否される。
+
 ## エクスポート
 
 | ショートカット | 動作 |
 |----------------|------|
-| `Cmd + Shift + S` | 注釈付き PNG をファイル保存 (ネイティブ保存ダイアログ) |
-| `Cmd + Shift + C` | 注釈付き PNG をシステムクリップボードへコピー |
+| `Cmd + Shift + S` | 注釈付き PNG をファイル保存 (ネイティブ保存ダイアログ)。**File → Save As...** メニュー accelerator にも併設 |
+| `Cmd + Shift + C` | 注釈付き PNG をシステムクリップボードへコピー。**メニュー (`File → Copy to Clipboard`、best-effort) + toolbar Copy ボタン (信頼経路) + JS keydown (信頼経路)** の三重登録。`App.tsx` の共有 de-dupe 層で二重発火を防止 |
 
 詳しいワークフローと 2 つの経路の違いは [エクスポート](./export/) を参照。
 
@@ -20,9 +28,9 @@ import { Aside } from "@astrojs/starlight/components";
 
 | ショートカット | 動作 |
 |----------------|------|
-| `Cmd + Z` | undo (最大 50 ステップ) |
-| `Cmd + Shift + Z` | redo |
-| `Delete` / `Backspace` | 選択中シェイプを削除 (select モードのみ) |
+| `Cmd + Z` | undo (最大 50 ステップ)。**Edit → Undo** メニュー accelerator にも併設 |
+| `Cmd + Shift + Z` | redo。**Edit → Redo** メニュー accelerator にも併設 |
+| `Delete` / `Backspace` | 選択中シェイプを削除 (select モードのみ)。**Edit → Delete** メニュー accelerator にも併設 |
 
 新しい画像を読み込むと履歴はリセットされる — 前画像の注釈には undo で戻れない。
 
