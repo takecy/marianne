@@ -31,7 +31,9 @@ The real name of "[Ms. Goldenweek](https://one-piece.com/character/Ms_Goldenweek
   <img src="./assets/design/example_01.png" alt="Marianne annotation example" width="600" />
 </div>
 
-## Quick install
+## Install
+
+### From release
 
 > [!NOTE]
 > Apple Silicon Macs only.
@@ -41,6 +43,20 @@ The real name of "[Ms. Goldenweek](https://one-piece.com/character/Ms_Goldenweek
 3. First launch: right-click the app and choose **Open** to clear the Gatekeeper warning (haven't paid the $99/year Apple tax). Alternative: `xattr -dr com.apple.quarantine /Applications/Marianne.app` once in a terminal.
 
 Paste a screenshot (`Cmd + V`), drag an image into the window, or use **Open with this application** from an image's right-click menu to start annotating.
+
+### From source
+
+1. Make sure the following are installed (matches the official Tauri v2 macOS prerequisites):
+   - Xcode Command Line Tools: `xcode-select --install`
+   - Rust: [official site](https://www.rust-lang.org/tools/install)
+   - pnpm: [official site](https://pnpm.io/installation)
+1. Clone this repository
+1. Install dependencies with `pnpm install --frozen-lockfile`
+1. Install into `/Applications/Marianne.app` with `pnpm install:local:unsigned`
+1. On first launch, if Gatekeeper warns about the app, right-click it and choose **Open** to accept. Alternative: `xattr -dr com.apple.quarantine /Applications/Marianne.app` once in a terminal.
+
+> [!NOTE]
+> Auto-update is disabled in this build. To upgrade, run `git pull && pnpm install:local:unsigned` again.
 
 ## Documentation
 
