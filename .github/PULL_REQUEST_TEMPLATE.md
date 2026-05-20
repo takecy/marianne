@@ -1,22 +1,22 @@
-## 概要
+## Summary
 
-<!-- なぜこの変更が必要か、解決したい問題、得たい結果を簡潔に。 -->
+<!-- Why is this change needed? What problem does it solve, what outcome should it produce? -->
 
-## 変更内容
+## Changes
 
-<!-- 主要な変更ファイルと変更点。アーキテクチャ的な意思決定があれば明記。 -->
+<!-- Main files touched and what was changed. Note any architectural decisions. -->
 
-## 検証
+## Verification
 
 - [ ] `pnpm fmt:check`
 - [ ] `pnpm lint`
 - [ ] `pnpm typecheck`
 - [ ] `pnpm test:run`
 - [ ] `pnpm build`
-- [ ] `pnpm docs:build` (`docs/` または `site/` を変更した場合)
-- [ ] 実機での UI 動作確認 (UI 変更時)
+- [ ] `pnpm docs:build` (only when `docs/` or `site/` is changed)
+- [ ] Manual UI verification (for UI changes)
 
-## 関連
+## Related
 
 <!-- - Closes #N -->
 <!-- - Refs #N -->

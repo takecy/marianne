@@ -10,6 +10,6 @@ blank_issues_enabled: true
 # reports to GitHub Private Vulnerability Reporting (matching SECURITY.md)
 # so sensitive findings never land in public issues.
 contact_links:
-  - name: セキュリティ脆弱性の報告
+  - name: Report a security vulnerability
     url: https://github.com/takecy/marianne/security/advisories/new
-    about: セキュリティに関する報告は GitHub Private Vulnerability Reporting 経由でお願いします (公開 issue では報告しないでください)。
+    about: Please report security issues via GitHub Private Vulnerability Reporting (do not file a public issue).

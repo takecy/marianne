@@ -1,35 +1,35 @@
 ---
-name: バグ報告
-about: 不具合や予期しない動作を報告する
+name: Bug report
+about: Report a defect or unexpected behavior
 title: ""
 labels: ["bug"]
 assignees: []
 ---
 
-## 概要
+## Summary
 
-<!-- どのような不具合が起きているか、簡潔に記述してください。 -->
+<!-- A clear and concise description of the bug. -->
 
-## 再現手順
+## Steps to reproduce
 
 1.
 2.
 3.
 
-## 期待される挙動
+## Expected behavior
 
-<!-- 何が起きるべきか。 -->
+<!-- What should have happened. -->
 
-## 実際の挙動
+## Actual behavior
 
-<!-- 実際に何が起きたか。エラーメッセージ・ログがあれば貼り付けてください。 -->
+<!-- What actually happened. Paste error messages or logs if any. -->
 
-## 環境
+## Environment
 
-- Marianne バージョン:
-- macOS バージョン:
-- 入手経路: <!-- [ ] Releases dmg / [ ] ソースビルド (`pnpm install:local:unsigned`) -->
+- Marianne version:
+- macOS version:
+- Install source: <!-- [ ] Releases dmg / [ ] Built from source (`pnpm install:local:unsigned`) -->
 
-## スクリーンショット・補足情報
+## Screenshots / additional context
 
-<!-- 可能であればスクリーンショット、関連 issue 番号、再現を助ける情報があれば添付してください。 -->
+<!-- Screenshots, related issue numbers, or anything else that helps reproduce the bug. -->
