@@ -18,8 +18,8 @@ permitted.
 
 ## Prerequisites
 
-- **Node.js** 24 LTS (see [`.nvmrc`](./.nvmrc))
-- **pnpm** 11 LTS (matches CI / release workflow)
+- **Node.js** version from [`.nvmrc`](./.nvmrc)
+- **pnpm** version from `packageManager` in [`package.json`](./package.json)
 - **Rust** stable via [rustup](https://www.rust-lang.org/tools/install)
 - **Xcode Command Line Tools**: `xcode-select --install`
 - macOS aarch64 development host — other platforms are not supported

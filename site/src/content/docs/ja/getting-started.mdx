@@ -26,8 +26,8 @@ Tauri Rust バックエンドは意図的に最小化 — `src-tauri/src/lib.rs`
 
 | ツール | 要件 |
 |--------|------|
-| Node.js | `^20.19.0 \|\| ^22.13.0 \|\| >=24` (ESLint v10 公式 engine 要件) |
-| pnpm | 11 (LTS) 系以上 |
+| Node.js | `.nvmrc` のバージョン |
+| pnpm | `package.json` の `packageManager` のバージョン |
 | Rust toolchain | `rustup` で stable をインストール |
 | Xcode CLT | macOS で Tauri バンドル生成に必要 |
 | deno | フォーマッタとして使用 (`deno fmt`) |

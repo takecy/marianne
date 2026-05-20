@@ -26,8 +26,8 @@ The Tauri Rust backend is intentionally minimal — `src-tauri/src/lib.rs` expos
 
 | Tool | Requirement |
 |------|-------------|
-| Node.js | `^20.19.0 \|\| ^22.13.0 \|\| >=24` (ESLint v10 engine requirement) |
-| pnpm | 11 (LTS) or later |
+| Node.js | Version from `.nvmrc` |
+| pnpm | Version from `packageManager` in `package.json` |
 | Rust toolchain | Install stable via `rustup` |
 | Xcode CLT | Required on macOS for the Tauri bundle |
 | deno | Used as the formatter (`deno fmt`) |
