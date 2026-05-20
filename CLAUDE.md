@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **Marianne** は完全オフラインで動作する Skitch 風の画像注釈デスクトップアプリ（MVP）。画像に対して矩形 / 矢印 / テキスト / モザイクのアノテーションを付与し、クロップで不要な領域を切り落とし、PNG としてファイル保存またはクリップボードへコピーする。外部ネットワーク通信は一切行わない。
 
-技術スタック: **Tauri v2（Rust シェル）+ React 19 + TypeScript + Vite + react-konva + Zustand**。Tauri バックエンドは意図的に最小限（`src-tauri/src/lib.rs` の `greet` / `take_pending_open_paths` / `confirm_quit` / `renderer_ready` の 4 コマンドのみ。`greet` はサンプル、残りは OS 統合用のグルーコード）で、機能開発はほぼ `src/` 内で完結する。
+技術スタック: **Tauri v2（Rust シェル）+ React 19 + TypeScript + Vite + react-konva + Zustand**。Tauri バックエンドは意図的に最小限（`src-tauri/src/lib.rs` の `take_pending_open_paths` / `confirm_quit` / `renderer_ready` / `pick_and_open_image` の 4 コマンドのみ。いずれも OS 統合用のグルーコード）で、機能開発はほぼ `src/` 内で完結する。
 
 ## よく使うコマンド
 

@@ -19,7 +19,7 @@ graph LR
   end
 
   subgraph Tauri["Tauri v2 (Rust shell)"]
-    RustCmds["lib.rs commands<br/>greet · take_pending_open_paths<br/>confirm_quit · renderer_ready<br/>pick_and_open_image"]
+    RustCmds["lib.rs commands<br/>take_pending_open_paths · confirm_quit<br/>renderer_ready · pick_and_open_image"]
     Plugins["tauri-plugin-*<br/>opener · dialog · fs<br/>updater · process"]
   end
 
