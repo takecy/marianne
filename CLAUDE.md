@@ -158,7 +158,7 @@ copyImageToClipboard(blobPromise); // Promise<Blob> をそのまま ClipboardIte
 ## Tauri 統合の注意点
 
 - 開発 URL は `http://localhost:1420` 固定（`vite.config.ts` の `strictPort: true` と `tauri.conf.json` が対応）。片方だけ変更しないこと。
-- `src-tauri/capabilities/default.json` の permissions リストは現在 `core:default` / `core:window:allow-set-size` / `core:window:allow-center` / `opener:default` / `dialog:allow-save` / `fs:allow-write-file` / `fs:allow-read-file` / `updater:default` / `process:default` の 9 個。`core:window:*` は `src/lib/windowResize.ts` が画像読み込み時にウィンドウサイズを自動調整するために使う。Rust 側プラグインを追加するときは capability も同時に追加すること（怠ると `invoke` が ACL で拒否される）。
+- `src-tauri/capabilities/default.json` の permissions リストは現在 `core:default` / `core:window:allow-set-size` / `core:window:allow-center` / `dialog:allow-save` / `fs:allow-write-file` / `fs:allow-read-file` / `updater:default` / `process:default` の 8 個。`core:window:*` は `src/lib/windowResize.ts` が画像読み込み時にウィンドウサイズを自動調整するために使う。Rust 側プラグインを追加するときは capability も同時に追加すること（怠ると `invoke` が ACL で拒否される）。**`tauri-plugin-opener` は意図的に同梱しない** — XSS が webview に注入された場合に `__TAURI_INTERNALS__.invoke('plugin:opener|open_url', ...)` で CSP の `connect-src` を迂回した外部 URL 起動が可能になるため。将来 opener が必要になったら必ず `opener:allow-open-url` を glob で scope 限定（例: `{"url": "https://github.com/takecy/marianne/**"}`）して追加すること。`opener:default` を素のまま使うことは禁止。
 - フロントは `dist/` にビルドされ、`tauri.conf.json` の `frontendDist` 設定で `../dist` から提供される。
 
 ### セルフアップデートに関する不変条件
