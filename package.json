@@ -17,6 +17,7 @@
     "test": "vitest",
     "test:run": "vitest run",
     "test:ui": "vitest --ui",
+    "test:coverage": "vitest run --coverage",
     "install:local": "scripts/install-local.sh",
     "install:local:unsigned": "scripts/install-local-unsigned.sh",
     "build:dmg": "scripts/build-dmg.sh",

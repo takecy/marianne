@@ -50,8 +50,16 @@ jobs:
       - name: Format check
         run: pnpm fmt:check
 
-      - name: Test
-        run: pnpm test:run
+      - name: Test (with coverage)
+        run: pnpm test:coverage
+
+      - name: Upload coverage summary
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v7.0.1
+        with:
+          name: coverage-summary
+          path: coverage/coverage-summary.json
+          retention-days: 30
+          if-no-files-found: error
 
       - name: Build
         run: pnpm build
