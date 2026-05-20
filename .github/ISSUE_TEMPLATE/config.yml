@@ -1,0 +1,15 @@
+# Issue template chooser configuration.
+#
+# `blank_issues_enabled: true` keeps the "Don't see your issue? Open a blank
+# issue" link visible alongside the bug / feature-request templates. This is
+# GitHub's default; declaring it explicitly preserves the policy without
+# relying on the repository UI setting.
+blank_issues_enabled: true
+
+# `contact_links` are shown above the template picker. We route security
+# reports to GitHub Private Vulnerability Reporting (matching SECURITY.md)
+# so sensitive findings never land in public issues.
+contact_links:
+  - name: セキュリティ脆弱性の報告
+    url: https://github.com/takecy/marianne/security/advisories/new
+    about: セキュリティに関する報告は GitHub Private Vulnerability Reporting 経由でお願いします (公開 issue では報告しないでください)。
