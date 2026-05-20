@@ -7,7 +7,6 @@
     "core:default",
     "core:window:allow-set-size",
     "core:window:allow-center",
-    "opener:default",
     "dialog:allow-save",
     "fs:allow-write-file",
     "fs:allow-read-file",
