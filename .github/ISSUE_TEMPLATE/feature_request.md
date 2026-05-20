@@ -1,23 +1,24 @@
 ---
-name: 機能要望
-about: 新機能や改善の提案
+name: Feature request
+about: Propose a new feature or improvement
 title: ""
 labels: ["enhancement"]
 assignees: []
 ---
 
-## 解決したい問題
+## Problem
 
-<!-- どのような状況・課題があるか。「〜したいができない」「〜の操作が煩雑」などユースケースを記述してください。 -->
+<!-- What situation or pain point are you trying to solve? Describe the use case
+("I want to do X but cannot", "the X workflow is cumbersome", etc.). -->
 
-## 提案する機能
+## Proposed solution
 
-<!-- どのような機能・挙動を期待するか。 -->
+<!-- What feature or behavior would you like to see? -->
 
-## 代替案
+## Alternatives considered
 
-<!-- 検討した他のアプローチ、既存機能での回避策があれば。 -->
+<!-- Other approaches you have thought about, or workarounds using existing features. -->
 
-## 補足情報
+## Additional context
 
-<!-- スクリーンショット、参考リンク、関連 issue 番号があれば添付してください。 -->
+<!-- Screenshots, reference links, related issue numbers, etc. -->
