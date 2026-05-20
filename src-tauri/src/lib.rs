@@ -12,11 +12,6 @@ use tauri::{
 use tauri_plugin_dialog::DialogExt;
 use tauri_plugin_fs::FsExt;
 
-#[tauri::command]
-fn greet(name: &str) -> String {
-    format!("Hello, {}! You've been greeted from Rust!", name)
-}
-
 /// Buffer of file paths queued by `RunEvent::Opened` (macOS "Open With").
 /// The frontend drains this on mount via the `take_pending_open_paths`
 /// command so cold-start opens are not lost when the WebView is not ready
@@ -433,7 +428,6 @@ pub fn run() {
             }
         })
         .invoke_handler(tauri::generate_handler![
-            greet,
             take_pending_open_paths,
             confirm_quit,
             renderer_ready,

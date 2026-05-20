@@ -20,7 +20,7 @@ import { Aside, Steps } from "@astrojs/starlight/components";
 | フォーマッタ | [`deno fmt`](https://docs.deno.com/runtime/reference/cli/fmt/) | Prettier ではない |
 | docs サイト | [Astro Starlight](https://starlight.astro.build/) | 今読んでいるこのサイト。`site/` から `/docs/` にビルドされる |
 
-Tauri Rust バックエンドは意図的に最小化 — `src-tauri/src/lib.rs` には `greet` / `take_pending_open_paths` / `confirm_quit` / `renderer_ready` の 4 コマンドのみ (OS 統合用)。機能開発はほぼ全て `src/` で完結する。
+Tauri Rust バックエンドは意図的に最小化 — `src-tauri/src/lib.rs` には OS 統合用のコマンド (`take_pending_open_paths` / `confirm_quit` / `renderer_ready` / `pick_and_open_image`) のみ。機能開発はほぼ全て `src/` で完結する。
 
 ## 前提ツール
 

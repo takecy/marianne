@@ -20,7 +20,7 @@ This guide walks you through setting up a local development environment for Mari
 | Formatter | [`deno fmt`](https://docs.deno.com/runtime/reference/cli/fmt/) | not Prettier |
 | Docs site | [Astro Starlight](https://starlight.astro.build/) | The site you're reading now; built from `site/` to `/docs/` |
 
-The Tauri Rust backend is intentionally minimal — `src-tauri/src/lib.rs` exposes only four commands (`greet`, `take_pending_open_paths`, `confirm_quit`, `renderer_ready`) wired to OS integration. Almost all feature development stays inside `src/`.
+The Tauri Rust backend is intentionally minimal — `src-tauri/src/lib.rs` exposes only OS-integration commands (`take_pending_open_paths`, `confirm_quit`, `renderer_ready`, `pick_and_open_image`). Almost all feature development stays inside `src/`.
 
 ## Prerequisites
 
