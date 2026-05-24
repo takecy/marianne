@@ -4,6 +4,7 @@ description: Install Marianne on Apple Silicon Macs from the release dmg or by b
 ---
 
 import { Aside, Steps } from "@astrojs/starlight/components";
+import osAlertImage from "../../assets/os_alert.png";
 
 Marianne ships as a dmg for **Apple Silicon Macs**. With the release dmg, installation takes under a minute and the app keeps itself current via a built-in updater. You can also build from source and install locally.
 
@@ -49,6 +50,18 @@ The dmg is **not code-signed** (the maintainer hasn't paid the Apple Developer P
   ```
 
 After approving once, future launches go through normally.
+
+### "Damaged app" popup
+
+macOS may also show a separate dialog: `"Marianne.app" is damaged and can't be opened. You should move it to the Trash.` The app is not actually damaged — macOS is just warning about a quarantined unsigned binary. **Do not click "Move to Trash" — choose "Cancel"**, then run the following once in a terminal:
+
+<img src={osAlertImage.src} alt="macOS damaged app warning" width={180} />
+
+```sh
+xattr -dr com.apple.quarantine /Applications/Marianne.app
+```
+
+After running the command, relaunch Marianne from Launchpad or Spotlight and it opens normally.
 
 ## Install from source
 

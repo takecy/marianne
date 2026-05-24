@@ -5,7 +5,7 @@
 > Skitch-style offline image annotation app (for Apple Silicon)
 
 <div align="center">
-  <img src="./assets/design/marianne_app.png" alt="Marianne app screenshot" width="400" />
+  <img src="./assets/design/marianne_app.png" alt="Marianne app screenshot" width="320" />
 </div>
 
 ## Why build yet another image annotation app?
@@ -36,6 +36,17 @@ The real name of "[Ms. Goldenweek](https://one-piece.com/character/Ms_Goldenweek
 > [!NOTE]
 > Haven't paid the Apple tax ($99/year), so first launch shows a Gatekeeper warning.
 > Approve it from **System Settings → Privacy & Security**, or run the following once in a terminal:
+>
+> ```bash
+> xattr -dr com.apple.quarantine /Applications/Marianne.app
+> ```
+
+> [!NOTE]
+> On first launch, macOS may show a popup saying `"Marianne.app" is damaged and can't be opened. You should move it to the Trash.`
+> The app is not actually damaged — this is just macOS quarantining an unsigned binary because the Apple tax ($99/year) isn't paid.
+> Click **Cancel**, then run the following once in a terminal before relaunching.
+>
+> <img src="./assets/design/os_alert.png" alt="macOS damaged app warning" width="180" />
 >
 > ```bash
 > xattr -dr com.apple.quarantine /Applications/Marianne.app

@@ -5,7 +5,7 @@
 > Skitch 風オフライン画像アノテーション用アプリケーション (Apple Silicon向け)
 
 <div align="center">
-  <img src="./assets/design/marianne_app.png" alt="Marianne アプリのスクリーンショット" width="400" />
+  <img src="./assets/design/marianne_app.png" alt="Marianne アプリのスクリーンショット" width="320" />
 </div>
 
 ## なぜ今さら別の画像アノテーションアプリを作ったのか？
@@ -36,6 +36,17 @@
 > [!NOTE]\
 > Apple税($99/年)を未払いのため、初回起動時に Gatekeeper の警告が出る。\
 > 「プライバシーとセキュリティ」設定から承認するか、ターミナルで以下を一度実行して承認する必要がある。
+>
+> ```bash
+> xattr -dr com.apple.quarantine /Applications/Marianne.app
+> ```
+
+> [!NOTE]\
+> 初回起動時に OS から `"Marianne.app" は壊れているため開けません。`というポップアップが表示されることがある。\
+> 実際にはアプリは壊れておらず、Apple税($99/年)を未払いのため OS が quarantine 属性付きの実行ファイルを警告しているだけ。\
+> `キャンセル` を選択し、ターミナルで以下を一度実行してから再度起動する。
+>
+> <img src="./assets/design/os_alert.png" alt="macOS の壊れているアプリ警告" width="180" />
 >
 > ```bash
 > xattr -dr com.apple.quarantine /Applications/Marianne.app
