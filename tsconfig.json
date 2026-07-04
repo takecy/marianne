@@ -22,8 +22,8 @@
     "noUncheckedIndexedAccess": true,
     "noImplicitOverride": true,
 
-    /* Path alias */
-    "baseUrl": ".",
+    /* Path alias — `paths` resolves relative to this tsconfig's dir; no
+       `baseUrl` needed (and `baseUrl` is deprecated as of TS 6.0). */
     "paths": {
       "@/*": ["./src/*"]
     },
