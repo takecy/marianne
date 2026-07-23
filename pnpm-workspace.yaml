@@ -4,5 +4,8 @@ packages:
 allowBuilds:
   esbuild: true
   sharp: true
+overrides:
+  js-yaml: 4.3.0
+  svgo: 4.0.2
 minimumReleaseAgeExclude:
   - '@astrojs/starlight@0.41.3'
