@@ -107,6 +107,10 @@ export function useUpdater(options: UseUpdaterOptions = {}): UseUpdaterResult {
         if (event.event === "Started") {
           contentLength = event.data?.contentLength;
           downloaded = 0;
+          // `downloaded` and `contentLength` are mutable locals accumulated
+          // across callback invocations. Memoizing them would freeze the
+          // progress readout.
+          // oxlint-disable-next-line react/react-compiler
           setState({ kind: "downloading", downloaded, contentLength });
         } else if (event.event === "Progress") {
           downloaded += event.data.chunkLength;

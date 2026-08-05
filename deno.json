@@ -8,7 +8,7 @@
       "*.jsx",
       "*.json",
       "*.md",
-      "eslint.config.js",
+      ".oxlintrc.json",
       "vite.config.ts",
       "vitest.config.ts"
     ],

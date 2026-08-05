@@ -35,7 +35,7 @@ pnpm tauri dev   # launches the Tauri dev shell
 
 ```bash
 pnpm fmt:check     # deno fmt (NOT Prettier)
-pnpm lint          # ESLint v10 flat config
+pnpm lint          # oxlint (.oxlintrc.json)
 pnpm typecheck     # tsc --noEmit (strict + noUncheckedIndexedAccess)
 pnpm test:run      # Vitest + Testing Library
 pnpm build         # tsc && vite build
@@ -70,7 +70,9 @@ also runs this and uploads `coverage/coverage-summary.json` as an artifact.
 - **TypeScript**: `strict` + `noUncheckedIndexedAccess` + `noUnusedLocals` +
   `noUnusedParameters` + `noImplicitOverride`. Array index access yields
   `T | undefined` — handle accordingly.
-- **React**: `react-hooks` recommended rules are enforced via ESLint.
+- **React**: `react/rules-of-hooks`, `react/exhaustive-deps` and
+  `react/react-compiler` are enforced as errors via oxlint. Suppress with
+  `// oxlint-disable-next-line <rule>` plus a comment saying why.
 - **Tests**: Vitest + `@testing-library/react` + `@testing-library/jest-dom`.
   `globals: true` is enabled — no need to import `describe` / `it` / `expect`.
   **Table-driven tests are discouraged**; prefer one `it()` per case so each

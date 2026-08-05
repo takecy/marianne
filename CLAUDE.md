@@ -149,7 +149,17 @@ copyImageToClipboard(blobPromise); // Promise<Blob> をそのまま ClipboardIte
 ## 規約
 
 - **フォーマッタは `deno fmt`（Prettier ではない）。** 設定は `deno.json`（lineWidth 100、スペース 2、ダブルクォート、セミコロンあり）。コミット前に `pnpm fmt:check` を回すこと。
-- **ESLint v10 flat config**（`eslint.config.js`）。`tseslint.configs.strict` + `stylistic` に `react-hooks` の recommended を加えた構成。`tsconfig.json` で `noUncheckedIndexedAccess` と `noUnusedLocals` を有効にしているため、配列インデックスの結果は `T | undefined` として扱う必要がある。
+- **Linter は oxlint**（`.oxlintrc.json`）。ESLint 系は撤去済み（issue #108）。壊しやすい不変条件が多いので変更前に必読:
+  - `plugins` を書くと **oxlint のデフォルトプラグイン集合を上書きする**（デフォルトは `unicorn` / `typescript` / `oxc` で **`react` は含まれない**）。`react` を列挙から落とすと **lint は成功したまま React の検査だけが静かに消える**。設定を触ったら必ず `pnpm exec oxlint --print-config` で `plugins` に `react` があること、`react/*` が `deny` であることを目視する。
+  - `rules` に列挙している約 40 ルールは **旧 ESLint 構成（`tseslint.configs.strict` + `stylistic` + `react-hooks` recommended = 106 ルール）を再現するために明示 `error` 化したもの**。`correctness` カテゴリだけでは `no-explicit-any` / `no-non-null-assertion` / `ban-ts-comment` / `prefer-const` / `no-var` / `no-fallthrough` などが有効にならず、静かにカバレッジが落ちる。**`rules` から項目を削ると `src/test/oxlintConfig.test.ts` が落ちる**（プラグイン欠落 / `correctness` の格下げ / ルールの `warn` 降格も同時に検出する tripwire）。削除が正当な場合はテスト側のベースライン配列も同時に更新すること — 意識的な判断を強制するのがこのテストの目的。現状 106 → 173 ルールで、未カバーは後述の 15 件のみ。
+  - 旧構成のうち oxlint で再現できないのは 15 ルールだけ: `no-octal`（oxlint に存在しないが TS strict が legacy octal を拒否するため無害）と `react-hooks/{refs, purity, immutability, set-state-in-effect, preserve-manual-memoization, ...}` の 14 個。後者は **`react/react-compiler` 1 つに統合されている**（`Refs:` / `MemoDependencies:` という診断名で同じ検査が動く）ので実質的な穴ではない。
+  - `react/exhaustive-deps` は `MosaicNode.tsx` の `useEffect` deps 不変条件を守る唯一の自動検査。壊れていないことは「deps から 1 つ削って `pnpm lint` が落ちる」で確認できる。
+  - 診断の表示名は設定キーと一致しない（`react/exhaustive-deps` → `react-hooks(exhaustive-deps)` と表示される）。抑制コメントに書くのは **設定キー**。
+  - `// oxlint-disable-next-line <rule>` は **1 行に収める**。`--` の説明を次行に折り返すと抑制対象がそのコメント行になり効かなくなる（理由は directive の前に別コメントで書く）。`--report-unused-disable-directives` で空振りを検出できる。
+  - **`react/react-compiler` をブロック形式 (`/* oxlint-disable ... */` 〜 `/* oxlint-enable ... */`) で抑制しないこと。** このルールは 14 検査の統合なので、ref 診断 1 つを黙らせる目的でブロック抑制すると同じ範囲の `set-state-in-render` / `purity` / `immutability` まで一緒に無効化される。`CanvasArea.tsx` の render 中 ref 比較は **行単位** で 3 箇所抑制しており、直下の `setDraft` / `setTextInput` / `setEditingTextId` / `setCropRect` は検査対象のまま残す必要がある。この退行は設定回帰テストでも `--report-unused-disable-directives` でも検出できない。
+  - `pedantic` カテゴリと `vitest` プラグインは意図的に入れていない（`App.tsx` の `max-lines` / 既存テストの `require-mock-type-parameters` が大量に出るだけで安全性が上がらない）。
+  - **TypeScript 7 を使えているのは oxlint が `typescript` パッケージに依存しないため。** TS 7.0 は JS Compiler API を同梱しないので、ESLint / typescript-eslint に戻すなら `typescript` を 6 系へ戻す必要がある。
+- **TypeScript の型設定**: `tsconfig.json` で `noUncheckedIndexedAccess` と `noUnusedLocals` を有効にしているため、配列インデックスの結果は `T | undefined` として扱う必要がある。
 - **テスト**は Vitest + jsdom + `@testing-library/react` + `@testing-library/jest-dom`（`src/test/setup.ts` で自動 import）。`vitest.config.ts` で `globals: true` を有効化しているため `describe` / `it` / `expect` の import 不要。純粋モジュール（`drawingGesture`、`imageFit`、`canvasStore` など）は単体テスト、React コンポーネントは Testing Library でテストする。
 - **`src/` 内の import** は長い相対パスではなく `@/` エイリアスを使うこと。
 - **色プリセット**は `src/types/tool.ts` の `COLOR_PRESETS` / `colorHex` に集約されている。コンポーネント内に hex 文字列をハードコードしないこと。
