@@ -34,7 +34,7 @@ pnpm tauri dev   # Tauri 開発シェル起動
 
 ```bash
 pnpm fmt:check     # deno fmt (Prettier ではない)
-pnpm lint          # ESLint v10 flat config
+pnpm lint          # oxlint (.oxlintrc.json)
 pnpm typecheck     # tsc --noEmit (strict + noUncheckedIndexedAccess)
 pnpm test:run      # Vitest + Testing Library
 pnpm build         # tsc && vite build
@@ -70,7 +70,9 @@ pnpm docs:build    # docs/ または site/ を変更した場合のみ
 - **TypeScript**: `strict` + `noUncheckedIndexedAccess` + `noUnusedLocals` +
   `noUnusedParameters` + `noImplicitOverride`。配列インデックスアクセスの
   結果は `T | undefined` なので適切に扱ってください。
-- **React**: `react-hooks` の recommended ルールを ESLint で強制しています。
+- **React**: `react/rules-of-hooks` / `react/exhaustive-deps` /
+  `react/react-compiler` を oxlint で error として強制しています。抑制する場合は
+  `// oxlint-disable-next-line <rule>` と理由コメントを併記してください。
 - **テスト**: Vitest + `@testing-library/react` + `@testing-library/jest-dom`。
   `globals: true` を有効にしているため `describe` / `it` / `expect` の
   import は不要です。**テーブルドリブンテストは原則禁止** — 1 ケース 1 `it()`

@@ -16,7 +16,7 @@ This guide walks you through setting up a local development environment for Mari
 | Drawing engine | [react-konva](https://konvajs.org/docs/react/) | React wrapper around [Konva.js](https://konvajs.org/) |
 | State management | [Zustand](https://github.com/pmndrs/zustand) | identity-preserving undo / redo (`src/store/canvasStore.ts`) |
 | Testing | [Vitest](https://vitest.dev/) + [jsdom](https://github.com/jsdom/jsdom) + [Testing Library](https://testing-library.com/) | `@testing-library/react`, `@testing-library/jest-dom` |
-| Lint | [ESLint v10](https://eslint.org/) | flat config |
+| Lint | [oxlint](https://oxc.rs/docs/guide/usage/linter.html) | `.oxlintrc.json`; Rust-based, no dependency on the `typescript` package |
 | Formatter | [`deno fmt`](https://docs.deno.com/runtime/reference/cli/fmt/) | not Prettier |
 | Docs site | [Astro Starlight](https://starlight.astro.build/) | The site you're reading now; built from `site/` to `/docs/` |
 
@@ -74,7 +74,7 @@ Run these locally before every push — CI runs the same set, in order, and stop
 | Command | What it does |
 |---------|--------------|
 | `pnpm typecheck` | TypeScript strict check (`tsc --noEmit`) |
-| `pnpm lint` | ESLint v10 flat config |
+| `pnpm lint` | oxlint (`.oxlintrc.json`), warnings are errors |
 | `pnpm fmt:check` | `deno fmt --check` for all source + Markdown |
 | `pnpm test:run` | Vitest, single run |
 | `pnpm build` | Vite build of the React frontend |
