@@ -12,7 +12,8 @@ import { CanvasArea } from "./CanvasArea";
 // on the observed element so the `size` state in CanvasArea ends up with a
 // realistic test-only viewport (1000x800), enabling wheel-pan tests that
 // depend on `fit` being non-zero.
-/* eslint-disable @typescript-eslint/no-empty-function */
+// An intentionally empty stub: the jsdom listeners below only need a callable.
+// oxlint-disable-next-line no-empty-function
 const noop = () => {};
 const STAGE_TEST_WIDTH = 1000;
 const STAGE_TEST_HEIGHT = 800;
@@ -54,7 +55,6 @@ beforeAll(() => {
     writable: true,
   });
 });
-/* eslint-enable @typescript-eslint/no-empty-function */
 
 // react-konva touches the canvas API which jsdom cannot satisfy; stub it out
 // so the component mounts. The Stage stub exposes `onWheel` so wheel-event

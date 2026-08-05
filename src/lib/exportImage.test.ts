@@ -20,7 +20,8 @@ vi.mock("konva", () => {
       return this.attrs[key];
     }
   }
-  // eslint-disable-next-line @typescript-eslint/no-empty-function
+  // Konva filters are only identity-checked in these tests, never invoked.
+  // oxlint-disable-next-line no-empty-function
   const noopFilter = () => {};
   return {
     default: {

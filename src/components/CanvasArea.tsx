@@ -303,11 +303,17 @@ export function CanvasArea(props: CanvasAreaProps) {
   const prevToolRef = useRef(activeTool);
 
   const prevImageElRef = useRef(image?.element);
-  // eslint-disable-next-line react-hooks/refs
+  // Reading and writing these refs during render is deliberate: it is React's
+  // "adjust state when props change" pattern. Neither ref is rendered; they only
+  // carry the previous value so the transition is detected synchronously (see the
+  // crop comment below). Suppress per line rather than around the whole block:
+  // `react/react-compiler` also carries set-state-in-render / purity /
+  // immutability, which must keep guarding the setState calls further down.
+  // oxlint-disable-next-line react/react-compiler
   if (prevToolRef.current !== activeTool || prevImageElRef.current !== image?.element) {
-    // eslint-disable-next-line react-hooks/refs
+    // oxlint-disable-next-line react/react-compiler
     const prevTool = prevToolRef.current;
-    // eslint-disable-next-line react-hooks/refs
+    // oxlint-disable-next-line react/react-compiler
     prevToolRef.current = activeTool;
 
     prevImageElRef.current = image?.element;
