@@ -18,14 +18,14 @@ describe("t (English locale)", () => {
   });
 
   it("returns the template verbatim when params are omitted for an interpolated key", () => {
-    expect(t("update.available.title")).toBe(
-      "A new version {version} is available",
+    expect(t("update.notice.available.title")).toBe(
+      "v{version} is available. Click to update and restart.",
     );
   });
 
   it("substitutes {name} placeholders when params are provided", () => {
-    expect(t("update.available.title", { version: "1.2.3" })).toBe(
-      "A new version 1.2.3 is available",
+    expect(t("update.notice.available.title", { version: "1.2.3" })).toBe(
+      "v1.2.3 is available. Click to update and restart.",
     );
   });
 
@@ -34,15 +34,13 @@ describe("t (English locale)", () => {
   });
 
   it("leaves unmatched {name} placeholders intact when the param is missing", () => {
-    expect(t("update.readyToInstall.body", {})).toBe(
-      "The app will restart automatically after {version} is installed.",
+    expect(t("update.upToDate.statusWithVersion", {})).toBe(
+      "You're up to date (v{version})",
     );
   });
 
   it("coerces numeric params to strings", () => {
-    expect(t("update.available.title", { version: 42 })).toBe(
-      "A new version 42 is available",
-    );
+    expect(t("update.notice.downloading.label", { percent: 42 })).toBe("42%");
   });
 });
 
@@ -54,8 +52,8 @@ describe("t (Japanese locale)", () => {
   });
 
   it("substitutes {name} placeholders inside a Japanese template", () => {
-    expect(t("update.available.title", { version: "1.2.3" })).toBe(
-      "新しいバージョン 1.2.3 が利用可能です",
+    expect(t("update.notice.available.title", { version: "1.2.3" })).toBe(
+      "v1.2.3 が利用可能です。クリックすると更新して再起動します",
     );
   });
 

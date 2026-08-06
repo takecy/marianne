@@ -91,7 +91,11 @@ describe("Sidebar", () => {
     expect(onColorChange).not.toHaveBeenCalled();
   });
 
-  it("does not render the check-for-updates button when onCheckForUpdates is omitted", () => {
+  // --- update notice slot ---
+
+  const availableTitle = t("update.notice.available.title", { version: "0.3.6" });
+
+  it("renders no update slot at all when there is no notice", () => {
     render(
       <Sidebar
         activeTool="select"
@@ -102,13 +106,15 @@ describe("Sidebar", () => {
         onStrokeWidthChange={vi.fn()}
       />,
     );
-    expect(screen.queryByRole("button", { name: t("action.checkUpdates.label") }))
+    // The slot's presence IS the message, so nothing may be rendered while
+    // the app is up to date.
+    expect(screen.queryByRole("group", { name: t("sidebar.updateGroup.label") }))
       .not.toBeInTheDocument();
   });
 
-  it("renders the check-for-updates button when onCheckForUpdates is provided and invokes the callback", async () => {
+  it("renders the bell with the version and invokes the callback on click", async () => {
     const user = userEvent.setup();
-    const onCheckForUpdates = vi.fn();
+    const onUpdateNoticeClick = vi.fn();
     render(
       <Sidebar
         activeTool="select"
@@ -117,14 +123,17 @@ describe("Sidebar", () => {
         onColorChange={vi.fn()}
         activeStrokeWidth="thick"
         onStrokeWidthChange={vi.fn()}
-        onCheckForUpdates={onCheckForUpdates}
+        updateNotice={{ kind: "available", version: "0.3.6" }}
+        onUpdateNoticeClick={onUpdateNoticeClick}
       />,
     );
-    await user.click(screen.getByRole("button", { name: t("action.checkUpdates.label") }));
-    expect(onCheckForUpdates).toHaveBeenCalledTimes(1);
+    const group = screen.getByRole("group", { name: t("sidebar.updateGroup.label") });
+    expect(group).toHaveTextContent("v0.3.6");
+    await user.click(screen.getByRole("button", { name: availableTitle }));
+    expect(onUpdateNoticeClick).toHaveBeenCalledTimes(1);
   });
 
-  it("update button stays enabled even when sidebar disabled is true", () => {
+  it("keeps the update notice usable even when sidebar disabled is true", () => {
     render(
       <Sidebar
         activeTool="select"
@@ -134,14 +143,17 @@ describe("Sidebar", () => {
         activeStrokeWidth="thick"
         onStrokeWidthChange={vi.fn()}
         disabled
-        onCheckForUpdates={vi.fn()}
+        updateNotice={{ kind: "available", version: "0.3.6" }}
+        onUpdateNoticeClick={vi.fn()}
       />,
     );
-    expect(screen.getByRole("button", { name: t("action.checkUpdates.label") })).not.toBeDisabled();
+    // `disabled` covers image-dependent tools; an update is actionable with
+    // or without an image loaded.
+    expect(screen.getByRole("button", { name: availableTitle })).not.toBeDisabled();
   });
 
-  it("update button disables only when state is checking", () => {
-    const { rerender } = render(
+  it("shows the download percentage and blocks further clicks while downloading", () => {
+    render(
       <Sidebar
         activeTool="select"
         onToolChange={vi.fn()}
@@ -149,13 +161,18 @@ describe("Sidebar", () => {
         onColorChange={vi.fn()}
         activeStrokeWidth="thick"
         onStrokeWidthChange={vi.fn()}
-        onCheckForUpdates={vi.fn()}
-        updateButtonState="checking"
+        updateNotice={{ kind: "downloading", percent: 45 }}
+        onUpdateNoticeClick={vi.fn()}
       />,
     );
-    expect(screen.getByRole("button", { name: t("action.checkUpdates.label") })).toBeDisabled();
+    const button = screen.getByRole("button", { name: t("update.notice.downloading.title") });
+    expect(button).toBeDisabled();
+    expect(screen.getByRole("group", { name: t("sidebar.updateGroup.label") }))
+      .toHaveTextContent("45%");
+  });
 
-    rerender(
+  it("falls back to an indeterminate label when the download size is unknown", () => {
+    render(
       <Sidebar
         activeTool="select"
         onToolChange={vi.fn()}
@@ -163,14 +180,55 @@ describe("Sidebar", () => {
         onColorChange={vi.fn()}
         activeStrokeWidth="thick"
         onStrokeWidthChange={vi.fn()}
-        onCheckForUpdates={vi.fn()}
-        updateButtonState="available"
+        updateNotice={{ kind: "downloading", percent: null }}
+        onUpdateNoticeClick={vi.fn()}
       />,
     );
-    expect(screen.getByRole("button", { name: t("action.checkUpdates.label") })).not.toBeDisabled();
+    expect(screen.getByRole("group", { name: t("sidebar.updateGroup.label") }))
+      .toHaveTextContent(t("update.notice.downloading.labelUnknown"));
   });
 
-  it("renders a short inline failure indicator with the full message in title", () => {
+  it("keeps the restart notice clickable when the relaunch was held back", async () => {
+    const user = userEvent.setup();
+    const onUpdateNoticeClick = vi.fn();
+    render(
+      <Sidebar
+        activeTool="select"
+        onToolChange={vi.fn()}
+        activeColor="red"
+        onColorChange={vi.fn()}
+        activeStrokeWidth="thick"
+        onStrokeWidthChange={vi.fn()}
+        updateNotice={{ kind: "relaunch" }}
+        onUpdateNoticeClick={onUpdateNoticeClick}
+      />,
+    );
+    // Unlike `installing`, this one waits on the user — it must stay usable
+    // or the update can never be finished.
+    const button = screen.getByRole("button", { name: t("update.notice.relaunch.title") });
+    expect(button).not.toBeDisabled();
+    await user.click(button);
+    expect(onUpdateNoticeClick).toHaveBeenCalledTimes(1);
+  });
+
+  it("blocks clicks while the update is being installed", () => {
+    render(
+      <Sidebar
+        activeTool="select"
+        onToolChange={vi.fn()}
+        activeColor="red"
+        onColorChange={vi.fn()}
+        activeStrokeWidth="thick"
+        onStrokeWidthChange={vi.fn()}
+        updateNotice={{ kind: "installing" }}
+        onUpdateNoticeClick={vi.fn()}
+      />,
+    );
+    expect(screen.getByRole("button", { name: t("update.notice.installing.title") }))
+      .toBeDisabled();
+  });
+
+  it("renders a short failure indicator with the full message in title", () => {
     const full = "Could not fetch a valid release JSON from the remote";
     render(
       <Sidebar
@@ -180,19 +238,20 @@ describe("Sidebar", () => {
         onColorChange={vi.fn()}
         activeStrokeWidth="thick"
         onStrokeWidthChange={vi.fn()}
-        onCheckForUpdates={vi.fn()}
-        updateErrorMessage={full}
+        updateNotice={{ kind: "failed", message: full }}
+        onUpdateNoticeClick={vi.fn()}
       />,
     );
-    // Visible label is the compact "⚠ Failed" so the sidebar width stays
-    // stable regardless of how long the underlying error is.
+    // Visible label stays compact so the 64px column keeps a stable width
+    // regardless of how long the underlying error is.
     const status = screen.getByRole("status");
-    expect(status).toHaveTextContent("⚠ Failed");
+    expect(status).toHaveTextContent(t("update.notice.failed.label"));
     expect(status).not.toHaveTextContent(full);
     // Full text is preserved on hover via the title attribute.
     expect(status).toHaveAttribute("title", full);
-    // Button remains usable so the user can retry.
-    expect(screen.getByRole("button", { name: t("action.checkUpdates.label") })).not.toBeDisabled();
+    // Button remains usable so the user can retry the install.
+    expect(screen.getByRole("button", { name: t("update.notice.failed.title") }))
+      .not.toBeDisabled();
   });
 
   // --- stroke width presets ---
@@ -273,7 +332,9 @@ describe("Sidebar", () => {
     expect(onStrokeWidthChange).not.toHaveBeenCalled();
   });
 
-  it("does not render the inline error when updateErrorMessage is undefined", () => {
+  it("does not expose a live region for the non-failure notice kinds", () => {
+    // Only the failure label is announced; a percentage ticking up would be
+    // read out on every change.
     render(
       <Sidebar
         activeTool="select"
@@ -282,7 +343,8 @@ describe("Sidebar", () => {
         onColorChange={vi.fn()}
         activeStrokeWidth="thick"
         onStrokeWidthChange={vi.fn()}
-        onCheckForUpdates={vi.fn()}
+        updateNotice={{ kind: "downloading", percent: 45 }}
+        onUpdateNoticeClick={vi.fn()}
       />,
     );
     expect(screen.queryByRole("status")).not.toBeInTheDocument();

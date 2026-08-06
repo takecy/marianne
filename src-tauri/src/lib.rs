@@ -321,8 +321,17 @@ pub fn run() {
                 copyright: Some("\u{00A9} 2026 takecy".to_string()),
                 ..Default::default()
             };
+            // No accelerator, matching the macOS convention for this item —
+            // and per the issue #28 findings, `MenuItemBuilder.accelerator`
+            // only affects the menubar hint anyway, so one would buy nothing.
+            // This is the only manual update-check entry point: the
+            // bottom-left notice is not rendered while the app is current.
+            let app_check_updates =
+                MenuItemBuilder::with_id("app-check-updates", "Check for Updates...").build(app)?;
             let app_submenu = SubmenuBuilder::new(app, "Marianne")
                 .item(&PredefinedMenuItem::about(app, None, Some(about_metadata))?)
+                .separator()
+                .item(&app_check_updates)
                 .separator()
                 .item(&PredefinedMenuItem::services(app, None)?)
                 .separator()

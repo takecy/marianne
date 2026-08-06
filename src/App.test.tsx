@@ -1,4 +1,4 @@
-import { act, render, screen } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import App from "./App";
 import { t } from "./i18n/translate";
@@ -11,17 +11,29 @@ import type { RectShape } from "./types/shape";
 vi.mock("./components/CanvasArea", () => ({
   CanvasArea: () => <div data-testid="canvas-area" />,
 }));
+// Sidebar and StatusBar are stubbed down to the update-notice surface so the
+// wiring in App.tsx (which handler runs, what text reaches the StatusBar) can
+// be asserted without pulling in their real markup.
 vi.mock("./components/Sidebar", () => ({
-  Sidebar: () => <div data-testid="sidebar" />,
+  Sidebar: (
+    props: { updateNotice?: { kind: string } | null; onUpdateNoticeClick?: () => void },
+  ) => (
+    <div data-testid="sidebar">
+      {props.updateNotice && (
+        <button type="button" data-testid="update-notice" onClick={props.onUpdateNoticeClick}>
+          {props.updateNotice.kind}
+        </button>
+      )}
+    </div>
+  ),
 }));
 vi.mock("./components/ActionBar", () => ({
   ActionBar: () => <div data-testid="action-bar" />,
 }));
 vi.mock("./components/StatusBar", () => ({
-  StatusBar: () => <div data-testid="status-bar" />,
-}));
-vi.mock("./components/UpdateModal", () => ({
-  UpdateModal: () => null,
+  StatusBar: (props: { notice?: string | null }) => (
+    <div data-testid="status-bar">{props.notice ?? ""}</div>
+  ),
 }));
 
 // Tauri & external IO stubs.
@@ -45,13 +57,42 @@ vi.mock("@tauri-apps/plugin-fs", () => ({
   readFile: vi.fn(() => Promise.resolve(new Uint8Array())),
 }));
 
+// Mutable so each test can pin the updater to a specific state. `vi.hoisted`
+// keeps the holder alive above the hoisted vi.mock calls.
+const updater = vi.hoisted(() => ({
+  state: { kind: "idle" } as {
+    kind: string;
+    version?: string;
+    message?: string;
+    origin?: string;
+  },
+  checkForUpdates: vi.fn(() => Promise.resolve("idle")),
+  downloadAndInstall: vi.fn(() => Promise.resolve()),
+  relaunchNow: vi.fn(() => Promise.resolve()),
+  // Captured from the options App passes in, so the tests can evaluate the
+  // guard at an arbitrary point in time — which is the whole point of it.
+  canRelaunch: undefined as undefined | (() => boolean),
+}));
 vi.mock("./lib/useUpdater", () => ({
-  useUpdater: () => ({
-    state: { kind: "idle" as const },
-    checkForUpdates: vi.fn(),
-    downloadAndInstall: vi.fn(),
-    dismiss: vi.fn(),
-  }),
+  useUpdater: (options?: { canRelaunch?: () => boolean }) => {
+    updater.canRelaunch = options?.canRelaunch;
+    return updater;
+  },
+}));
+
+// Capture the menu handlers so a menu action can be invoked directly; the
+// real hook listens on a Tauri event channel that is stubbed out here.
+const menu = vi.hoisted(() => ({
+  handlers: null as null | { onCheckForUpdates: () => void },
+}));
+vi.mock("./lib/useMenuAction", () => ({
+  useMenuAction: (options: { onCheckForUpdates: () => void }) => {
+    menu.handlers = options;
+  },
+}));
+
+vi.mock("@tauri-apps/api/app", () => ({
+  getVersion: () => Promise.resolve("0.3.5"),
 }));
 vi.mock("./lib/useQuitConfirm", () => ({
   useQuitConfirm: () => ({
@@ -265,5 +306,224 @@ describe("App image replace confirmation", () => {
     // until the user explicitly responds.
     expect(replaceDialogIsOpen()).toBe(true);
     expect(useCanvasStore.getState().shapes).toHaveLength(1);
+  });
+});
+
+// ConfirmDialog renders <dialog> unconditionally, so probe the native `open`
+// attribute rather than mere presence in the DOM.
+function updateDialogIsOpen(): boolean {
+  const heading = screen.queryByText(t("dialog.update.title"));
+  return heading?.closest("dialog")?.hasAttribute("open") ?? false;
+}
+
+describe("App update notice", () => {
+  beforeEach(() => {
+    installDialogPolyfill();
+    updater.state = { kind: "idle" };
+    updater.checkForUpdates.mockReset();
+    updater.checkForUpdates.mockResolvedValue("idle");
+    updater.downloadAndInstall.mockReset();
+    updater.downloadAndInstall.mockResolvedValue(undefined);
+    menu.handlers = null;
+    useCanvasStore.setState({
+      shapes: [],
+      past: [],
+      future: [],
+      selectedShapeId: null,
+      clipboardShape: null,
+    });
+  });
+
+  it("renders no notice while the app is up to date", () => {
+    updater.state = { kind: "upToDate" };
+    render(<App />);
+    expect(screen.queryByTestId("update-notice")).not.toBeInTheDocument();
+  });
+
+  it("stays silent when the automatic check fails", () => {
+    updater.state = { kind: "error", message: "offline", origin: "auto" };
+    render(<App />);
+    expect(screen.queryByTestId("update-notice")).not.toBeInTheDocument();
+  });
+
+  it("installs immediately on click when there are no annotations", async () => {
+    const user = userEvent.setup();
+    updater.state = { kind: "available", version: "0.3.6" };
+    render(<App />);
+
+    await user.click(screen.getByTestId("update-notice"));
+
+    expect(updater.downloadAndInstall).toHaveBeenCalledTimes(1);
+    expect(updateDialogIsOpen()).toBe(false);
+  });
+
+  it("asks for confirmation first when annotations would be lost", async () => {
+    const user = userEvent.setup();
+    updater.state = { kind: "available", version: "0.3.6" };
+    render(<App />);
+    act(() => {
+      useCanvasStore.getState().addShape(makeRectShape("r1"));
+    });
+
+    await user.click(screen.getByTestId("update-notice"));
+
+    expect(updater.downloadAndInstall).not.toHaveBeenCalled();
+    expect(updateDialogIsOpen()).toBe(true);
+
+    await user.click(screen.getByRole("button", { name: t("dialog.update.confirm") }));
+    expect(updater.downloadAndInstall).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not install when the confirmation is cancelled", async () => {
+    const user = userEvent.setup();
+    updater.state = { kind: "available", version: "0.3.6" };
+    render(<App />);
+    act(() => {
+      useCanvasStore.getState().addShape(makeRectShape("r1"));
+    });
+
+    await user.click(screen.getByTestId("update-notice"));
+    await user.click(screen.getByRole("button", { name: t("dialog.cancel") }));
+
+    expect(updater.downloadAndInstall).not.toHaveBeenCalled();
+    expect(updateDialogIsOpen()).toBe(false);
+  });
+
+  it("still confirms when retrying a failed install with annotations present", async () => {
+    // Regression guard: branching on the `failed` notice before the shape
+    // check would relaunch the app and discard the annotations silently.
+    const user = userEvent.setup();
+    updater.state = { kind: "error", message: "signature mismatch", origin: "install" };
+    render(<App />);
+    act(() => {
+      useCanvasStore.getState().addShape(makeRectShape("r1"));
+    });
+
+    await user.click(screen.getByTestId("update-notice"));
+
+    expect(updater.downloadAndInstall).not.toHaveBeenCalled();
+    expect(updateDialogIsOpen()).toBe(true);
+  });
+
+  it("reports an up-to-date manual check in the StatusBar", async () => {
+    updater.checkForUpdates.mockResolvedValue("upToDate");
+    render(<App />);
+
+    const handlers = menu.handlers;
+    expect(handlers).not.toBeNull();
+    await act(async () => {
+      handlers?.onCheckForUpdates();
+      await Promise.resolve();
+    });
+    await waitFor(() =>
+      expect(screen.getByTestId("status-bar")).toHaveTextContent(
+        t("update.upToDate.statusWithVersion", { version: "0.3.5" }),
+      )
+    );
+    expect(updater.checkForUpdates).toHaveBeenCalledWith("manual");
+  });
+
+  it("reports a failed manual check in the StatusBar and leaves the slot empty", async () => {
+    updater.checkForUpdates.mockResolvedValue("error");
+    updater.state = { kind: "error", message: "offline", origin: "manual" };
+    render(<App />);
+
+    const handlers = menu.handlers;
+    expect(handlers).not.toBeNull();
+    await act(async () => {
+      handlers?.onCheckForUpdates();
+      await Promise.resolve();
+    });
+
+    await waitFor(() =>
+      expect(screen.getByTestId("status-bar")).toHaveTextContent(t("update.checkFailed.status"))
+    );
+    // A failed check says nothing about whether an update exists, so the
+    // bottom-left slot must stay empty.
+    expect(screen.queryByTestId("update-notice")).not.toBeInTheDocument();
+  });
+
+  it("clears the StatusBar message after the timeout", async () => {
+    vi.useFakeTimers();
+    try {
+      updater.checkForUpdates.mockResolvedValue("upToDate");
+      render(<App />);
+
+      const handlers = menu.handlers;
+      await act(async () => {
+        handlers?.onCheckForUpdates();
+        await Promise.resolve();
+        await Promise.resolve();
+      });
+      expect(screen.getByTestId("status-bar")).not.toHaveTextContent("");
+
+      act(() => {
+        vi.advanceTimersByTime(3000);
+      });
+      expect(screen.getByTestId("status-bar")).toHaveTextContent("");
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+});
+
+describe("App update relaunch guard", () => {
+  beforeEach(() => {
+    installDialogPolyfill();
+    updater.state = { kind: "idle" };
+    updater.relaunchNow.mockReset();
+    updater.relaunchNow.mockResolvedValue(undefined);
+    updater.downloadAndInstall.mockReset();
+    updater.downloadAndInstall.mockResolvedValue(undefined);
+    updater.canRelaunch = undefined;
+    useCanvasStore.setState({
+      shapes: [],
+      past: [],
+      future: [],
+      selectedShapeId: null,
+      clipboardShape: null,
+    });
+  });
+
+  it("re-evaluates the unsaved guard at relaunch time, not at click time", () => {
+    // Regression guard: annotations drawn during the download would be lost
+    // to the restart if the decision were frozen when the user clicked.
+    render(<App />);
+    expect(updater.canRelaunch?.()).toBe(true);
+
+    act(() => {
+      useCanvasStore.getState().addShape(makeRectShape("r1"));
+    });
+    expect(updater.canRelaunch?.()).toBe(false);
+  });
+
+  it("finishes a parked update directly when nothing would be lost", async () => {
+    const user = userEvent.setup();
+    updater.state = { kind: "awaitingRelaunch", version: "0.3.6" };
+    render(<App />);
+
+    await user.click(screen.getByTestId("update-notice"));
+
+    expect(updater.relaunchNow).toHaveBeenCalledTimes(1);
+    expect(updater.downloadAndInstall).not.toHaveBeenCalled();
+    expect(updateDialogIsOpen()).toBe(false);
+  });
+
+  it("confirms before finishing a parked update while annotations exist", async () => {
+    const user = userEvent.setup();
+    updater.state = { kind: "awaitingRelaunch", version: "0.3.6" };
+    render(<App />);
+    act(() => {
+      useCanvasStore.getState().addShape(makeRectShape("r1"));
+    });
+
+    await user.click(screen.getByTestId("update-notice"));
+    expect(updater.relaunchNow).not.toHaveBeenCalled();
+    expect(updateDialogIsOpen()).toBe(true);
+
+    await user.click(screen.getByRole("button", { name: t("dialog.update.confirm") }));
+    expect(updater.relaunchNow).toHaveBeenCalledTimes(1);
+    // Confirming a parked update must not restart the download.
+    expect(updater.downloadAndInstall).not.toHaveBeenCalled();
   });
 });

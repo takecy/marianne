@@ -165,24 +165,21 @@
   gap: 4px;
 }
 
-.updateButtonAvailable {
+/* The slot is rendered only when there is something to act on, so the accent
+   treatment is unconditional — no badge is needed to distinguish states. */
+.updateNoticeButton {
   border-color: var(--color-accent);
   color: var(--color-accent);
 }
 
-.updateBadge {
-  position: absolute;
-  top: 4px;
-  right: 4px;
-  color: var(--color-accent);
-  font-size: 0.6rem;
-  line-height: 1;
-}
-
-.updateError {
+.updateNoticeText {
   font-size: 0.65rem;
-  color: var(--color-fg-muted, var(--color-fg));
-  opacity: 0.85;
+  color: var(--color-accent);
   text-align: center;
   white-space: nowrap;
+}
+
+.updateNoticeTextError {
+  color: var(--color-fg-muted, var(--color-fg));
+  opacity: 0.85;
 }
