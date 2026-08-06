@@ -43,11 +43,13 @@ workflow_dispatch ボタンから実行すること。
 
 <Aside type="caution" title="`draft → upload → verify → publish` シーケンスは不変条件">
 Tauri v2 updater は no-update を `204 No Content` で表現し、`404` は `check()` の reject
-として扱われる。`@tauri-apps/plugin-updater` の `check()` が失敗すると Marianne 側
-(`src/lib/useUpdater.ts`) は error state に昇格させ、UI に「⚠ Failed」を表示する。
-最初から publish 状態で release を作って `latest.json` upload までの 15–30 分間
-`/releases/latest/download/latest.json` を 404 にすると、その間に起動した既存ユーザー
-全員に更新エラーが見える。**必ず draft → 検証 → publish の順序を守ること**。
+として扱われる。最初から publish 状態で release を作って `latest.json` upload までの
+15–30 分間 `/releases/latest/download/latest.json` を 404 にすると、その間に起動した
+既存ユーザー全員のチェックが失敗する。**起動時の自動チェックの失敗は設計上サイレント**
+(`src/lib/useUpdater.ts` が `origin: "auto"` を付け、`src/lib/updateNotice.ts` が何も
+描画しない) なので、これは救いではなくむしろ悪い: 更新の存在に気づけないまま、
+異常の手がかりも画面に出ない。その時間帯に手動チェックしたユーザーだけが
+ステータスバーで失敗を目にする。**必ず draft → 検証 → publish の順序を守ること**。
 </Aside>
 
 <Aside type="note" title="並行 release run の直列化">
