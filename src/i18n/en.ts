@@ -21,14 +21,11 @@ export const en = {
   "sidebar.historyGroup.label": "History",
   "sidebar.updateGroup.label": "Updates",
 
-  // history + update actions (Sidebar)
+  // history actions (Sidebar)
   "action.undo.label": "Undo",
   "action.undo.title": "Undo (Cmd/Ctrl+Z)",
   "action.redo.label": "Redo",
   "action.redo.title": "Redo (Cmd/Ctrl+Shift+Z)",
-  "action.checkUpdates.label": "Check for updates",
-  "action.checkUpdates.idle": "Check for updates",
-  "action.checkUpdates.checking": "Checking…",
 
   // ActionBar (export toolbar)
   "actionBar.label": "Export",
@@ -39,17 +36,27 @@ export const en = {
   "action.copy.title": "Copy to clipboard (Cmd/Ctrl+Shift+C)",
   "action.copy.announcement": "Image copied to clipboard",
 
-  // UpdateModal (dynamic interpolation for {version})
-  "update.available.title": "A new version {version} is available",
-  "update.releaseNotes.label": "What's new:",
-  "update.warning.unsaved":
-    "⚠ You have unsaved annotations. Updating will restart the app and your work will be lost. Please save first.",
-  "update.notice.restart": "Applying the update will restart the app.",
-  "update.action.later": "Later",
-  "update.action.install": "Install now",
-  "update.status.downloading": "Downloading…",
-  "update.status.applying": "Installing update…",
-  "update.readyToInstall.body": "The app will restart automatically after {version} is installed.",
+  // Update notice slot at the bottom of the Sidebar. Labels must stay short
+  // enough for the 64px content width; the full sentence goes in the title /
+  // aria-label instead.
+  "update.notice.available.label": "v{version}",
+  "update.notice.available.title": "v{version} is available. Click to update and restart.",
+  "update.notice.downloading.label": "{percent}%",
+  "update.notice.downloading.labelUnknown": "…",
+  "update.notice.downloading.title": "Downloading the update…",
+  "update.notice.installing.label": "Restart…",
+  "update.notice.installing.title": "Installing the update. The app will restart shortly.",
+  "update.notice.relaunch.label": "Restart",
+  "update.notice.relaunch.title":
+    "The update is installed. Click to restart and finish — annotations will be lost.",
+  "update.notice.failed.label": "⚠ Failed",
+  "update.notice.failed.title": "The update failed. Click to retry.",
+
+  // Transient StatusBar feedback for a manual check (Marianne → Check for
+  // Updates...). An automatic check never reports anything.
+  "update.upToDate.status": "You're up to date",
+  "update.upToDate.statusWithVersion": "You're up to date (v{version})",
+  "update.checkFailed.status": "Could not check for updates",
 
   // Canvas (empty state + aria)
   "canvas.label": "Canvas",
@@ -74,6 +81,12 @@ export const en = {
   "dialog.imageReplace.message":
     "Loading a new image will discard the current annotations. Discard and load?",
   "dialog.imageReplace.confirm": "Discard and load",
+  // Shown only when shapes exist: installing an update relaunches the app,
+  // which is equivalent to quitting, so it gets the same guard as Cmd+Q.
+  "dialog.update.title": "Updating will discard your annotations",
+  "dialog.update.message":
+    "Updating will restart the app and the annotations being edited will be lost. Continue?",
+  "dialog.update.confirm": "Update and restart",
   "dialog.cancel": "Cancel",
 
   // Crop mode (CanvasArea overlay)

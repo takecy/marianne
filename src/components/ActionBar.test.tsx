@@ -53,8 +53,12 @@ describe("ActionBar", () => {
   it("does not render tool / update buttons", () => {
     render(<ActionBar onExportToFile={vi.fn()} onExportToClipboard={vi.fn()} />);
 
-    expect(screen.queryByRole("button", { name: t("action.checkUpdates.label") }))
-      .not.toBeInTheDocument();
+    // The update notice lives at the bottom of the Sidebar, never here.
+    expect(
+      screen.queryByRole("button", {
+        name: t("update.notice.available.title", { version: "0.3.6" }),
+      }),
+    ).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: t("tool.select") })).not.toBeInTheDocument();
   });
 

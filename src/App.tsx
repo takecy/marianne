@@ -4,9 +4,8 @@ import { t } from "./i18n/translate";
 import { ActionBar } from "./components/ActionBar";
 import { CanvasArea } from "./components/CanvasArea";
 import { ConfirmDialog } from "./components/ConfirmDialog";
-import { Sidebar, type UpdateButtonState } from "./components/Sidebar";
+import { Sidebar } from "./components/Sidebar";
 import { StatusBar } from "./components/StatusBar";
-import { UpdateModal } from "./components/UpdateModal";
 import {
   copyImageToClipboard,
   defaultExportFileName,
@@ -24,6 +23,7 @@ import {
 import { useImageLoader } from "./lib/useImageLoader";
 import { useMenuAction } from "./lib/useMenuAction";
 import { useQuitConfirm } from "./lib/useQuitConfirm";
+import { deriveUpdateNotice } from "./lib/updateNotice";
 import { useUpdater } from "./lib/useUpdater";
 import { invoke, isTauri } from "@tauri-apps/api/core";
 import { applyWindowSizeForImage } from "./lib/windowResize";
@@ -36,18 +36,9 @@ import type { ColorPresetName, StrokeWidthPresetName, ToolKind } from "./types/t
 import styles from "./App.module.css";
 
 const COPY_FEEDBACK_DURATION_MS = 2000;
-
-function deriveUpdateButtonState(
-  kind: ReturnType<typeof useUpdater>["state"]["kind"],
-): UpdateButtonState {
-  if (kind === "checking") {
-    return "checking";
-  }
-  if (kind === "available" || kind === "downloading" || kind === "readyToInstall") {
-    return "available";
-  }
-  return "idle";
-}
+// How long the manual update-check result stays in the StatusBar. Long
+// enough to read, short enough that it never looks like permanent chrome.
+const UPDATE_STATUS_DURATION_MS = 3000;
 
 function App() {
   const [activeTool, setActiveTool] = useState<ToolKind>("select");
@@ -248,14 +239,96 @@ function App() {
   });
 
   // Updater runs in parallel with the image loader. Both subscribe their own
-  // listeners and never overlap. Auto-check on mount keeps the UI quiet
-  // unless the modal is needed.
+  // listeners and never overlap. The auto-check on mount never interrupts the
+  // user: at most it lights up the notice slot at the bottom of the Sidebar.
   const {
     state: updateState,
     checkForUpdates,
     downloadAndInstall: installUpdate,
-    dismiss: dismissUpdate,
-  } = useUpdater({ autoCheckOnMount: true });
+    relaunchNow,
+  } = useUpdater({
+    autoCheckOnMount: true,
+    // Re-evaluated at relaunch time, not at click time: the canvas stays
+    // editable during the download, so annotations drawn after the click
+    // would otherwise be destroyed by the restart without a word.
+    canRelaunch: () => shapes.length === 0,
+  });
+  const updateNotice = deriveUpdateNotice(updateState);
+  // Which action the confirmation dialog will run, or null when closed.
+  // Installing and relaunching both end in a restart, so both go through the
+  // same unsaved-work guard as Cmd+Q (see useQuitConfirm).
+  const [pendingUpdateAction, setPendingUpdateAction] = useState<null | "install" | "relaunch">(
+    null,
+  );
+  const [updateStatus, setUpdateStatus] = useState<string | null>(null);
+  const updateStatusTimer = useRef<number | null>(null);
+
+  const showUpdateStatus = useCallback((message: string) => {
+    setUpdateStatus(message);
+    if (updateStatusTimer.current !== null) {
+      window.clearTimeout(updateStatusTimer.current);
+    }
+    updateStatusTimer.current = window.setTimeout(() => {
+      setUpdateStatus(null);
+      updateStatusTimer.current = null;
+    }, UPDATE_STATUS_DURATION_MS);
+  }, []);
+
+  // Marianne → Check for Updates... Results are reported here rather than in
+  // the notice slot, which is reserved for "a new version exists": an
+  // inconclusive check must never look like an available update. `available`
+  // needs no message — the slot lights up on its own.
+  const handleCheckForUpdates = useCallback(() => {
+    void checkForUpdates("manual").then(async (result) => {
+      if (result === "error") {
+        showUpdateStatus(t("update.checkFailed.status"));
+        return;
+      }
+      if (result !== "upToDate") {
+        return;
+      }
+      let message = t("update.upToDate.status");
+      try {
+        const { getVersion } = await import("@tauri-apps/api/app");
+        message = t("update.upToDate.statusWithVersion", { version: await getVersion() });
+      } catch (error) {
+        // Fall back to the version-less message; knowing we are current is
+        // the useful half of this notice.
+        console.error("getVersion failed:", error);
+      }
+      showUpdateStatus(message);
+    });
+  }, [checkForUpdates, showUpdateStatus]);
+
+  // Clicking the notice acts immediately — no intermediate confirmation —
+  // except when annotations would be lost. The unsaved check must come first
+  // for every notice kind: retrying a failed install and finishing a parked
+  // update are both the same destructive relaunch, so branching on the kind
+  // before the shape check would let them slip past the guard.
+  const runUpdateAction = useCallback((action: "install" | "relaunch") => {
+    if (action === "relaunch") {
+      void relaunchNow();
+      return;
+    }
+    void installUpdate();
+  }, [installUpdate, relaunchNow]);
+
+  const handleUpdateNoticeClick = useCallback(() => {
+    const action = updateNotice?.kind === "relaunch" ? "relaunch" : "install";
+    if (shapes.length > 0) {
+      setPendingUpdateAction(action);
+      return;
+    }
+    runUpdateAction(action);
+  }, [updateNotice?.kind, shapes.length, runUpdateAction]);
+
+  const handleConfirmUpdate = useCallback(() => {
+    if (pendingUpdateAction === null) {
+      return;
+    }
+    setPendingUpdateAction(null);
+    runUpdateAction(pendingUpdateAction);
+  }, [pendingUpdateAction, runUpdateAction]);
 
   // Cmd+Q / tray "Quit Marianne" / Dock Quit confirmation. The hook
   // listens for `quit-requested` from the Rust side and shows the dialog
@@ -397,6 +470,7 @@ function App() {
     onUndo: guardedUndo,
     onRedo: guardedRedo,
     onDelete: handleMenuDelete,
+    onCheckForUpdates: handleCheckForUpdates,
   });
 
   return (
@@ -409,9 +483,8 @@ function App() {
         activeStrokeWidth={activeStrokeWidth}
         onStrokeWidthChange={handleStrokeWidthChange}
         disabled={image === null}
-        onCheckForUpdates={() => void checkForUpdates()}
-        updateButtonState={deriveUpdateButtonState(updateState.kind)}
-        updateErrorMessage={updateState.kind === "error" ? updateState.message : undefined}
+        updateNotice={updateNotice}
+        onUpdateNoticeClick={handleUpdateNoticeClick}
       />
       <div className={styles.mainColumn}>
         <ActionBar
@@ -454,13 +527,16 @@ function App() {
           zoomState={zoomState}
           onZoomChange={setZoomState}
         />
-        <StatusBar image={image} zoom={zoomState.scale} />
+        <StatusBar image={image} zoom={zoomState.scale} notice={updateStatus} />
       </div>
-      <UpdateModal
-        state={updateState}
-        hasUnsavedShapes={shapes.length > 0}
-        onInstall={() => void installUpdate()}
-        onDismiss={dismissUpdate}
+      <ConfirmDialog
+        open={pendingUpdateAction !== null}
+        title={t("dialog.update.title")}
+        message={t("dialog.update.message")}
+        confirmLabel={t("dialog.update.confirm")}
+        destructive
+        onConfirm={handleConfirmUpdate}
+        onCancel={() => setPendingUpdateAction(null)}
       />
       <ConfirmDialog
         open={quitState.kind === "confirming"}

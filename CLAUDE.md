@@ -126,6 +126,20 @@ copyImageToClipboard(blobPromise); // Promise<Blob> をそのまま ClipboardIte
 
 **TOCTOU の honest な scope**: `safe_image_canonical` は **symlink decoy 緩和 + path 文字列不一致排除のみ**。`canonicalize → allow_file → readFile` は path 文字列ベースで分離しているため、親ディレクトリ制御攻撃モデルでは residual race が残る。完全な防御 (`O_NOFOLLOW` FD 保持 / bytes 化) は別 issue で対応する。
 
+### バージョンアップ通知 — 左下 1 スロットへの集約
+
+更新 UI はポップアップを一切出さない (issue #110)。**サイドバー最下部の 1 スロットが「新しいバージョンが存在する」ことだけを意味する** という 1 対 1 対応が設計の核で、これを崩す変更をしないこと:
+
+- `UpdateState`（`useUpdater.ts`）→ 表示の写像は純粋関数 `deriveUpdateNotice`（`src/lib/updateNotice.ts`）に隔離してある。`idle` / `checking` / `upToDate` は `null`（= スロットごと描画しない）。`available` / `downloading` / `readyToInstall` のみ表示。
+- **`error` は `origin` で扱いが分岐する**。`"auto"`（起動時の自動チェック）は完全サイレント — オフライン運用が前提でネットワーク不通は正常系。`"manual"`（メニューからのチェック）も左下には出さず StatusBar に一時表示する（更新の有無が未確定なのにベルを出すと 1 対 1 対応が壊れるため）。左下に出るのは `"install"`（インストール失敗）だけで、この時点では更新の実在が確定しているのでベルの意味が保たれ、そのままリトライ導線になる。
+- クリック = 即 `downloadAndInstall()`。ただし **`shapes.length > 0` の時だけ** `ConfirmDialog` を挟む（`relaunch()` はアプリ終了と同義で、`useQuitConfirm` の Cmd+Q ガードと非対称にしないため）。`App.tsx` の `handleUpdateNoticeClick` で **シェイプ判定を必ず最初に置く** — notice の種類で先に分岐させると、インストール失敗後の再試行や後述の `relaunch` 実行が無確認で再起動する経路になる（`App.test.tsx` に回帰テストあり）。
+- **未保存ガードはクリック時と再起動直前の 2 箇所で評価する**。ダウンロード中もキャンバスは編集可能なので、クリック時の判定だけでは「注釈ゼロで更新開始 → ダウンロード中に描画 → 無確認で再起動」というデータロス経路が残る（`useQuitConfirm.ts:29-40` が警戒しているのと同じ check-then-act のギャップ）。`useUpdater` は install 完了直後に `canRelaunch()`（`App.tsx` が `shapes.length === 0` を返す）を評価し、false なら再起動せず `awaitingRelaunch` で待機する。インストール自体は済んでおり、macOS は実行中バンドルの inode を保持するので待機は安全。ユーザーは左下の「再起動」通知をクリックして（シェイプがあれば確認ダイアログを経て）完了させる。
+- `checkForUpdates` には 2 つのガードがある。どちらも消すと退行する:
+  1. **世代ガード** (`checkSeqRef`): 起動時の自動チェックが遅延している最中に手動チェックが走ると、後着の古い結果が新しい結果を上書きし `updateRef` まで消える。
+  2. **既知更新のスキップ** (`updateRef.current !== null` で即 return): catch 節が `updateRef.current = null` するため、更新発見後の手動チェックが失敗すると通知ごと消えてインストール導線が失われる。
+- 手動チェックの導線は `Marianne → Check for Updates...`（`app-check-updates`）**のみ**。スロットは最新時に描画されないので、このメニューを消すと手動確認手段がゼロになる。menu id は `src-tauri/src/lib.rs` と `useMenuAction.ts` で byte 一致必須。
+- リリースノートは表示しない。`tauri-plugin-opener` を同梱しない方針のため、GitHub Releases を開く導線も追加しないこと。
+
 ### キーボードショートカット
 
 `CanvasArea.tsx` の `keydown` リスナが管理（テキスト入力にフォーカスが当たっている時 / textarea や input にフォーカスがある時はネイティブの編集を尊重するため bail out する）:
@@ -180,7 +194,7 @@ copyImageToClipboard(blobPromise); // Promise<Blob> をそのまま ClipboardIte
 3. **`.tauri/` / `*.key` / `*.key.pub` / `.envrc` / `.env*` はコミット禁止**: `.gitignore` 済。
 4. **ローカル build に signing env が必要**: `createUpdaterArtifacts: true` 設定のため、`pnpm tauri build` / `install:local` / `build:dmg` 実行時に `TAURI_SIGNING_PRIVATE_KEY` + `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` env が無いと署名フェーズで落ちる。direnv 等で供給する。
 5. **リリースは `tagging-release.yaml` の `workflow_dispatch` 経由のみ**: `tagging` (ubuntu) → `release` (macos-14, `needs: tagging`) の 2 ジョブ構成で 1 ワークフロー内で完結する。`GITHUB_TOKEN` だけで動くため PAT は不要。**手動の `git push origin vX.Y.Z` は禁忌** — ワークフローによる auto-generated note + `releaseId` 紐付け + `tauri-action` 署名フロー + asset 検証を通っていないタグはリリースとして成立せず updater が空振りする。workflow には `concurrency: { group: tagging-release, cancel-in-progress: false }` を必ず設定し、複数 run の並行起動による `/releases/latest` 順序破壊を防ぐこと（古い run が後から `--latest` を奪うと既存ユーザーが downgrade update を引く）。
-6. **リリースは必ず `draft: true` で作成し asset 検証後に publish する**: Tauri v2 updater は no-update を `204 No Content` で表現する規約であり、`404` を返すと `@tauri-apps/plugin-updater` の `check()` が reject され `src/lib/useUpdater.ts` が error state に昇格させて UI に「⚠ Failed」を表示する。したがって `createRelease` を最初に publish 状態で作ると、`latest.json` がまだ upload されていない 15–30 分間、既存ユーザー全員が起動時に更新エラーを目視する。安全なシーケンスは: (1) `actions/github-script` の `createRelease` を `draft: true, prerelease: false` で実行、(2) `tauri-action` に `releaseId` を渡して draft release に asset upload、(3) `Verify draft release assets` ステップで必須 asset (`latest.json` / `.app.tar.gz` / `.app.tar.gz.sig` / `.dmg`) の存在と `latest.json` 内の `version` / `platforms["darwin-aarch64"].url` / `platforms["darwin-aarch64"].signature` を検証、(4) `gh release edit "$TAG" --draft=false --latest` で publish。これにより `releases/latest/download/latest.json` は新リリース完成時まで旧 release を指し続け、updater の 404 窓が構造的に発生しない。
+6. **リリースは必ず `draft: true` で作成し asset 検証後に publish する**: Tauri v2 updater は no-update を `204 No Content` で表現する規約であり、`404` を返すと `@tauri-apps/plugin-updater` の `check()` が reject され `src/lib/useUpdater.ts` が error state に昇格する。`createRelease` を最初に publish 状態で作ると、`latest.json` がまだ upload されていない 15–30 分間、その間に起動した既存ユーザー全員のチェックが失敗する。**起動時の自動チェックの失敗は設計上サイレント**（`origin: "auto"` の error を `updateNotice.ts` が握り潰す）なので、これは救いではなく悪化要因: 更新の存在に気づけないまま、異常の手がかりも画面に出ない（手動チェックしたユーザーだけが StatusBar で失敗を見る）。安全なシーケンスは: (1) `actions/github-script` の `createRelease` を `draft: true, prerelease: false` で実行、(2) `tauri-action` に `releaseId` を渡して draft release に asset upload、(3) `Verify draft release assets` ステップで必須 asset (`latest.json` / `.app.tar.gz` / `.app.tar.gz.sig` / `.dmg`) の存在と `latest.json` 内の `version` / `platforms["darwin-aarch64"].url` / `platforms["darwin-aarch64"].signature` を検証、(4) `gh release edit "$TAG" --draft=false --latest` で publish。これにより `releases/latest/download/latest.json` は新リリース完成時まで旧 release を指し続け、updater の 404 窓が構造的に発生しない。
 7. **`relaunch()` は `await update.downloadAndInstall(...)` の解決後にのみ呼ぶ**: progress callback の `Finished` イベントは download 完了の signal であって install 完了ではない。callback 内で `relaunch()` を呼ぶと install が中断される。詳細は `src/lib/useUpdater.ts` のコメント参照。
 
 ### その他の CI ワークフロー

@@ -94,16 +94,25 @@ This build has the updater explicitly disabled. To upgrade, re-run
 
 You do not need to download new dmgs by hand — Marianne checks for releases on launch and updates itself.
 
-- On every launch, Marianne contacts GitHub Releases for a newer build. If one is found, a modal appears with the new version number and release notes.
-- The toolbar also exposes a manual **Check for updates** button if you want to refresh on demand.
-- Choosing **Update now** downloads the new build, installs it, and relaunches Marianne.
+- On every launch, Marianne contacts GitHub Releases for a newer build. Nothing interrupts you: when an update exists, a bell with the new version number (for example `v0.3.6`) appears at the bottom of the sidebar. When you are up to date, nothing is shown there at all.
+- Clicking the bell starts the update straight away — download, install, then relaunch. There is no intermediate dialog to dismiss. Progress is shown in the same spot.
+- To check on demand, use **Marianne → Check for Updates...** in the menu bar. The result appears briefly in the status bar at the bottom of the window.
 
 <Aside type="caution" title="Save before updating">
 Annotations in the canvas are lost when the app relaunches for an update. If
-you have unsaved work, save it first — the update modal warns you when shapes
-are present.
+annotations are present when you click the notice, Marianne asks you to
+confirm before it restarts — but nothing is saved for you, so export first if
+you want to keep your work.
+
+You can keep working during the download. If you do, Marianne installs the
+update but does not restart on its own: the notice turns into **Restart** and
+waits for you to click it when you are ready.
 </Aside>
 
-If the update check fails (no network, signature mismatch, etc.), a small `⚠ Failed` indicator appears next to the **Check for updates** button. The app keeps working normally; hover the indicator for the full error message and click the button to retry.
+How failures are reported depends on who asked:
+
+- **Automatic check on launch**: nothing is shown. Marianne is built to run offline, so being unable to reach GitHub is a normal state, not an error worth interrupting you for.
+- **Manual check** from the menu: a short message appears in the status bar for a few seconds.
+- **Failed install**: the bell stays in the corner with a `⚠ Failed` label. Hover it for the full error message and click it to retry.
 
 The update feed is hard-coded to `https://github.com/takecy/marianne/releases/latest/download/latest.json`. Draft and pre-release entries on GitHub are ignored — only published latest releases roll out.

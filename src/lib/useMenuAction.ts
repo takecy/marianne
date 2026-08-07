@@ -11,6 +11,7 @@ export interface MenuActionOptions {
   onUndo: () => void;
   onRedo: () => void;
   onDelete: () => void;
+  onCheckForUpdates: () => void;
 }
 
 // True when the focused element is an OS-native text edit context (input,
@@ -99,6 +100,12 @@ export function useMenuAction(options: MenuActionOptions): void {
               break;
             }
             opts.onDelete();
+            break;
+          case "app-check-updates":
+            // The only manual entry point: the bottom-left notice is not
+            // rendered while the app is up to date, so there is no in-window
+            // button to check from.
+            opts.onCheckForUpdates();
             break;
           default:
             break;

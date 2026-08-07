@@ -44,13 +44,16 @@ releases via the workflow_dispatch button above.
 
 <Aside type="caution" title="The `draft → upload → verify → publish` sequence is an invariant">
 Tauri v2's updater treats no-update as `204 No Content`; a `404` is propagated
-as a rejection of `check()`. When `@tauri-apps/plugin-updater`'s `check()` is
-rejected, Marianne (`src/lib/useUpdater.ts`) surfaces it as an error state and
-the UI shows "⚠ Failed". If we created the release as published immediately,
-the 15–30 minute window before `latest.json` finishes uploading would 404
-`/releases/latest/download/latest.json` for every existing user who launched
-the app — they would all see a visible update failure. **The draft → verify →
-publish order is mandatory.**
+as a rejection of `check()`. If we created the release as published
+immediately, the 15–30 minute window before `latest.json` finishes uploading
+would 404 `/releases/latest/download/latest.json` for every existing user who
+launched the app during it. A failed *automatic* check is silent by design
+(`src/lib/useUpdater.ts` tags the error with `origin: "auto"`, and
+`src/lib/updateNotice.ts` renders nothing for it), which makes this worse
+rather than better: those users simply never learn that an update exists, with
+nothing on screen to hint that anything went wrong. Anyone who checks manually
+during the window does see the failure in the status bar. **The draft → verify
+→ publish order is mandatory.**
 </Aside>
 
 <Aside type="note" title="Serializing parallel release runs">

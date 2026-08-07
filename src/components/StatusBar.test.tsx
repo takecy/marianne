@@ -91,4 +91,38 @@ describe("StatusBar", () => {
     const { container } = render(<StatusBar image={null} zoom={1.5} />);
     expect(container.textContent).toBe("");
   });
+
+  // --- transient update-check notice ---
+
+  it("shows the notice even when no image is loaded", () => {
+    // A manual update check is usually run before any image exists, so this
+    // is the common case rather than an edge case.
+    render(<StatusBar image={null} zoom={1} notice="You're up to date (v0.3.6)" />);
+    expect(screen.getByRole("status")).toHaveTextContent("You're up to date (v0.3.6)");
+  });
+
+  it("shows the notice alongside the image info without replacing it", () => {
+    render(
+      <StatusBar
+        image={makeImage({
+          source: "drop",
+          sourcePath: "/Users/foo/bar/screenshot.png",
+          sourceFileName: "screenshot.png",
+        })}
+        zoom={1}
+        notice="Could not check for updates"
+      />,
+    );
+    expect(screen.getByRole("status")).toHaveTextContent("Could not check for updates");
+    expect(screen.getByText("/Users/foo/bar/screenshot.png")).toBeInTheDocument();
+    expect(screen.getByText("png : 1920×1080")).toBeInTheDocument();
+    expect(screen.getByText("100%")).toBeInTheDocument();
+  });
+
+  it("keeps the live region mounted but empty when there is no notice", () => {
+    // The region has to exist before its text changes for the announcement
+    // to be reliable.
+    render(<StatusBar image={null} zoom={1} />);
+    expect(screen.getByRole("status")).toHaveTextContent("");
+  });
 });

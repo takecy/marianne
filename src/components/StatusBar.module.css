@@ -21,6 +21,12 @@
   white-space: nowrap;
 }
 
+.notice {
+  flex: 0 0 auto;
+  white-space: nowrap;
+  color: var(--color-accent);
+}
+
 .zoom {
   flex: 0 0 auto;
   white-space: nowrap;

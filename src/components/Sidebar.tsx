@@ -1,4 +1,5 @@
 import { t } from "@/i18n/translate";
+import type { UpdateNotice } from "@/lib/updateNotice";
 import type { ColorPresetName, StrokeWidthPresetName, ToolKind } from "@/types/tool";
 import { COLOR_PRESETS, STROKE_WIDTH_PRESETS, TOOL_KINDS, TOOL_SHORTCUTS } from "@/types/tool";
 import { ArrowIcon } from "./icons/ArrowIcon";
@@ -35,10 +36,40 @@ const TOOL_ICONS: Record<ToolKind, () => React.ReactElement> = {
   crop: CropIcon,
 };
 
-// State exposed by the updater hook in `useUpdater`. Used only to set the
-// visual indicator on the update button — the modal itself owns the full
-// UpdateState.
-export type UpdateButtonState = "idle" | "checking" | "available";
+// Short label under the bell. The sidebar content column is only 64px wide
+// (see the width comment in Sidebar.module.css), so the full sentence lives
+// in the button's title / aria-label instead.
+function noticeLabel(notice: UpdateNotice): string {
+  switch (notice.kind) {
+    case "available":
+      return t("update.notice.available.label", { version: notice.version });
+    case "downloading":
+      return notice.percent === null
+        ? t("update.notice.downloading.labelUnknown")
+        : t("update.notice.downloading.label", { percent: notice.percent });
+    case "installing":
+      return t("update.notice.installing.label");
+    case "relaunch":
+      return t("update.notice.relaunch.label");
+    case "failed":
+      return t("update.notice.failed.label");
+  }
+}
+
+function noticeTitle(notice: UpdateNotice): string {
+  switch (notice.kind) {
+    case "available":
+      return t("update.notice.available.title", { version: notice.version });
+    case "downloading":
+      return t("update.notice.downloading.title");
+    case "installing":
+      return t("update.notice.installing.title");
+    case "relaunch":
+      return t("update.notice.relaunch.title");
+    case "failed":
+      return t("update.notice.failed.title");
+  }
+}
 
 interface SidebarProps {
   activeTool: ToolKind;
@@ -51,14 +82,12 @@ interface SidebarProps {
   activeStrokeWidth: StrokeWidthPresetName;
   onStrokeWidthChange: (next: StrokeWidthPresetName) => void;
   disabled?: boolean;
-  // Updater button is independent of `disabled` so the user can check for
-  // updates even before loading an image. `checking` disables it briefly.
-  onCheckForUpdates?: () => void;
-  updateButtonState?: UpdateButtonState;
-  // Last update-check failure message. Shown inline below the update
-  // button (not as a blocking modal) so the user can keep working. Clicking
-  // the button retries the check and clears the message.
-  updateErrorMessage?: string;
+  // The bottom-left update notice. `null` / omitted renders nothing at all:
+  // the slot exists only when there is a new version (or an install to
+  // retry), so its mere presence carries the message. Independent of
+  // `disabled` — an update is actionable with or without an image loaded.
+  updateNotice?: UpdateNotice | null;
+  onUpdateNoticeClick?: () => void;
 }
 
 export function Sidebar(props: SidebarProps) {
@@ -70,9 +99,8 @@ export function Sidebar(props: SidebarProps) {
     activeStrokeWidth,
     onStrokeWidthChange,
     disabled = false,
-    onCheckForUpdates,
-    updateButtonState = "idle",
-    updateErrorMessage,
+    updateNotice,
+    onUpdateNoticeClick,
   } = props;
 
   return (
@@ -154,7 +182,7 @@ export function Sidebar(props: SidebarProps) {
         })}
       </div>
 
-      {onCheckForUpdates && (
+      {updateNotice && (
         <div
           className={styles.updateGroup}
           role="group"
@@ -162,31 +190,35 @@ export function Sidebar(props: SidebarProps) {
         >
           <button
             type="button"
-            className={updateButtonState === "available"
-              ? `${styles.iconButton} ${styles.updateButtonAvailable}`
-              : styles.iconButton}
-            disabled={updateButtonState === "checking"}
-            onClick={onCheckForUpdates}
-            aria-label={t("action.checkUpdates.label")}
-            title={updateButtonState === "checking"
-              ? t("action.checkUpdates.checking")
-              : t("action.checkUpdates.idle")}
+            className={`${styles.iconButton} ${styles.updateNoticeButton}`}
+            disabled={updateNotice.kind === "downloading" || updateNotice.kind === "installing"}
+            onClick={onUpdateNoticeClick}
+            aria-label={noticeTitle(updateNotice)}
+            title={noticeTitle(updateNotice)}
           >
             <UpdateIcon />
-            {updateButtonState === "available" && (
-              <span className={styles.updateBadge} aria-hidden>●</span>
-            )}
           </button>
-          {updateErrorMessage && (
-            <span
-              className={styles.updateError}
-              role="status"
-              aria-live="polite"
-              title={updateErrorMessage}
-            >
-              ⚠ Failed
-            </span>
-          )}
+          {updateNotice.kind === "failed"
+            ? (
+              // Announced once, and the raw error text stays in the title so
+              // the 64px column keeps a stable width no matter how long the
+              // underlying message is.
+              <span
+                className={`${styles.updateNoticeText} ${styles.updateNoticeTextError}`}
+                role="status"
+                title={updateNotice.message}
+              >
+                {noticeLabel(updateNotice)}
+              </span>
+            )
+            : (
+              // Deliberately not a live region: announcing every percent tick
+              // while downloading would be unusable. The button's aria-label
+              // already names the state.
+              <span className={styles.updateNoticeText} aria-hidden>
+                {noticeLabel(updateNotice)}
+              </span>
+            )}
         </div>
       )}
     </aside>

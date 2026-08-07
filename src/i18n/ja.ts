@@ -23,14 +23,11 @@ export const ja: Record<TranslationKey, string> = {
   "sidebar.historyGroup.label": "履歴",
   "sidebar.updateGroup.label": "更新",
 
-  // history + update actions (Sidebar)
+  // history actions (Sidebar)
   "action.undo.label": "戻る",
   "action.undo.title": "戻る (Cmd/Ctrl+Z)",
   "action.redo.label": "進む",
   "action.redo.title": "進む (Cmd/Ctrl+Shift+Z)",
-  "action.checkUpdates.label": "更新を確認",
-  "action.checkUpdates.idle": "更新を確認",
-  "action.checkUpdates.checking": "確認中…",
 
   // ActionBar (export toolbar)
   "actionBar.label": "書き出し",
@@ -41,17 +38,27 @@ export const ja: Record<TranslationKey, string> = {
   "action.copy.title": "クリップボードへコピー (Cmd/Ctrl+Shift+C)",
   "action.copy.announcement": "クリップボードへコピーしました",
 
-  // UpdateModal (dynamic interpolation for {version})
-  "update.available.title": "新しいバージョン {version} が利用可能です",
-  "update.releaseNotes.label": "変更内容:",
-  "update.warning.unsaved":
-    "⚠ 未保存の注釈があります。更新するとアプリが再起動し、編集中の内容は失われます。先に保存してから更新してください。",
-  "update.notice.restart": "更新を適用するとアプリが再起動します。",
-  "update.action.later": "後で",
-  "update.action.install": "今すぐ更新",
-  "update.status.downloading": "ダウンロード中…",
-  "update.status.applying": "更新を適用しています",
-  "update.readyToInstall.body": "{version} のインストール後、アプリが自動で再起動します。",
+  // Update notice slot at the bottom of the Sidebar. Labels must stay short
+  // enough for the 64px content width; the full sentence goes in the title /
+  // aria-label instead.
+  "update.notice.available.label": "v{version}",
+  "update.notice.available.title": "v{version} が利用可能です。クリックすると更新して再起動します",
+  "update.notice.downloading.label": "{percent}%",
+  "update.notice.downloading.labelUnknown": "…",
+  "update.notice.downloading.title": "更新をダウンロードしています…",
+  "update.notice.installing.label": "再起動…",
+  "update.notice.installing.title": "更新を適用しています。まもなくアプリが再起動します",
+  "update.notice.relaunch.label": "再起動",
+  "update.notice.relaunch.title":
+    "更新はインストール済みです。クリックで再起動して完了します（注釈は失われます）",
+  "update.notice.failed.label": "⚠ 失敗",
+  "update.notice.failed.title": "更新に失敗しました。クリックで再試行します",
+
+  // Transient StatusBar feedback for a manual check (Marianne → Check for
+  // Updates...). An automatic check never reports anything.
+  "update.upToDate.status": "最新版です",
+  "update.upToDate.statusWithVersion": "最新版です (v{version})",
+  "update.checkFailed.status": "更新の確認に失敗しました",
 
   // Canvas (empty state + aria)
   "canvas.label": "キャンバス",
@@ -76,6 +83,11 @@ export const ja: Record<TranslationKey, string> = {
   "dialog.imageReplace.message":
     "新しい画像を読み込むと、現在の注釈は破棄されます。破棄して読み込みますか?",
   "dialog.imageReplace.confirm": "破棄して読み込み",
+  // Shown only when shapes exist: installing an update relaunches the app,
+  // which is equivalent to quitting, so it gets the same guard as Cmd+Q.
+  "dialog.update.title": "更新すると注釈が失われます",
+  "dialog.update.message": "更新するとアプリが再起動し、編集中の注釈は失われます。続行しますか?",
+  "dialog.update.confirm": "更新して再起動",
   "dialog.cancel": "キャンセル",
 
   // Crop mode (CanvasArea overlay)
