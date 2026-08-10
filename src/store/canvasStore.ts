@@ -11,12 +11,16 @@ type TextPatch = Partial<Omit<TextShape, "id" | "type">>;
 type ArrowPatch = Partial<Omit<ArrowShape, "id" | "type">>;
 type MosaicPatch = Partial<Omit<MosaicShape, "id" | "type">>;
 
-interface CanvasState {
+export interface CanvasState {
   shapes: Shape[];
   selectedShapeId: string | null;
   past: Shape[][];
   future: Shape[][];
   clipboardShape: Shape | null;
+  // The `shapes` array as it was at the moment of the last successful PNG
+  // file export, compared by reference (never deep equality) to decide
+  // whether there is unsaved work — see selectHasUnsavedShapes.
+  savedShapes: Shape[] | null;
   addShape: (shape: Shape) => void;
   addShapes: (shapes: Shape[]) => void;
   updateRect: (id: string, patch: RectPatch) => void;
@@ -34,8 +38,32 @@ interface CanvasState {
   resetShapes: (shapes: Shape[]) => void;
   copyShape: (id: string) => void;
   pasteShape: (imageSize: Size) => void;
+  // Record that `snapshot` has been written to a PNG file. The snapshot is
+  // passed in by the caller rather than read from the store on purpose: the
+  // canvas stays editable while the native save dialog is open, so reading
+  // `shapes` at completion time would mark annotations as saved that never
+  // reached the file.
+  markShapesSaved: (snapshot: Shape[]) => void;
   undo: () => void;
   redo: () => void;
+}
+
+// Unsaved-work check for the quit guard. An empty canvas is never unsaved;
+// otherwise the work is unsaved unless `shapes` is still the exact array that
+// was exported. Identity works here — and deep equality is unnecessary —
+// because `withHistory` never reallocates `shapes` for a no-op and undo/redo
+// restore the very arrays stored in `past` / `future`, so returning to the
+// exported state restores the exported array itself.
+//
+// The `length > 0` term is not redundant with the identity check: it is what
+// makes an emptied canvas quiet. Deleting every shape after a save leaves
+// nothing that could be lost — the annotations are in the PNG and the canvas
+// holds nothing — and the dialog ("未保存の注釈があります") would be claiming
+// annotations that do not exist. Replacing shapes after a save still warns,
+// because the surviving shapes make the array differ from `savedShapes`.
+// review-skip: 保存済みシェイプを全削除した状態を dirty 扱いすべき - 対応不要: 失われるデータが存在せず（PNG は保存済み・キャンバスは空）、現行実装と同じ挙動で退行ではないため
+export function selectHasUnsavedShapes(state: CanvasState): boolean {
+  return state.shapes.length > 0 && state.shapes !== state.savedShapes;
 }
 
 function patchByType<T extends Shape["type"]>(
@@ -80,6 +108,7 @@ export const useCanvasStore = create<CanvasState>((set) => ({
   past: [],
   future: [],
   clipboardShape: null,
+  savedShapes: null,
   addShape: (shape) => set((state) => withHistory(state, [...state.shapes, shape])),
   // Append multiple shapes as a single history transaction. One undo rewinds
   // the entire batch — used by mosaic stacking, where one user drag may emit a
@@ -164,8 +193,13 @@ export const useCanvasStore = create<CanvasState>((set) => ({
       };
     }),
   selectShape: (id) => set({ selectedShapeId: id }),
-  clearShapes: () => set({ shapes: [], selectedShapeId: null, past: [], future: [] }),
-  resetShapes: (shapes) => set({ shapes, selectedShapeId: null, past: [], future: [] }),
+  // `savedShapes` is cleared alongside the history: it records what was
+  // exported from the *current* image, so it is meaningless once the image
+  // is replaced or cropped.
+  clearShapes: () =>
+    set({ shapes: [], selectedShapeId: null, past: [], future: [], savedShapes: null }),
+  resetShapes: (shapes) =>
+    set({ shapes, selectedShapeId: null, past: [], future: [], savedShapes: null }),
   copyShape: (id) =>
     set((state) => {
       const shape = state.shapes.find((s) => s.id === id);
@@ -190,6 +224,7 @@ export const useCanvasStore = create<CanvasState>((set) => ({
         clipboardShape: cloned,
       };
     }),
+  markShapesSaved: (snapshot) => set({ savedShapes: snapshot }),
   undo: () =>
     set((state) => {
       const previous = state.past[state.past.length - 1];
