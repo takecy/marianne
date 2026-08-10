@@ -4,8 +4,6 @@ packages:
 allowBuilds:
   esbuild: true
   sharp: true
-overrides:
-  svgo: 4.0.2
 minimumReleaseAgeExclude:
   - '@astrojs/starlight@0.41.3 || 0.41.7'
   - mermaid@11.16.1
