@@ -43,6 +43,16 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 新しいシェイプ種別を追加するときは、`patchByType(shapes, id, "<type>", patch)` を呼ぶ型付き `updateXxx` アクションを追加する。型 discriminator が `shape.type` でフィルタするので、型を跨いだパッチは黙って破棄される。
 
+#### 未保存判定 (`savedShapes` / `selectHasUnsavedShapes`)
+
+終了時の警告は「最後に PNG **ファイル保存**した時点から変化したか」で決まる。`savedShapes: Shape[] | null` がその時点の `shapes` **配列参照**を保持し、`selectHasUnsavedShapes` が `shapes.length > 0 && shapes !== savedShapes` を返す。壊しやすい前提が 3 つある:
+
+1. **参照比較で成立するのは上記の identity-preserving な履歴のおかげ**。`withHistory` は no-op で配列を再確保せず、`undo` / `redo` は `past` / `future` に積まれた配列参照そのものを復元するので、保存時点まで undo で戻ると `===` が再び成立して clean に戻る。ディープ比較や revision counter を持ち込まないこと。
+2. **`markShapesSaved(snapshot)` は引数でスナップショットを受け取る**。保存ダイアログ表示中もキャンバスは編集可能なので、書き込み完了後に store から `shapes` を読み直すと、PNG に入らなかったシェイプまで保存済みになる。`App.tsx` の `handleExportToFile` は export 開始時の参照を `exported` に固定して渡している。`saveLastSaveDirectory` より **前** に呼ぶこと（`dirname` の失敗でファイル済みの事実を落とさないため）。
+3. **未確定テキストは `shapes` に現れない**。テキストオーバーレイに打ち込み中の文字は `TextInputOverlay` のローカル state にあるため、`savedShapes` ベースの判定だけでは「保存 → 入力中 → Cmd+Q」で無警告終了する。`CanvasArea` の `onPendingTextChange`（**`useLayoutEffect` で通知。passive `useEffect` は IPC 競合窓を作る**）を `App.tsx` で OR しているのが対策で、`CanvasArea.test.tsx` の構造テストが配置を守る。
+
+クリップボードコピー (`Cmd+Shift+C`) は保存に数えない（貼り付け先が未確定のため）。クロップ / 画像差し替え時は `resetShapes` / `clearShapes` が `savedShapes` を `null` に戻す。
+
 ### 描画ジェスチャーのステートマシン
 
 `src/lib/drawingGesture.ts` は純粋モジュール（React 非依存・Konva 非依存）。`CanvasArea.handleMouseDown/Move/Up` の流れ:
@@ -132,7 +142,7 @@ copyImageToClipboard(blobPromise); // Promise<Blob> をそのまま ClipboardIte
 
 - `UpdateState`（`useUpdater.ts`）→ 表示の写像は純粋関数 `deriveUpdateNotice`（`src/lib/updateNotice.ts`）に隔離してある。`idle` / `checking` / `upToDate` は `null`（= スロットごと描画しない）。`available` / `downloading` / `readyToInstall` のみ表示。
 - **`error` は `origin` で扱いが分岐する**。`"auto"`（起動時の自動チェック）は完全サイレント — オフライン運用が前提でネットワーク不通は正常系。`"manual"`（メニューからのチェック）も左下には出さず StatusBar に一時表示する（更新の有無が未確定なのにベルを出すと 1 対 1 対応が壊れるため）。左下に出るのは `"install"`（インストール失敗）だけで、この時点では更新の実在が確定しているのでベルの意味が保たれ、そのままリトライ導線になる。
-- クリック = 即 `downloadAndInstall()`。ただし **`shapes.length > 0` の時だけ** `ConfirmDialog` を挟む（`relaunch()` はアプリ終了と同義で、`useQuitConfirm` の Cmd+Q ガードと非対称にしないため）。`App.tsx` の `handleUpdateNoticeClick` で **シェイプ判定を必ず最初に置く** — notice の種類で先に分岐させると、インストール失敗後の再試行や後述の `relaunch` 実行が無確認で再起動する経路になる（`App.test.tsx` に回帰テストあり）。
+- クリック = 即 `downloadAndInstall()`。ただし **`shapes.length > 0` の時だけ** `ConfirmDialog` を挟む（`relaunch()` はアプリ終了と同義のため）。**ここは意図的に Cmd+Q より厳しい**: Cmd+Q は「最後の保存以降に変化したか」で判定する（前述の `selectHasUnsavedShapes`）が、更新インストールと画像差し替えはユーザーがセッション中に明示的に起こす操作で、失われるアノテーションがまだ画面に見えている。保存済みでも確認する側に倒してあるので、`shapes.length` を `selectHasUnsavedShapes` に統一しないこと。`App.tsx` の `handleUpdateNoticeClick` で **シェイプ判定を必ず最初に置く** — notice の種類で先に分岐させると、インストール失敗後の再試行や後述の `relaunch` 実行が無確認で再起動する経路になる（`App.test.tsx` に回帰テストあり）。
 - **未保存ガードはクリック時と再起動直前の 2 箇所で評価する**。ダウンロード中もキャンバスは編集可能なので、クリック時の判定だけでは「注釈ゼロで更新開始 → ダウンロード中に描画 → 無確認で再起動」というデータロス経路が残る（`useQuitConfirm.ts:29-40` が警戒しているのと同じ check-then-act のギャップ）。`useUpdater` は install 完了直後に `canRelaunch()`（`App.tsx` が `shapes.length === 0` を返す）を評価し、false なら再起動せず `awaitingRelaunch` で待機する。インストール自体は済んでおり、macOS は実行中バンドルの inode を保持するので待機は安全。ユーザーは左下の「再起動」通知をクリックして（シェイプがあれば確認ダイアログを経て）完了させる。
 - `checkForUpdates` には 2 つのガードがある。どちらも消すと退行する:
   1. **世代ガード** (`checkSeqRef`): 起動時の自動チェックが遅延している最中に手動チェックが走ると、後着の古い結果が新しい結果を上書きし `updateRef` まで消える。
