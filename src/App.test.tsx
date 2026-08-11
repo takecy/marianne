@@ -2,14 +2,27 @@ import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import App from "./App";
 import { t } from "./i18n/translate";
+import { saveBlobToFile } from "./lib/exportImage";
 import { useCanvasStore } from "./store/canvasStore";
 import type { RectShape } from "./types/shape";
 
 // Mock heavy / canvas-bound child components so we can render App in jsdom
 // without pulling in Konva, the Tauri-only updater modal, etc. The point of
 // this suite is the paste/drop → confirmation dialog flow inside App.tsx.
+// Exposes onPendingTextChange as a button so the quit guard's "uncommitted
+// text counts as unsaved" wiring can be driven without the real text overlay.
 vi.mock("./components/CanvasArea", () => ({
-  CanvasArea: () => <div data-testid="canvas-area" />,
+  CanvasArea: (props: { onPendingTextChange?: (pending: boolean) => void }) => (
+    <div data-testid="canvas-area">
+      <button
+        type="button"
+        data-testid="begin-pending-text"
+        onClick={() => props.onPendingTextChange?.(true)}
+      >
+        begin
+      </button>
+    </div>
+  ),
 }));
 // Sidebar and StatusBar are stubbed down to the update-notice surface so the
 // wiring in App.tsx (which handler runs, what text reaches the StatusBar) can
@@ -83,10 +96,10 @@ vi.mock("./lib/useUpdater", () => ({
 // Capture the menu handlers so a menu action can be invoked directly; the
 // real hook listens on a Tauri event channel that is stubbed out here.
 const menu = vi.hoisted(() => ({
-  handlers: null as null | { onCheckForUpdates: () => void },
+  handlers: null as null | { onCheckForUpdates: () => void; onSaveAs: () => void },
 }));
 vi.mock("./lib/useMenuAction", () => ({
-  useMenuAction: (options: { onCheckForUpdates: () => void }) => {
+  useMenuAction: (options: { onCheckForUpdates: () => void; onSaveAs: () => void }) => {
     menu.handlers = options;
   },
 }));
@@ -94,12 +107,20 @@ vi.mock("./lib/useMenuAction", () => ({
 vi.mock("@tauri-apps/api/app", () => ({
   getVersion: () => Promise.resolve("0.3.5"),
 }));
+// Captures the guard value App computes, which is the whole contract between
+// App and the quit flow.
+const quitGuard = vi.hoisted(() => ({
+  hasUnsavedShapes: undefined as undefined | boolean,
+}));
 vi.mock("./lib/useQuitConfirm", () => ({
-  useQuitConfirm: () => ({
-    state: { kind: "idle" as const },
-    confirmQuit: vi.fn(),
-    cancelQuit: vi.fn(),
-  }),
+  useQuitConfirm: (options: { hasUnsavedShapes: boolean }) => {
+    quitGuard.hasUnsavedShapes = options.hasUnsavedShapes;
+    return {
+      state: { kind: "idle" as const },
+      confirmQuit: vi.fn(),
+      cancelQuit: vi.fn(),
+    };
+  },
 }));
 vi.mock("./lib/windowResize", () => ({
   applyWindowSizeForImage: vi.fn(() => Promise.resolve()),
@@ -209,6 +230,7 @@ describe("App image replace confirmation", () => {
       future: [],
       selectedShapeId: null,
       clipboardShape: null,
+      savedShapes: null,
     });
   });
 
@@ -331,6 +353,7 @@ describe("App update notice", () => {
       future: [],
       selectedShapeId: null,
       clipboardShape: null,
+      savedShapes: null,
     });
   });
 
@@ -482,6 +505,7 @@ describe("App update relaunch guard", () => {
       future: [],
       selectedShapeId: null,
       clipboardShape: null,
+      savedShapes: null,
     });
   });
 
@@ -525,5 +549,114 @@ describe("App update relaunch guard", () => {
     expect(updater.relaunchNow).toHaveBeenCalledTimes(1);
     // Confirming a parked update must not restart the download.
     expect(updater.downloadAndInstall).not.toHaveBeenCalled();
+  });
+});
+
+describe("App quit guard", () => {
+  beforeEach(() => {
+    installDialogPolyfill();
+    Object.defineProperty(globalThis.URL, "createObjectURL", {
+      value: vi.fn(() => "blob:mock"),
+      configurable: true,
+    });
+    Object.defineProperty(globalThis.URL, "revokeObjectURL", {
+      value: vi.fn(),
+      configurable: true,
+    });
+    vi.stubGlobal("Image", MockImage);
+    useCanvasStore.setState({
+      shapes: [],
+      past: [],
+      future: [],
+      selectedShapeId: null,
+      clipboardShape: null,
+      savedShapes: null,
+    });
+    quitGuard.hasUnsavedShapes = undefined;
+    vi.mocked(saveBlobToFile).mockClear();
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  // Loads an image so handleExportToFile gets past its `!image` guard.
+  async function renderWithImage() {
+    render(<App />);
+    const file = new File(["x"], "shot.png", { type: "image/png" });
+    await act(async () => {
+      window.dispatchEvent(buildPasteEvent(file));
+    });
+    await flush();
+  }
+
+  async function saveAs() {
+    await act(async () => {
+      menu.handlers?.onSaveAs();
+    });
+    await flush();
+  }
+
+  it("reports nothing unsaved on an empty canvas", async () => {
+    await renderWithImage();
+    expect(quitGuard.hasUnsavedShapes).toBe(false);
+  });
+
+  it("reports unsaved work once a shape exists", async () => {
+    await renderWithImage();
+    act(() => {
+      useCanvasStore.getState().addShape(makeRectShape("r1"));
+    });
+    expect(quitGuard.hasUnsavedShapes).toBe(true);
+  });
+
+  it("clears the guard after a successful file export", async () => {
+    vi.mocked(saveBlobToFile).mockResolvedValueOnce("/tmp/out.png");
+    await renderWithImage();
+    act(() => {
+      useCanvasStore.getState().addShape(makeRectShape("r1"));
+    });
+    await saveAs();
+    expect(quitGuard.hasUnsavedShapes).toBe(false);
+  });
+
+  it("keeps the guard raised when the save dialog is cancelled", async () => {
+    // Default mock resolves to null, i.e. the user dismissed the dialog.
+    await renderWithImage();
+    act(() => {
+      useCanvasStore.getState().addShape(makeRectShape("r1"));
+    });
+    await saveAs();
+    expect(quitGuard.hasUnsavedShapes).toBe(true);
+  });
+
+  it("raises the guard again when a shape is added after saving", async () => {
+    vi.mocked(saveBlobToFile).mockResolvedValueOnce("/tmp/out.png");
+    await renderWithImage();
+    act(() => {
+      useCanvasStore.getState().addShape(makeRectShape("r1"));
+    });
+    await saveAs();
+    act(() => {
+      useCanvasStore.getState().addShape(makeRectShape("r2"));
+    });
+    expect(quitGuard.hasUnsavedShapes).toBe(true);
+  });
+
+  // Regression guard: uncommitted text lives in the overlay's local state and
+  // never reaches `shapes`, so a saved-state check alone would quit without
+  // warning and discard whatever the user has typed.
+  it("raises the guard for uncommitted text even when everything is saved", async () => {
+    const user = userEvent.setup();
+    vi.mocked(saveBlobToFile).mockResolvedValueOnce("/tmp/out.png");
+    await renderWithImage();
+    act(() => {
+      useCanvasStore.getState().addShape(makeRectShape("r1"));
+    });
+    await saveAs();
+    expect(quitGuard.hasUnsavedShapes).toBe(false);
+
+    await user.click(screen.getByTestId("begin-pending-text"));
+    expect(quitGuard.hasUnsavedShapes).toBe(true);
   });
 });

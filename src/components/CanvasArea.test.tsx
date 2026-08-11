@@ -3,7 +3,8 @@ import { beforeAll, vi } from "vitest";
 import { t } from "@/i18n/translate";
 import { DEFAULT_ZOOM_STATE, type ZoomState } from "@/lib/zoomGesture";
 import type { LoadedImage } from "@/types/image";
-import type { Shape } from "@/types/shape";
+import type { Shape, TextShape } from "@/types/shape";
+import canvasAreaSource from "./CanvasArea.tsx?raw";
 import { CanvasArea } from "./CanvasArea";
 
 // jsdom does not implement matchMedia or ResizeObserver, which CanvasArea
@@ -64,14 +65,22 @@ vi.mock("react-konva", () => {
   const Stage = ({
     children,
     onWheel,
+    onMouseDown,
   }: {
     children?: React.ReactNode;
     onWheel?: (event: { evt: WheelEvent; target: { getStage: () => unknown } }) => void;
+    onMouseDown?: (event: { evt: MouseEvent; target: { getStage: () => unknown } }) => void;
   }) => (
     <div
       data-testid="stage"
       onWheel={(e) => {
         onWheel?.({
+          evt: e.nativeEvent,
+          target: { getStage: () => ({ getPointerPosition: () => ({ x: 0, y: 0 }) }) },
+        });
+      }}
+      onMouseDown={(e) => {
+        onMouseDown?.({
           evt: e.nativeEvent,
           target: { getStage: () => ({ getPointerPosition: () => ({ x: 0, y: 0 }) }) },
         });
@@ -90,12 +99,37 @@ vi.mock("react-konva", () => {
   };
 });
 
+// Rendered as a button so tests can trigger the double-click-to-edit path
+// (onStartEditText) that puts CanvasArea into inline text editing.
 vi.mock("./SelectableShape", () => ({
-  SelectableShape: () => null,
+  SelectableShape: (
+    props: { shape: { id: string }; onStartEditText: (id: string) => void },
+  ) => (
+    <button
+      type="button"
+      data-testid={`start-edit-${props.shape.id}`}
+      onClick={() => props.onStartEditText(props.shape.id)}
+    >
+      edit
+    </button>
+  ),
 }));
 
+// Exposes confirm/cancel as buttons so tests can close the overlay the same
+// two ways a user can, without driving a real textarea through jsdom.
 vi.mock("./TextInputOverlay", () => ({
-  TextInputOverlay: () => null,
+  TextInputOverlay: (
+    props: { onConfirm: (text: string) => void; onCancel: () => void },
+  ) => (
+    <div data-testid="text-overlay">
+      <button type="button" data-testid="text-confirm" onClick={() => props.onConfirm("typed")}>
+        confirm
+      </button>
+      <button type="button" data-testid="text-cancel" onClick={() => props.onCancel()}>
+        cancel
+      </button>
+    </div>
+  ),
 }));
 
 function renderCanvas(
@@ -120,6 +154,7 @@ function renderCanvas(
     onExportToFile: vi.fn(),
     onExportToClipboard: vi.fn(),
     onZoomChange: vi.fn(),
+    onPendingTextChange: vi.fn(),
   };
   const shapes: Shape[] = [];
   render(
@@ -505,5 +540,81 @@ describe("CanvasArea wheel pan", () => {
     expect(next.scale).toBe(2);
     expect(next.offsetX).toBe(-300);
     expect(next.offsetY).toBe(-500);
+  });
+});
+
+describe("CanvasArea pending text notification", () => {
+  function textShape(id: string): TextShape {
+    return { id, type: "text", color: "red", x: 10, y: 10, text: "hi" };
+  }
+
+  it("reports pending text while a new text overlay is open", () => {
+    const { onPendingTextChange } = renderCanvas({
+      image: makeLoadedImage(),
+      activeTool: "text",
+    });
+    onPendingTextChange.mockClear();
+    fireEvent.mouseDown(screen.getByTestId("stage"));
+    expect(onPendingTextChange).toHaveBeenLastCalledWith(true);
+  });
+
+  it("clears pending text once the new text is confirmed", () => {
+    const { onPendingTextChange } = renderCanvas({
+      image: makeLoadedImage(),
+      activeTool: "text",
+    });
+    fireEvent.mouseDown(screen.getByTestId("stage"));
+    onPendingTextChange.mockClear();
+    fireEvent.click(screen.getByTestId("text-confirm"));
+    expect(onPendingTextChange).toHaveBeenLastCalledWith(false);
+  });
+
+  it("clears pending text once the new text is cancelled", () => {
+    const { onPendingTextChange } = renderCanvas({
+      image: makeLoadedImage(),
+      activeTool: "text",
+    });
+    fireEvent.mouseDown(screen.getByTestId("stage"));
+    onPendingTextChange.mockClear();
+    fireEvent.click(screen.getByTestId("text-cancel"));
+    expect(onPendingTextChange).toHaveBeenLastCalledWith(false);
+  });
+
+  it("reports pending text while an existing text is edited inline", () => {
+    const { onPendingTextChange } = renderCanvas({
+      image: makeLoadedImage(),
+      shapes: [textShape("t1")],
+    });
+    onPendingTextChange.mockClear();
+    fireEvent.click(screen.getByTestId("start-edit-t1"));
+    expect(onPendingTextChange).toHaveBeenLastCalledWith(true);
+  });
+
+  it("clears pending text once the inline edit is confirmed", () => {
+    const { onPendingTextChange } = renderCanvas({
+      image: makeLoadedImage(),
+      shapes: [textShape("t1")],
+    });
+    fireEvent.click(screen.getByTestId("start-edit-t1"));
+    onPendingTextChange.mockClear();
+    fireEvent.click(screen.getByTestId("text-confirm"));
+    expect(onPendingTextChange).toHaveBeenLastCalledWith(false);
+  });
+
+  // Structural regression guard, mirroring the one in useQuitConfirm.test.ts.
+  // A behavioural test cannot catch this: @testing-library/react flushes
+  // passive effects through act(), so the notification looks synchronous in
+  // tests even when it is deferred until after paint at runtime — which is
+  // exactly the window where a `quit-requested` IPC event would read a stale
+  // `false` and quit without the modal.
+  it("notifies from useLayoutEffect, not a passive useEffect (structural)", () => {
+    const callIndex = canvasAreaSource.indexOf("onPendingTextChange?.(");
+    expect(callIndex).toBeGreaterThan(-1);
+    const before = canvasAreaSource.slice(0, callIndex);
+    // "useLayoutEffect(" does not contain "useEffect(", so whichever hook
+    // opens closest above the call wins this comparison.
+    expect(before.lastIndexOf("useLayoutEffect(")).toBeGreaterThan(
+      before.lastIndexOf("useEffect("),
+    );
   });
 });

@@ -29,7 +29,7 @@ import { invoke, isTauri } from "@tauri-apps/api/core";
 import { applyWindowSizeForImage } from "./lib/windowResize";
 import { cropLoadedImage, type CropRect, transformShapesForCrop } from "./lib/cropImage";
 import { DEFAULT_ZOOM_STATE, type ZoomState } from "./lib/zoomGesture";
-import { useCanvasStore } from "./store/canvasStore";
+import { selectHasUnsavedShapes, useCanvasStore } from "./store/canvasStore";
 import type { LoadedImage } from "./types/image";
 import type { Shape } from "./types/shape";
 import type { ColorPresetName, StrokeWidthPresetName, ToolKind } from "./types/tool";
@@ -63,6 +63,11 @@ function App() {
   // buttons in the Toolbar while a text shape is being inline-edited so
   // the exported PNG does not capture a hidden text node.
   const [isEditingText, setIsEditingText] = useState(false);
+  // Driven by CanvasArea via onPendingTextChange: true while a text overlay
+  // holds text that is not committed to a shape yet. ORed into the quit guard
+  // because such text never reaches `shapes`, so the saved-state check below
+  // cannot see it.
+  const [hasPendingText, setHasPendingText] = useState(false);
   const [copyState, setCopyState] = useState<"idle" | "success">("idle");
   const copyResetTimer = useRef<number | null>(null);
   // View-only canvas zoom (pinch + Cmd+/-/0). Local state, not part of the
@@ -98,6 +103,7 @@ function App() {
   }, [image]);
 
   const shapes = useCanvasStore((s) => s.shapes);
+  const hasUnsavedShapes = useCanvasStore(selectHasUnsavedShapes);
   const selectedShapeId = useCanvasStore((s) => s.selectedShapeId);
   const addShape = useCanvasStore((s) => s.addShape);
   const addShapes = useCanvasStore((s) => s.addShapes);
@@ -115,6 +121,7 @@ function App() {
   const resetShapes = useCanvasStore((s) => s.resetShapes);
   const copyShape = useCanvasStore((s) => s.copyShape);
   const pasteShape = useCanvasStore((s) => s.pasteShape);
+  const markShapesSaved = useCanvasStore((s) => s.markShapesSaved);
   const hasClipboardShape = useCanvasStore((s) => s.clipboardShape !== null);
   const undo = useCanvasStore((s) => s.undo);
   const redo = useCanvasStore((s) => s.redo);
@@ -332,20 +339,35 @@ function App() {
 
   // Cmd+Q / tray "Quit Marianne" / Dock Quit confirmation. The hook
   // listens for `quit-requested` from the Rust side and shows the dialog
-  // only when there are unsaved shapes; otherwise it confirms quit
+  // only when there is unsaved work; otherwise it confirms quit
   // immediately so the user does not see a needless dialog flash.
+  //
+  // "Unsaved" here means "changed since the last PNG file export" — Marianne
+  // has no re-editable project format, so a written PNG is the whole of the
+  // user's output and warning past that point offers no choice. Uncommitted
+  // text is ORed in separately because it never reaches `shapes`.
+  //
+  // This is deliberately stricter than the other three destructive paths
+  // (update install, image replace), which still ask whenever any shape
+  // exists: those are mid-session actions the user invokes explicitly, and
+  // there the annotations they are about to lose are still on screen.
   const {
     state: quitState,
     confirmQuit,
     cancelQuit,
-  } = useQuitConfirm({ hasUnsavedShapes: shapes.length > 0 });
+  } = useQuitConfirm({ hasUnsavedShapes: hasUnsavedShapes || hasPendingText });
 
   const handleExportToFile = useCallback(async () => {
     if (!image || isEditingText) {
       return;
     }
+    // Pin the array identity that actually gets baked into the PNG. The canvas
+    // stays editable while the save dialog is open, so anything drawn after
+    // this point must stay "unsaved" — reading the store again after the write
+    // would silently mark it saved.
+    const exported = shapes;
     try {
-      const blob = await exportToBlob(image, shapes);
+      const blob = await exportToBlob(image, exported);
       const defaultName = defaultExportFileName(image);
       const sourceDir = image.sourcePath !== undefined
         ? await dirname(image.sourcePath)
@@ -354,12 +376,16 @@ function App() {
       const defaultPath = defaultDir ? await join(defaultDir, defaultName) : defaultName;
       const savedPath = await saveBlobToFile(blob, defaultPath);
       if (savedPath) {
+        // Before saveLastSaveDirectory: `dirname` awaits and can throw, and a
+        // failure there must not cost us the record of a file that is already
+        // on disk. A returned path means the write completed.
+        markShapesSaved(exported);
         saveLastSaveDirectory(await dirname(savedPath));
       }
     } catch (error) {
       console.error("Export to file failed:", error);
     }
-  }, [image, isEditingText, shapes]);
+  }, [image, isEditingText, shapes, markShapesSaved]);
 
   // Synchronous start: passing the Promise<Blob> directly to ClipboardItem preserves
   // the transient user activation that WebKit/WKWebView requires for clipboard.write.
@@ -524,6 +550,7 @@ function App() {
           onExportToFile={handleExportToFile}
           onExportToClipboard={handleKeydownCopy}
           onEditingTextChange={setIsEditingText}
+          onPendingTextChange={setHasPendingText}
           zoomState={zoomState}
           onZoomChange={setZoomState}
         />

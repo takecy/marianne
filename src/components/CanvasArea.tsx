@@ -1,6 +1,6 @@
 import type Konva from "konva";
 import type { KonvaEventObject } from "konva/lib/Node";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { Image as KonvaImage, Layer, Line, Rect, Stage, Transformer } from "react-konva";
 import {
   clampToImage,
@@ -90,6 +90,13 @@ interface CanvasAreaProps {
   onExportToFile: () => void;
   onExportToClipboard: () => void;
   onEditingTextChange?: (isEditing: boolean) => void;
+  // Whether a text overlay is open with text that has not been committed to a
+  // shape yet. Distinct from onEditingTextChange, which reports only the
+  // inline edit of an *existing* text (that one gates export because the
+  // edited node is hidden on the Konva stage). This one also covers new text
+  // entry, and feeds the quit guard: uncommitted text lives in the overlay's
+  // local state, so it is invisible to the shapes-based unsaved check.
+  onPendingTextChange?: (pending: boolean) => void;
   // View-only canvas zoom state (Stage scaleX/scaleY/x/y). Owned by App so
   // StatusBar can display the current percentage. Reset to DEFAULT on image
   // swap via App's useEffect — CanvasArea never resets it directly.
@@ -252,6 +259,7 @@ export function CanvasArea(props: CanvasAreaProps) {
     onExportToFile,
     onExportToClipboard,
     onEditingTextChange,
+    onPendingTextChange,
     zoomState,
     onZoomChange,
   } = props;
@@ -404,6 +412,23 @@ export function CanvasArea(props: CanvasAreaProps) {
   useEffect(() => {
     onEditingTextChange?.(editingTextId !== null);
   }, [editingTextId, onEditingTextChange]);
+
+  // Propagate "a text overlay is open" to the parent, which ORs it into the
+  // quit guard.
+  //
+  // CRITICAL: This MUST run in useLayoutEffect, not useEffect — for the same
+  // reason useQuitConfirm.ts mirrors its flag in one. A passive effect is
+  // deferred until after the browser paints, so between the overlay opening
+  // and this callback firing the event loop turns, and a `quit-requested`
+  // event arriving from the Rust IPC thread in that window would observe a
+  // stale `false` and quit without the modal, discarding whatever the user
+  // has typed. useLayoutEffect runs in React's commit phase, so the parent's
+  // setState and the ref mirror inside useQuitConfirm both settle before
+  // control returns to the event loop. The structural test in
+  // CanvasArea.test.tsx guards this placement.
+  useLayoutEffect(() => {
+    onPendingTextChange?.(textInput !== null || editingTextId !== null);
+  }, [textInput, editingTextId, onPendingTextChange]);
 
   // Keyboard shortcuts:
   // - Cmd/Ctrl + Shift + S => export to file (opens native save dialog)

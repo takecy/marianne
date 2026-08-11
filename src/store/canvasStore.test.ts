@@ -1,6 +1,6 @@
 import { beforeEach } from "vitest";
 import type { ArrowShape, MosaicShape, RectShape, TextShape } from "@/types/shape";
-import { useCanvasStore } from "./canvasStore";
+import { selectHasUnsavedShapes, useCanvasStore } from "./canvasStore";
 
 function sampleRect(id: string): RectShape {
   return {
@@ -56,6 +56,7 @@ describe("canvasStore", () => {
       past: [],
       future: [],
       clipboardShape: null,
+      savedShapes: null,
     });
   });
 
@@ -581,5 +582,83 @@ describe("canvasStore", () => {
       throw new Error("expected mosaic to survive undo/redo");
     }
     expect(mosaic.strengthLevel).toBe(4);
+  });
+
+  // --- saved state / unsaved-work check ---
+
+  it("selectHasUnsavedShapes is false on an empty canvas", () => {
+    expect(selectHasUnsavedShapes(useCanvasStore.getState())).toBe(false);
+  });
+
+  it("selectHasUnsavedShapes turns true once a shape is added", () => {
+    useCanvasStore.getState().addShape(sampleRect("a"));
+    expect(selectHasUnsavedShapes(useCanvasStore.getState())).toBe(true);
+  });
+
+  it("markShapesSaved with the current shapes clears the unsaved flag", () => {
+    useCanvasStore.getState().addShape(sampleRect("a"));
+    useCanvasStore.getState().markShapesSaved(useCanvasStore.getState().shapes);
+    expect(selectHasUnsavedShapes(useCanvasStore.getState())).toBe(false);
+  });
+
+  it("drawing after a save makes the work unsaved again", () => {
+    useCanvasStore.getState().addShape(sampleRect("a"));
+    useCanvasStore.getState().markShapesSaved(useCanvasStore.getState().shapes);
+    useCanvasStore.getState().addShape(sampleRect("b"));
+    expect(selectHasUnsavedShapes(useCanvasStore.getState())).toBe(true);
+  });
+
+  // The whole design rests on this: `past` stores the array references
+  // themselves, so undoing back to the exported state restores the exported
+  // array — identity comparison sees it as saved again without any deep
+  // equality check.
+  it("undoing back to the saved state clears the unsaved flag again", () => {
+    useCanvasStore.getState().addShape(sampleRect("a"));
+    useCanvasStore.getState().markShapesSaved(useCanvasStore.getState().shapes);
+    useCanvasStore.getState().addShape(sampleRect("b"));
+    useCanvasStore.getState().undo();
+    expect(selectHasUnsavedShapes(useCanvasStore.getState())).toBe(false);
+  });
+
+  it("redoing away from the saved state makes the work unsaved again", () => {
+    useCanvasStore.getState().addShape(sampleRect("a"));
+    useCanvasStore.getState().markShapesSaved(useCanvasStore.getState().shapes);
+    useCanvasStore.getState().addShape(sampleRect("b"));
+    useCanvasStore.getState().undo();
+    useCanvasStore.getState().redo();
+    expect(selectHasUnsavedShapes(useCanvasStore.getState())).toBe(true);
+  });
+
+  // Regression guard for the data-loss path: the canvas is editable while the
+  // native save dialog is open, so the snapshot handed to markShapesSaved is
+  // the one that reached the PNG — not whatever the store holds afterwards.
+  it("keeps work unsaved when shapes changed after the exported snapshot", () => {
+    useCanvasStore.getState().addShape(sampleRect("a"));
+    const exported = useCanvasStore.getState().shapes;
+    useCanvasStore.getState().addShape(sampleRect("drawn-during-save"));
+    useCanvasStore.getState().markShapesSaved(exported);
+    expect(selectHasUnsavedShapes(useCanvasStore.getState())).toBe(true);
+  });
+
+  it("clearShapes forgets the saved snapshot", () => {
+    useCanvasStore.getState().addShape(sampleRect("a"));
+    useCanvasStore.getState().markShapesSaved(useCanvasStore.getState().shapes);
+    useCanvasStore.getState().clearShapes();
+    expect(useCanvasStore.getState().savedShapes).toBeNull();
+  });
+
+  it("resetShapes forgets the saved snapshot, leaving the new shapes unsaved", () => {
+    useCanvasStore.getState().addShape(sampleRect("a"));
+    useCanvasStore.getState().markShapesSaved(useCanvasStore.getState().shapes);
+    useCanvasStore.getState().resetShapes([sampleRect("cropped")]);
+    expect(useCanvasStore.getState().savedShapes).toBeNull();
+    expect(selectHasUnsavedShapes(useCanvasStore.getState())).toBe(true);
+  });
+
+  it("deleting every shape leaves nothing to warn about", () => {
+    useCanvasStore.getState().addShape(sampleRect("a"));
+    useCanvasStore.getState().markShapesSaved(useCanvasStore.getState().shapes);
+    useCanvasStore.getState().deleteShape("a");
+    expect(selectHasUnsavedShapes(useCanvasStore.getState())).toBe(false);
   });
 });
