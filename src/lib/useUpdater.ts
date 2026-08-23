@@ -11,8 +11,8 @@ export type UpdateErrorOrigin = CheckOrigin | "install";
 
 // Outcome of `checkForUpdates`. Returned so callers can react to the result
 // directly instead of watching for a state transition in an effect — a
-// `setState` in an effect body trips react-compiler's set-state-in-effect
-// rule (the mount effect below works around the same constraint).
+// `setState` in an effect body trips the `react/set-state-in-effect` rule (the
+// mount effect below works around the same constraint).
 // `idle` covers the non-Tauri branch and results dropped by the generation
 // guard.
 export type CheckResult = "idle" | "upToDate" | "available" | "error";
@@ -165,8 +165,8 @@ export function useUpdater(options: UseUpdaterOptions = {}): UseUpdaterResult {
           downloaded = 0;
           // `downloaded` and `contentLength` are mutable locals accumulated
           // across callback invocations. Memoizing them would freeze the
-          // progress readout.
-          // oxlint-disable-next-line react/react-compiler
+          // progress readout. `react/preserve-manual-memoization` does not flag
+          // this, so no suppression is needed (oxlint >= 1.79).
           setState({ kind: "downloading", downloaded, contentLength });
         } else if (event.event === "Progress") {
           downloaded += event.data.chunkLength;

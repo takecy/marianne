@@ -70,9 +70,11 @@ also runs this and uploads `coverage/coverage-summary.json` as an artifact.
 - **TypeScript**: `strict` + `noUncheckedIndexedAccess` + `noUnusedLocals` +
   `noUnusedParameters` + `noImplicitOverride`. Array index access yields
   `T | undefined` — handle accordingly.
-- **React**: `react/rules-of-hooks`, `react/exhaustive-deps` and
-  `react/react-compiler` are enforced as errors via oxlint. Suppress with
-  `// oxlint-disable-next-line <rule>` plus a comment saying why.
+- **React**: `react/rules-of-hooks`, `react/exhaustive-deps` and the twelve
+  React Compiler rules (`react/refs`, `react/purity`, `react/immutability`,
+  `react/set-state-in-render`, ...) are enforced as errors via oxlint. Suppress
+  the single rule that fires with `// oxlint-disable-next-line <rule>` on its own
+  line, plus a comment saying why.
 - **Tests**: Vitest + `@testing-library/react` + `@testing-library/jest-dom`.
   `globals: true` is enabled — no need to import `describe` / `it` / `expect`.
   **Table-driven tests are discouraged**; prefer one `it()` per case so each

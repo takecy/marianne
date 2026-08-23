@@ -314,14 +314,14 @@ export function CanvasArea(props: CanvasAreaProps) {
   // Reading and writing these refs during render is deliberate: it is React's
   // "adjust state when props change" pattern. Neither ref is rendered; they only
   // carry the previous value so the transition is detected synchronously (see the
-  // crop comment below). Suppress per line rather than around the whole block:
-  // `react/react-compiler` also carries set-state-in-render / purity /
-  // immutability, which must keep guarding the setState calls further down.
-  // oxlint-disable-next-line react/react-compiler
+  // crop comment below). Suppress `react/refs` per line rather than around the
+  // whole block, so the setState calls further down stay covered by the sibling
+  // rules (`react/set-state-in-render`, `react/purity`, `react/immutability`).
+  // oxlint-disable-next-line react/refs
   if (prevToolRef.current !== activeTool || prevImageElRef.current !== image?.element) {
-    // oxlint-disable-next-line react/react-compiler
+    // oxlint-disable-next-line react/refs
     const prevTool = prevToolRef.current;
-    // oxlint-disable-next-line react/react-compiler
+    // oxlint-disable-next-line react/refs
     prevToolRef.current = activeTool;
 
     prevImageElRef.current = image?.element;
