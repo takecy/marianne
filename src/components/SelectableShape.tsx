@@ -2,7 +2,12 @@ import type Konva from "konva";
 import type { KonvaEventObject } from "konva/lib/Node";
 import { useEffect, useRef, useState } from "react";
 import { Rect, Text } from "react-konva";
-import { imageToScreen, imageToScreenScale, screenToImage } from "@/lib/imageFit";
+import {
+  imageToScreen,
+  imageToScreenScale,
+  screenToImage,
+  strokeWidthToScreen,
+} from "@/lib/imageFit";
 import type { FitRect, Size as FitSize } from "@/lib/imageFit";
 import { mosaicPixelSize } from "@/lib/mosaicStrength";
 import { cloneShapeAt } from "@/lib/shapeClipboard";
@@ -106,6 +111,13 @@ export function SelectableShape(props: SelectableShapeProps) {
 
   if (shape.type === "rect") {
     const topLeft = imageToScreen({ x: shape.x, y: shape.y }, fit, imageSize);
+    // Natural-pixel stroke width -> screen. Without this the outline is
+    // heavier on canvas than in the exported PNG; see strokeWidthToScreen.
+    const strokeWidth = strokeWidthToScreen(
+      strokeWidthValue(shape.strokeWidth ?? "thick"),
+      fit,
+      imageSize,
+    );
     return (
       <>
         {showAltDragGhost
@@ -117,7 +129,7 @@ export function SelectableShape(props: SelectableShapeProps) {
               width={shape.width * imgScaleX}
               height={shape.height * imgScaleY}
               stroke={colorHex(shape.color)}
-              strokeWidth={strokeWidthValue(shape.strokeWidth ?? "thick")}
+              strokeWidth={strokeWidth}
               lineJoin="round"
             />
           )
@@ -135,7 +147,7 @@ export function SelectableShape(props: SelectableShapeProps) {
           width={shape.width * imgScaleX}
           height={shape.height * imgScaleY}
           stroke={colorHex(shape.color)}
-          strokeWidth={strokeWidthValue(shape.strokeWidth ?? "thick")}
+          strokeWidth={strokeWidth}
           lineJoin="round"
           onDragStart={(event: KonvaEventObject<DragEvent>) => {
             altAtStartRef.current = event.evt.altKey;

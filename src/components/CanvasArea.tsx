@@ -8,6 +8,7 @@ import {
   imageToScreen,
   imageToScreenScale,
   screenToImage,
+  strokeWidthToScreen,
 } from "@/lib/imageFit";
 import type { FitRect, Point, Size as FitSize } from "@/lib/imageFit";
 import type { CropRect } from "@/lib/cropImage";
@@ -178,7 +179,7 @@ function renderDraft(
         width={w * scaleX}
         height={h * scaleY}
         stroke={hex}
-        strokeWidth={strokeWidthValue(draft.strokeWidth)}
+        strokeWidth={strokeWidthToScreen(strokeWidthValue(draft.strokeWidth), fit, imageSize)}
         lineJoin="round"
         listening={false}
         opacity={0.7}
