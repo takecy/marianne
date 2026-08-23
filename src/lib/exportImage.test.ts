@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, vi } from "vitest";
 import type { LoadedImage } from "@/types/image";
-import type { MosaicShape } from "@/types/shape";
+import type { MosaicShape, RectShape } from "@/types/shape";
 
 // Konva's real Shape constructor calls into canvas (getHitColor → farbling
 // detection) which jsdom cannot satisfy. We only need the bare constructor +
@@ -34,6 +34,8 @@ vi.mock("konva", () => {
   };
 });
 
+import { fitContain, strokeWidthToScreen } from "@/lib/imageFit";
+import { strokeWidthValue } from "@/types/tool";
 import {
   buildShapeNode,
   copyImageToClipboard,
@@ -193,6 +195,50 @@ describe("copyImageToClipboard", () => {
     await expect(copyImageToClipboard(Promise.resolve(new Blob()))).rejects.toThrow(
       /Clipboard API/,
     );
+  });
+});
+
+describe("buildShapeNode (rect stroke width)", () => {
+  function rect(strokeWidth?: RectShape["strokeWidth"]): RectShape {
+    return {
+      id: "test",
+      type: "rect",
+      color: "red",
+      x: 0,
+      y: 0,
+      width: 50,
+      height: 50,
+      strokeWidth,
+    };
+  }
+
+  it("emits the preset width unscaled, because the export stage is natural-sized", () => {
+    expect(buildShapeNode(rect("thick"), buildLoadedImage()).getAttr("strokeWidth"))
+      .toBe(strokeWidthValue("thick"));
+  });
+
+  it("falls back to thick for rects saved before strokeWidth existed", () => {
+    expect(buildShapeNode(rect(undefined), buildLoadedImage()).getAttr("strokeWidth"))
+      .toBe(strokeWidthValue("thick"));
+  });
+
+  // The regression this pins (issue #117): the export stage is built at the
+  // image natural size while the canvas is letterboxed, so the two sides only
+  // agree if the renderer converts the stored natural width to screen space.
+  // Passing the raw preset on canvas made the outline 1 / ratio too heavy --
+  // three times too heavy for a 4K screenshot in a 1280px canvas.
+  it("keeps the canvas outline at the same image-relative weight as the export", () => {
+    const imageSize = { width: 3840, height: 2160 };
+    const fit = fitContain(imageSize, { width: 1280, height: 720 });
+    const ratio = fit.width / imageSize.width;
+
+    for (const preset of ["thin", "medium", "thick", "extraThick"] as const) {
+      const exported = buildShapeNode(rect(preset), buildLoadedImage()).getAttr(
+        "strokeWidth",
+      ) as number;
+      const onCanvas = strokeWidthToScreen(strokeWidthValue(preset), fit, imageSize);
+      expect(onCanvas / exported).toBeCloseTo(ratio);
+    }
   });
 });
 

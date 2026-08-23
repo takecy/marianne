@@ -1,4 +1,10 @@
-import { clampToImage, fitContain, imageToScreen, screenToImage } from "./imageFit";
+import {
+  clampToImage,
+  fitContain,
+  imageToScreen,
+  screenToImage,
+  strokeWidthToScreen,
+} from "./imageFit";
 
 describe("fitContain", () => {
   it("scales a landscape image to fit inside a square container", () => {
@@ -91,5 +97,37 @@ describe("clampToImage", () => {
   it("clamps a point outside the image to the nearest edge", () => {
     expect(clampToImage({ x: -50, y: 600 }, imageSize)).toEqual({ x: 0, y: 500 });
     expect(clampToImage({ x: 2000, y: -10 }, imageSize)).toEqual({ x: 1000, y: 0 });
+  });
+});
+
+describe("strokeWidthToScreen", () => {
+  it("leaves the width untouched when the image is shown at natural size", () => {
+    // fitContain caps its ratio at 1, so a container larger than the image
+    // still renders 1:1 and the stored natural width is already screen-correct.
+    const imageSize = { width: 400, height: 300 };
+    const fit = fitContain(imageSize, { width: 1200, height: 900 });
+    expect(strokeWidthToScreen(18, fit, imageSize)).toBe(18);
+  });
+
+  it("shrinks the width by the same ratio the geometry is shrunk by", () => {
+    // 3840x2160 letterboxed into 1280x720 -> ratio 1/3.
+    const imageSize = { width: 3840, height: 2160 };
+    const fit = fitContain(imageSize, { width: 1280, height: 720 });
+    expect(fit.width / imageSize.width).toBeCloseTo(1 / 3);
+    expect(strokeWidthToScreen(18, fit, imageSize)).toBeCloseTo(6);
+  });
+
+  it("uses the letterboxed ratio, not the container, for a non-matching aspect", () => {
+    // A 1000x500 image in an 800x800 container fits on width: ratio 0.8.
+    const imageSize = { width: 1000, height: 500 };
+    const fit = fitContain(imageSize, { width: 800, height: 800 });
+    expect(strokeWidthToScreen(10, fit, imageSize)).toBeCloseTo(8);
+  });
+
+  it("falls back to the natural width when the image has zero size", () => {
+    // imageToScreenScale returns a 1:1 scale for a degenerate image so the
+    // renderer never multiplies a stroke by NaN.
+    expect(strokeWidthToScreen(18, { x: 0, y: 0, width: 0, height: 0 }, { width: 0, height: 0 }))
+      .toBe(18);
   });
 });

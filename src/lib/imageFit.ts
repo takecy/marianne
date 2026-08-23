@@ -74,3 +74,22 @@ export function imageToScreenScale(
     scaleY: fit.height / imageSize.height,
   };
 }
+
+/**
+ * Converts a stroke width from natural image pixels to screen pixels.
+ *
+ * Stroke widths live in natural pixel space like every other shape dimension,
+ * so the renderer has to convert them at the drawing boundary just as it
+ * converts geometry. Omitting the conversion makes the on-canvas outline
+ * heavier than the exported PNG by a factor of `1 / ratio`, because
+ * `exportImage.ts` builds its stage at the image's natural size and consumes
+ * the same stored value unscaled.
+ *
+ * `fitContain` derives width and height from a single ratio, so `scaleX` and
+ * `scaleY` are always equal here — the `min` is defensive rather than a
+ * meaningful choice between axes.
+ */
+export function strokeWidthToScreen(natural: number, fit: FitRect, imageSize: Size): number {
+  const { scaleX, scaleY } = imageToScreenScale(fit, imageSize);
+  return natural * Math.min(scaleX, scaleY);
+}

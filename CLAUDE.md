@@ -67,7 +67,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 `src/types/tool.ts` の `STROKE_WIDTH_PRESETS` で 4 段階を定義: `thin = 6` / `medium = 12` / `thick = 18` / `extraThick = 28`。`RectShape.strokeWidth` は **optional** で、未指定時は `"thick"` (=18) にフォールバックする。これは新フィールド導入前に保存・テスト fixture 化された矩形を `SHAPE_STROKE_WIDTH = 18` 時代と視覚的に完全一致させるための後方互換規約。新規 RectShape を作るコード (`startDraft` / クローン / ペースト) では明示的に値を入れること。
 
-`strokeWidthValue(name)` が返す数値は **export 時は natural ピクセル、画面描画時は screen ピクセル** の両方として使われる。これは export 側 (`exportImage.ts`) が画像の自然サイズで Stage を構築するため、画面側の `imgScaleX` 乗算なしでもサイズが一致するという設計。on-canvas で `strokeWidth * imgScaleX` をすると 2 重スケールになって極端に太くなるので絶対にやらないこと (`SelectableShape.tsx` / `CanvasArea.renderDraft` のいずれも生の数値を渡している)。
+`strokeWidthValue(name)` が返す数値は **natural ピクセル** である。他のシェイプ寸法とまったく同じ扱いで、export 側 (`exportImage.ts`) は画像の自然サイズで Stage を構築するのでそのまま渡すが、**画面描画時は描画境界でscreen へ変換する**。`imageFit.ts` の `strokeWidthToScreen(natural, fit, imageSize)` を使うこと(`SelectableShape.tsx` の rect 分岐と `CanvasArea.renderDraft` の 2 箇所が呼び出し元)。text の `fontScale`、arrow の `arrowScale`、`MosaicNode` の `pixelSize` と同じパターン。
+
+変換を落とすと **キャンバス上の線が保存 PNG より `1 / ratio` 倍太くなる** (issue #117)。3840px 幅の画像を1280px のキャンバスに表示すると画面の線が保存結果の 3 倍太く見えた。`fitContain` は `ratio` を 1 に上限クランプする (拡大しない設計) ので `imgScaleX ≤ 1` が常に成立し、この乗算で線が太くなることは原理的に起こり得ない。`exportImage.test.ts` の「keeps the canvas outline at the same image-relative weight as theexport」が on-canvas と export の線幅比が表示倍率に一致することを検証しており、変換を外すと落ちる。
 
 ### モザイクの描画 & エクスポートパイプライン
 
