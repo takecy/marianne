@@ -70,9 +70,12 @@ pnpm docs:build    # docs/ または site/ を変更した場合のみ
 - **TypeScript**: `strict` + `noUncheckedIndexedAccess` + `noUnusedLocals` +
   `noUnusedParameters` + `noImplicitOverride`。配列インデックスアクセスの
   結果は `T | undefined` なので適切に扱ってください。
-- **React**: `react/rules-of-hooks` / `react/exhaustive-deps` /
-  `react/react-compiler` を oxlint で error として強制しています。抑制する場合は
-  `// oxlint-disable-next-line <rule>` と理由コメントを併記してください。
+- **React**: `react/rules-of-hooks` / `react/exhaustive-deps` と、React Compiler
+  由来の 12 ルール (`react/refs` / `react/purity` / `react/immutability` /
+  `react/set-state-in-render` など) を oxlint で error として強制しています。
+  抑制する場合は実際に発火した 1 ルールだけを
+  `// oxlint-disable-next-line <rule>` で行単位に指定し、理由コメントを併記して
+  ください。
 - **テスト**: Vitest + `@testing-library/react` + `@testing-library/jest-dom`。
   `globals: true` を有効にしているため `describe` / `it` / `expect` の
   import は不要です。**テーブルドリブンテストは原則禁止** — 1 ケース 1 `it()`

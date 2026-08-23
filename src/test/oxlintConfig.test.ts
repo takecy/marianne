@@ -22,13 +22,25 @@ const rules: Readonly<Record<string, string>> = oxlintConfig.rules;
  *  plugin's rules wholesale. */
 const REQUIRED_PLUGINS = ["oxc", "react", "typescript", "unicorn"];
 
-/** Rules that replace `eslint-plugin-react-hooks`. `react/react-compiler` alone
- *  subsumes the former `refs` / `purity` / `immutability` / `set-state-in-effect`
- *  family, so losing it is a much bigger regression than the name suggests. */
+/** Rules that replace `eslint-plugin-react-hooks`. oxlint 1.79 split the former
+ *  umbrella `react/react-compiler` into the twelve per-category rules below. They
+ *  currently arrive via `categories.correctness` too, but they are listed
+ *  explicitly so that an upstream recategorisation cannot silently drop them. */
 const REACT_SAFETY_RULES = [
+  "react/error-boundaries",
   "react/exhaustive-deps",
-  "react/react-compiler",
+  "react/globals",
+  "react/immutability",
+  "react/incompatible-library",
+  "react/preserve-manual-memoization",
+  "react/purity",
+  "react/refs",
   "react/rules-of-hooks",
+  "react/set-state-in-effect",
+  "react/set-state-in-render",
+  "react/static-components",
+  "react/use-memo",
+  "react/void-use-memo",
 ];
 
 /** Reproduce the former `tseslint.configs.strict` + `stylistic` presets. None of
