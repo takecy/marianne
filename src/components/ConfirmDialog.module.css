@@ -40,6 +40,9 @@
 }
 
 .primaryButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
   padding: 0.4rem 1rem;
   border: 1px solid var(--color-accent);
   background: var(--color-accent);
@@ -60,6 +63,9 @@
 }
 
 .secondaryButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
   padding: 0.4rem 1rem;
   border: 1px solid var(--color-border-strong);
   background: var(--color-surface-raised);
@@ -76,4 +82,20 @@
 .secondaryButton:focus-visible {
   outline: 2px solid var(--color-accent);
   outline-offset: 1px;
+}
+
+/* Keyboard hint badge (Y / N). currentColor keeps it legible on both the
+   accent-filled primary button and the surface-coloured secondary one
+   without hardcoding either palette. */
+.shortcutHint {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.1rem;
+  padding: 0 0.25rem;
+  border: 1px solid currentColor;
+  border-radius: 0.2rem;
+  font-size: 0.7rem;
+  line-height: 1.5;
+  opacity: 0.65;
 }
