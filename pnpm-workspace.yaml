@@ -11,3 +11,7 @@ minimumReleaseAgeExclude:
   - dompurify@3.4.13
   - nanoid@3.3.17
   - '@testing-library/user-event@14.6.6'
+  - konva@10.3.3
+  - playwright-core@1.63.0
+  - playwright@1.63.0
+  - react-konva@19.2.6
