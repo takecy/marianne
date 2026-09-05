@@ -167,6 +167,7 @@ function renderCanvas(
       activeStrokeWidth="thick"
       selectedShapeId={null}
       hasClipboardShape={false}
+      isModalOpen={false}
       zoomState={DEFAULT_ZOOM_STATE}
       {...handlers}
       {...overrides}
@@ -616,5 +617,78 @@ describe("CanvasArea pending text notification", () => {
     expect(before.lastIndexOf("useLayoutEffect(")).toBeGreaterThan(
       before.lastIndexOf("useEffect("),
     );
+  });
+});
+
+// A confirm dialog is modal, but showModal() only inerts focus and pointer
+// events — this window-level listener keeps receiving keys unless it opts out.
+describe("CanvasArea modal suppression", () => {
+  it("ignores tool shortcuts while a modal dialog is open", () => {
+    const { onToolChange } = renderCanvas({
+      image: makeLoadedImage(),
+      isModalOpen: true,
+    });
+    window.dispatchEvent(new KeyboardEvent("keydown", { key: "t" }));
+    window.dispatchEvent(new KeyboardEvent("keydown", { key: "v" }));
+    expect(onToolChange).not.toHaveBeenCalled();
+  });
+
+  it("ignores Delete and Backspace while a modal dialog is open", () => {
+    const { onDeleteShape } = renderCanvas({
+      image: makeLoadedImage(),
+      selectedShapeId: "shape-1",
+      isModalOpen: true,
+    });
+    window.dispatchEvent(new KeyboardEvent("keydown", { key: "Backspace" }));
+    window.dispatchEvent(new KeyboardEvent("keydown", { key: "Delete" }));
+    expect(onDeleteShape).not.toHaveBeenCalled();
+  });
+
+  it("ignores export and history shortcuts while a modal dialog is open", () => {
+    const { onExportToFile, onExportToClipboard, onUndo, onRedo } = renderCanvas({
+      image: makeLoadedImage(),
+      isModalOpen: true,
+    });
+    window.dispatchEvent(
+      new KeyboardEvent("keydown", { key: "s", metaKey: true, shiftKey: true }),
+    );
+    window.dispatchEvent(
+      new KeyboardEvent("keydown", { key: "c", metaKey: true, shiftKey: true }),
+    );
+    window.dispatchEvent(new KeyboardEvent("keydown", { key: "z", metaKey: true }));
+    window.dispatchEvent(
+      new KeyboardEvent("keydown", { key: "z", metaKey: true, shiftKey: true }),
+    );
+    expect(onExportToFile).not.toHaveBeenCalled();
+    expect(onExportToClipboard).not.toHaveBeenCalled();
+    expect(onUndo).not.toHaveBeenCalled();
+    expect(onRedo).not.toHaveBeenCalled();
+  });
+
+  it("prevents the default paste while a modal dialog is open", () => {
+    const { onPasteShape } = renderCanvas({
+      image: makeLoadedImage(),
+      hasClipboardShape: true,
+      isModalOpen: true,
+    });
+    const event = new KeyboardEvent("keydown", {
+      key: "v",
+      metaKey: true,
+      cancelable: true,
+    });
+    window.dispatchEvent(event);
+    expect(onPasteShape).not.toHaveBeenCalled();
+    // Letting the default through would fire the window `paste` listener in
+    // useImageLoader and load an OS clipboard image behind the dialog.
+    expect(event.defaultPrevented).toBe(true);
+  });
+
+  it("restores the shortcuts once the dialog is closed", () => {
+    const { onToolChange } = renderCanvas({
+      image: makeLoadedImage(),
+      isModalOpen: false,
+    });
+    window.dispatchEvent(new KeyboardEvent("keydown", { key: "t" }));
+    expect(onToolChange).toHaveBeenCalledWith("text");
   });
 });

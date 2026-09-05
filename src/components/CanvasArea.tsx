@@ -69,6 +69,10 @@ interface CanvasAreaProps {
   activeStrokeWidth: StrokeWidthPresetName;
   selectedShapeId: string | null;
   hasClipboardShape: boolean;
+  // Whether a modal confirm dialog is open. showModal() only inerts focus and
+  // pointer events, so the window-level keydown listener below has to opt out
+  // explicitly or canvas shortcuts keep firing behind the dialog.
+  isModalOpen: boolean;
   onToolChange: (next: ToolKind) => void;
   onShapeAdded: (shape: Shape) => void;
   // Batch variant used for mosaic stacking, where one drag may emit a base
@@ -242,6 +246,7 @@ export function CanvasArea(props: CanvasAreaProps) {
     activeStrokeWidth,
     selectedShapeId,
     hasClipboardShape,
+    isModalOpen,
     onToolChange,
     onShapeAdded,
     onShapesAdded,
@@ -444,6 +449,17 @@ export function CanvasArea(props: CanvasAreaProps) {
   // so the browser's native textarea undo (and key bindings) keeps working.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
+      // A modal dialog is exclusive: nothing on the canvas reacts while the
+      // user is answering it. Cmd/Ctrl+V needs preventDefault rather than a
+      // silent return — the paste branch below deliberately lets the default
+      // through when there is no clipboard shape, so useImageLoader's window
+      // `paste` listener would otherwise load an image behind the dialog.
+      if (isModalOpen) {
+        if ((e.metaKey || e.ctrlKey) && (e.key === "v" || e.key === "V")) {
+          e.preventDefault();
+        }
+        return;
+      }
       if (textInput !== null || editingTextId !== null) {
         return;
       }
@@ -604,6 +620,7 @@ export function CanvasArea(props: CanvasAreaProps) {
     editingTextId,
     image,
     hasClipboardShape,
+    isModalOpen,
     onToolChange,
     onDeleteShape,
     onCopyShape,
