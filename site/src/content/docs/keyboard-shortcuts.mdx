@@ -84,6 +84,21 @@ While the crop tool is active, two additional keys handle the selection:
 
 See [Features → Image crop](./features/#image-crop) for the behaviour and history-reset semantics.
 
+## Confirm dialogs
+
+Quitting (`Cmd + Q`), replacing the image, and installing an update each open a confirm dialog. While one is open every canvas shortcut is disabled, so nothing switches tools or deletes an annotation behind it.
+
+| Shortcut | Action |
+|----------|--------|
+| `y` | Confirm (the right-hand button) |
+| `n` | Cancel (the left-hand button) |
+| `←` `→` `↑` `↓` | Move focus between the two buttons |
+| `Tab` / `Shift + Tab` | Same, focus cycles inside the dialog |
+| `Enter` / `Space` | Activate the focused button |
+| `Escape` | Cancel |
+
+When the action can discard annotations, focus starts on **Cancel** so a stray `Enter` cannot destroy work. To go ahead, press `y`, or move focus with `→` and then press `Enter`.
+
 ## Discoverability tips
 
 - Hover any toolbar button to see its shortcut in the tooltip.

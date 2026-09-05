@@ -357,6 +357,13 @@ function App() {
     cancelQuit,
   } = useQuitConfirm({ hasUnsavedShapes: hasUnsavedShapes || hasPendingText });
 
+  // Mirrors the three <ConfirmDialog open={...}> conditions at the bottom of
+  // this component. A fourth dialog must be added here too, or its keystrokes
+  // leak through to the canvas shortcuts while it is open.
+  const isModalOpen = pendingUpdateAction !== null ||
+    quitState.kind === "confirming" ||
+    pendingImage !== null;
+
   const handleExportToFile = useCallback(async () => {
     if (!image || isEditingText) {
       return;
@@ -532,6 +539,7 @@ function App() {
           activeStrokeWidth={activeStrokeWidth}
           selectedShapeId={selectedShapeId}
           hasClipboardShape={hasClipboardShape}
+          isModalOpen={isModalOpen}
           onToolChange={setActiveTool}
           onShapeAdded={handleShapeAdded}
           onShapesAdded={handleShapesAdded}

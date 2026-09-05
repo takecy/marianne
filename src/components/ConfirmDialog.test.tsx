@@ -92,6 +92,85 @@ describe("ConfirmDialog", () => {
     expect(onCancel).toHaveBeenCalledTimes(1);
   });
 
+  it("confirms on y and cancels on n", () => {
+    const { onConfirm, onCancel } = renderDialog({ confirmLabel: "Delete" });
+    const dialog = screen.getByRole("dialog");
+    dialog.dispatchEvent(new KeyboardEvent("keydown", { key: "y", bubbles: true }));
+    expect(onConfirm).toHaveBeenCalledTimes(1);
+    expect(onCancel).not.toHaveBeenCalled();
+
+    dialog.dispatchEvent(new KeyboardEvent("keydown", { key: "n", bubbles: true }));
+    expect(onCancel).toHaveBeenCalledTimes(1);
+  });
+
+  it("accepts uppercase Y and N", () => {
+    const { onConfirm, onCancel } = renderDialog();
+    const dialog = screen.getByRole("dialog");
+    dialog.dispatchEvent(new KeyboardEvent("keydown", { key: "Y", bubbles: true }));
+    dialog.dispatchEvent(new KeyboardEvent("keydown", { key: "N", bubbles: true }));
+    expect(onConfirm).toHaveBeenCalledTimes(1);
+    expect(onCancel).toHaveBeenCalledTimes(1);
+  });
+
+  it("leaves modifier combos to the OS and app menu", () => {
+    const { onConfirm } = renderDialog();
+    const dialog = screen.getByRole("dialog");
+    dialog.dispatchEvent(
+      new KeyboardEvent("keydown", { key: "y", metaKey: true, bubbles: true }),
+    );
+    dialog.dispatchEvent(
+      new KeyboardEvent("keydown", { key: "y", ctrlKey: true, bubbles: true }),
+    );
+    expect(onConfirm).not.toHaveBeenCalled();
+  });
+
+  it("ignores keys typed during an IME composition", () => {
+    const { onConfirm } = renderDialog();
+    const dialog = screen.getByRole("dialog");
+    dialog.dispatchEvent(
+      new KeyboardEvent("keydown", { key: "y", isComposing: true, bubbles: true }),
+    );
+    expect(onConfirm).not.toHaveBeenCalled();
+  });
+
+  it("moves focus between the buttons with arrow keys", () => {
+    renderDialog({ confirmLabel: "Delete", destructive: true });
+    const dialog = screen.getByRole("dialog");
+    const cancel = screen.getByRole("button", { name: t("dialog.cancel") });
+    const confirm = screen.getByRole("button", { name: "Delete" });
+    expect(cancel).toHaveFocus();
+
+    dialog.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true }));
+    expect(confirm).toHaveFocus();
+
+    dialog.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowLeft", bubbles: true }));
+    expect(cancel).toHaveFocus();
+
+    dialog.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowDown", bubbles: true }));
+    expect(confirm).toHaveFocus();
+
+    dialog.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowUp", bubbles: true }));
+    expect(cancel).toHaveFocus();
+  });
+
+  it("does not react to y while closed", () => {
+    // App.tsx keeps three instances mounted at all times, so a closed one must
+    // stay inert — this is why the listener lives on <dialog>, not window.
+    const { onConfirm } = renderDialog({ open: false });
+    const dialog = document.querySelector("dialog");
+    dialog?.dispatchEvent(new KeyboardEvent("keydown", { key: "y", bubbles: true }));
+    expect(onConfirm).not.toHaveBeenCalled();
+  });
+
+  it("keeps the shortcut badge out of the accessible name", () => {
+    renderDialog({ confirmLabel: "Delete" });
+    const confirm = screen.getByRole("button", { name: "Delete" });
+    expect(confirm).toHaveAttribute("aria-keyshortcuts", "y");
+    // The badge is rendered but aria-hidden, so it shows up in textContent
+    // while staying out of the accessible name asserted above.
+    expect(confirm.textContent).toContain("Y");
+  });
+
   it("autofocuses Cancel when destructive (default)", () => {
     renderDialog({ confirmLabel: "Delete", destructive: true });
     // autoFocus on a button is realized by jsdom as the focused element
