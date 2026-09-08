@@ -70,6 +70,7 @@ xattr -dr com.apple.quarantine /Applications/Marianne.app
 1. 以下がインストールされていることを確認 (macOS の Tauri v2 公式前提に準拠)
    - Xcode Command Line Tools: `xcode-select --install`
    - Rust: [公式サイト](https://www.rust-lang.org/tools/install)
+   - Node.js: [`.nvmrc`](./.nvmrc) のバージョン
    - pnpm: [公式サイト](https://pnpm.io/installation)
 1. このリポジトリをクローン
 1. `pnpm install --frozen-lockfile` で依存関係をインストール

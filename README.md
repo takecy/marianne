@@ -70,6 +70,7 @@ xattr -dr com.apple.quarantine /Applications/Marianne.app
 1. Make sure the following are installed (matches the official Tauri v2 macOS prerequisites):
    - Xcode Command Line Tools: `xcode-select --install`
    - Rust: [official site](https://www.rust-lang.org/tools/install)
+   - Node.js: version from [`.nvmrc`](./.nvmrc)
    - pnpm: [official site](https://pnpm.io/installation)
 1. Clone this repository
 1. Install dependencies with `pnpm install --frozen-lockfile`
