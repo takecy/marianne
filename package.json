@@ -33,10 +33,10 @@
     "@tauri-apps/plugin-fs": "^2.5.2",
     "@tauri-apps/plugin-process": "^2",
     "@tauri-apps/plugin-updater": "^2",
-    "konva": "^10.3.3",
+    "konva": "^10.5.0",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
-    "react-konva": "^19.2.6",
+    "react-konva": "^19.2.7",
     "zustand": "^5.0.15"
   },
   "devDependencies": {
@@ -51,7 +51,7 @@
     "@vitest/coverage-v8": "^5.0.0",
     "@vitest/ui": "^5.0.0",
     "jsdom": "^30.0.1",
-    "oxlint": "^1.81.0",
+    "oxlint": "^1.82.0",
     "typescript": "~7.0.2",
     "vite": "^8.2.2",
     "vitest": "^5.0.0"
