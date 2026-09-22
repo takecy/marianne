@@ -75,8 +75,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 モザイクはパイプラインで最も繊細な部分:
 
-- 画面表示 (`MosaicNode.tsx`): natural ピクセル矩形を `crop` として持つ `Konva.Image` に `filters: [Pixelate]` を適用し、`pixelSize = MOSAIC_NATURAL_PIXEL_SIZE * min(imgScaleX, imgScaleY)` を設定。`useEffect` 内で `cache()` を呼ぶが、その deps にはキャッシュキャンバスに影響する全 prop を含めること。1 つでも漏らすとピクセル化が古いまま固まる。
-- エクスポート (`src/lib/exportImage.ts`): 画像の自然サイズで _新しい_ オフスクリーン `Konva.Stage` を構築し、モザイクノードに `MOSAIC_EXPORT_FLAG` のタグを付け、`stage.toCanvas({ pixelRatio: 1 })` の **前に** `.cache({ pixelRatio: 1 })` を呼ぶ。この 2 箇所の `pixelRatio: 1` は必須。指定しないと Retina (DPR=2) でキャッシュキャンバスが 2 倍化し、PNG 上でブロックサイズが小さく見えてしまう。
+- 画面表示 (`MosaicNode.tsx`): natural ピクセル矩形を `crop` として持つ `Konva.Image` に `filters: [Pixelate]` を適用し、`pixelSize = MOSAIC_NATURAL_PIXEL_SIZE * min(imgScaleX, imgScaleY)` を設定。`useEffect` 内で `cache()` を呼ぶが、その deps にはキャッシュキャンバスに影響する全 prop を含めること。1 つでも漏らすとピクセル化が古いまま固まる。`cache()` は pixelRatio 未指定（= `Konva.pixelRatio` = DPR）だが、**konva 10.6.0 以降は Pixelate の `pixelSize` がノード座標（論理 px）で解釈されキャッシュの pixelRatio に依存しない**ため、Retina でも画面のブロックは PNG 出力と同じ画像相対サイズになる（10.5.0 以前は画面だけ 1/DPR の細かさだった）。
+- エクスポート (`src/lib/exportImage.ts`): 画像の自然サイズで _新しい_ オフスクリーン `Konva.Stage` を構築し、モザイクノードに `MOSAIC_EXPORT_FLAG` のタグを付け、`stage.toCanvas({ pixelRatio: 1 })` の **前に** `.cache({ pixelRatio: 1 })` を呼ぶ。`toCanvas` 側の `pixelRatio: 1` は PNG を画像の自然サイズに固定するためのもので、既定値に頼らず明示し続ける。`cache` 側の `pixelRatio: 1` は、自然サイズのキャッシュキャンバスが Retina (DPR=2) で 4 倍のピクセル数で確保され、縮小して書き出されるのを防ぐために残している。konva 10.5.0 以前は `pixelSize` がキャッシュキャンバスの backing pixel 単位だったため、これを外すと PNG 上のブロックが小さくなったが、10.6.0 以降はブロックサイズの根拠ではない。
 
 `MOSAIC_NATURAL_PIXEL_SIZE = 24`（`MosaicNode.tsx` で定義）は natural 画像座標でのブロックサイズ。画面側ノードもエクスポートパイプラインもこの同じ定数を import する。値を変えると過去にエクスポート / 表示済みのモザイクの粗さが変わるので、UX 上の判断として固定運用する。
 
