@@ -145,8 +145,11 @@ export async function exportToBlob(image: LoadedImage, shapes: Shape[]): Promise
     stage.add(shapeLayer);
 
     // Apply Pixelate cache synchronously before toCanvas.
-    // pixelRatio: 1 prevents Retina (DPR=2) from doubling the cache canvas and
-    // shrinking the apparent pixel block size.
+    // Since konva 10.6.0 the Pixelate pixelSize is measured in node coordinates
+    // regardless of the cache pixelRatio, so the block size no longer depends
+    // on it. pixelRatio: 1 still keeps the natural-size cache canvas from being
+    // allocated at devicePixelRatio (4x the pixels on Retina) and then
+    // downsampled into the export.
     for (const node of shapeLayer.getChildren() as Konva.Shape[]) {
       if (node.getAttr(MOSAIC_EXPORT_FLAG) === true) {
         node.cache({ pixelRatio: 1 });
