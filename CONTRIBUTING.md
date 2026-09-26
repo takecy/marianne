@@ -53,7 +53,9 @@ also runs this and uploads `coverage/coverage-summary.json` as an artifact.
 - **Commit messages**: [Conventional Commits](https://www.conventionalcommits.org/)
   in **English**. Examples: `feat(canvas): add stroke width preset`,
   `fix(menu): drop Backspace accelerator`. Use `!` for breaking changes
-  (`feat!: remove deprecated API`). **Issue numbers do not belong in commit
+  (`feat!: remove deprecated API`); any `type!:` makes the next release a
+  major bump (0.x → 1.0.0), so do not use it for tooling swaps or other
+  changes that do not break users. **Issue numbers do not belong in commit
   messages** — they go in the PR body.
 - **PR title**: Conventional Commits in **English** (mirrors the commit style).
 - **PR body**: **Japanese**, following [`.github/PULL_REQUEST_TEMPLATE.md`](./.github/PULL_REQUEST_TEMPLATE.md)

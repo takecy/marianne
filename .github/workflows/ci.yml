@@ -64,12 +64,23 @@ jobs:
       - name: Build
         run: pnpm build
 
+      # The runner image (ImageOS, e.g. ubuntu24 / ubuntu26) is in the key
+      # because runner.os is "Linux" on every Ubuntu image: a cache hit
+      # skips the install step below, and with it --with-deps, so a browser
+      # cached on one image would run on another without its system
+      # libraries (ubuntu-latest moves from 24.04 to 26.04 in Oct-Nov 2026).
+      # ImageOS is a runner process variable, not part of the `env`
+      # expression context, so it is read in a shell step.
+      - name: Detect runner image
+        id: runner-image
+        run: echo "os=${ImageOS:?ImageOS is not set on this runner}" >> "$GITHUB_OUTPUT"
+
       - name: Cache Playwright browsers
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         id: playwright-cache
         with:
           path: ~/.cache/ms-playwright
-          key: playwright-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+          key: playwright-${{ runner.os }}-${{ steps.runner-image.outputs.os }}-${{ hashFiles('pnpm-lock.yaml') }}
 
       - name: Install Playwright Chromium for Mermaid SSR
         if: steps.playwright-cache.outputs.cache-hit != 'true'
