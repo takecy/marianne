@@ -14,12 +14,13 @@ Releases are fully automated by a single GitHub Actions workflow at [`.github/wo
 <Steps>
 1. **Trigger the workflow**: in the repository, go to **Actions → Tag and Release → Run workflow**.
 
-   - The next version is computed automatically from Conventional Commits (`feat:` → minor, `fix:` and others → patch, `BREAKING CHANGE:` → major). When detection fails the workflow falls back to a patch bump.
+   - The next version is computed automatically from Conventional Commits (`feat:` → minor, `fix:` and others → patch, `type!:` or `BREAKING CHANGE:` → major). **A `!` takes the next release to 1.0.0 even from 0.x**, so reserve it for changes that genuinely break compatibility. When there are no releasable commits since the previous release, no tag is created and the workflow fails.
    - The manifest version (`package.json` / `src-tauri/tauri.conf.json` / `src-tauri/Cargo.toml`) is intentionally NOT bumped on `main`. The released version is injected into `tauri.conf.json` only on the runner, never committed.
 
 2. **The `tagging` job runs on `ubuntu-latest`**:
 
    - `mathieudutour/github-tag-action` computes the next version and pushes the `vX.Y.Z` tag (tag ref only; no push to `main`).
+   - The **`Verify computed tag` step** checks that the computed tag is a stable `vX.Y.Z` tag that exists on origin and points at the dispatched commit. A run dispatched outside `main` (where no tag is pushed) or one that computed no tag fails here, before any release is created.
    - `getLatestRelease` fetches the previous release tag, and `generateReleaseNotes` produces the changelog.
    - **A release is created with `draft: true`** and its `release.id` is exported as a job output. At this point `/releases/latest` still resolves to the previous release.
 

@@ -53,7 +53,9 @@ pnpm docs:build    # docs/ または site/ を変更した場合のみ
 - **コミットメッセージ**: [Conventional Commits](https://www.conventionalcommits.org/)
   形式、**英語** で記述。例: `feat(canvas): add stroke width preset`,
   `fix(menu): drop Backspace accelerator`。破壊的変更には `!` を付与
-  (`feat!: remove deprecated API`)。**issue 番号はコミットメッセージに
+  (`feat!: remove deprecated API`)。`type!:` は種別を問わず次リリースを
+  major (0.x → 1.0.0) にするため、ツールの置き換えなどユーザーに影響しない
+  変更には付けないでください。**issue 番号はコミットメッセージに
   含めません** — PR 本文に紐づけます。
 - **PR タイトル**: Conventional Commits、**英語** (コミットメッセージと同じスタイル)。
 - **PR 本文**: **日本語**。[`.github/PULL_REQUEST_TEMPLATE.md`](./.github/PULL_REQUEST_TEMPLATE.md)

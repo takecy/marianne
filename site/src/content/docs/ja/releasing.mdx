@@ -14,12 +14,13 @@ import { Aside, Steps } from "@astrojs/starlight/components";
 <Steps>
 1. **ワークフロー起動**: リポジトリの **Actions → Tag and Release → Run workflow** を実行する。
 
-   - 次バージョンは Conventional Commits から自動算出される (`feat:` → minor、`fix:` その他 → patch、`BREAKING CHANGE:` → major)。検出に失敗した場合は patch にフォールバック。
+   - 次バージョンは Conventional Commits から自動算出される (`feat:` → minor、`fix:` その他 → patch、`type!:` または `BREAKING CHANGE:` → major)。**`!` は 0.x でも次リリースを 1.0.0 に上げる**ため、本当に互換性を壊す変更にだけ使う。前回リリース以降にリリース対象のコミットが無い場合はタグを作らず、ワークフローは失敗する。
    - manifest (`package.json` / `src-tauri/tauri.conf.json` / `src-tauri/Cargo.toml`) の version は `main` 上では bump しない。リリース version は runner 上で `tauri.conf.json` のみ書き換えてビルドに注入される。
 
 2. **`tagging` ジョブ (ubuntu-latest)**:
 
    - `mathieudutour/github-tag-action` が次バージョンを算出し、`vX.Y.Z` タグを push (タグ ref のみ。`main` への push なし)。
+   - **`Verify computed tag` ステップ** が、算出されたタグが安定版の `vX.Y.Z` 形式で、かつ origin 上で起動対象のコミットを指していることを確認する。`main` 以外で起動した場合 (タグは push されない) やタグが算出されなかった場合は、release を作らずここで失敗する。
    - `getLatestRelease` で直前のリリースタグを取得し、`generateReleaseNotes` で changelog を自動生成。
    - **`draft: true` で release を作成** し、`release.id` を job output として export。この時点では `/releases/latest` は依然旧 release を指す。
 
