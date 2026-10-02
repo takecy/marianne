@@ -26,7 +26,7 @@ import { useQuitConfirm } from "./lib/useQuitConfirm";
 import { deriveUpdateNotice } from "./lib/updateNotice";
 import { useUpdater } from "./lib/useUpdater";
 import { invoke, isTauri } from "@tauri-apps/api/core";
-import { applyWindowSizeForImage } from "./lib/windowResize";
+import { applyWindowSizeForImage, clampWindowToWorkArea } from "./lib/windowResize";
 import { cropLoadedImage, type CropRect, transformShapesForCrop } from "./lib/cropImage";
 import { DEFAULT_ZOOM_STATE, type ZoomState } from "./lib/zoomGesture";
 import { selectHasUnsavedShapes, useCanvasStore } from "./store/canvasStore";
@@ -93,10 +93,17 @@ function App() {
     };
   }, []);
 
-  // Auto-resize the window to fit the loaded image 1:1 inside the canvas.
+  // The window position/size is restored by tauri-plugin-window-state; pull it
+  // back on-screen once in case the saved monitor layout no longer exists.
+  useEffect(() => {
+    void clampWindowToWorkArea();
+  }, []);
+
+  // Auto-resize the window to fit the loaded image 1:1 inside the canvas,
+  // keeping its position (nudged only if it would overflow the work area).
   // Depending on `image` (object identity) — not just dimensions — ensures the
-  // window snaps back and re-centers even when the user reloads the same-sized
-  // image after manually resizing the window.
+  // window snaps back even when the user reloads the same-sized image after
+  // manually resizing the window.
   useEffect(() => {
     if (!image) return;
     void applyWindowSizeForImage(image.naturalWidth, image.naturalHeight);
