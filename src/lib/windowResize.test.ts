@@ -1,4 +1,10 @@
-import { computeWindowSize, MIN_WINDOW, UI_CHROME, WINDOW_DECORATION_MARGIN } from "./windowResize";
+import {
+  computeWindowPosition,
+  computeWindowSize,
+  MIN_WINDOW,
+  UI_CHROME,
+  WINDOW_DECORATION_MARGIN,
+} from "./windowResize";
 
 describe("computeWindowSize", () => {
   const largeMonitor = { width: 2000, height: 1400 };
@@ -51,5 +57,39 @@ describe("computeWindowSize", () => {
     );
     expect(Number.isInteger(size.width)).toBe(true);
     expect(Number.isInteger(size.height)).toBe(true);
+  });
+});
+
+describe("computeWindowPosition", () => {
+  // Physical px. y starts below a 50px menu bar.
+  const workArea = { x: 0, y: 50, width: 2000, height: 1200 };
+
+  it("keeps the position when the window already fits inside the work area", () => {
+    const pos = computeWindowPosition({ x: 300, y: 200 }, { width: 800, height: 600 }, workArea);
+    expect(pos).toEqual({ x: 300, y: 200 });
+  });
+
+  it("pushes the window back when it overflows the right and bottom edges", () => {
+    // right edge 1800+800 = 2600 > 2000, bottom 900+600 = 1500 > 1250
+    const pos = computeWindowPosition({ x: 1800, y: 900 }, { width: 800, height: 600 }, workArea);
+    expect(pos).toEqual({ x: 2000 - 800, y: 50 + 1200 - 600 });
+  });
+
+  it("aligns to the work area start when it overflows the left and top edges", () => {
+    // negative y means the title bar sits above the screen (e.g. an unplugged monitor)
+    const pos = computeWindowPosition({ x: -300, y: -700 }, { width: 800, height: 600 }, workArea);
+    expect(pos).toEqual({ x: 0, y: 50 });
+  });
+
+  it("aligns to the work area start when the window is larger than the work area", () => {
+    const pos = computeWindowPosition({ x: 500, y: 400 }, { width: 2400, height: 1500 }, workArea);
+    expect(pos).toEqual({ x: 0, y: 50 });
+  });
+
+  it("clamps against a secondary monitor whose work area origin is not (0, 0)", () => {
+    // monitor placed to the left of the primary display
+    const secondary = { x: -1920, y: 25, width: 1920, height: 1055 };
+    const pos = computeWindowPosition({ x: -500, y: 600 }, { width: 800, height: 600 }, secondary);
+    expect(pos).toEqual({ x: -800, y: 25 + 1055 - 600 });
   });
 });

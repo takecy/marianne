@@ -245,12 +245,23 @@ pub fn run() {
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_process::init());
 
-    // Self-update plugin is desktop-only; mobile targets cannot build the
-    // updater crate, so the plugin registration mirrors the target cfg in
-    // Cargo.toml.
+    // Self-update and window-state plugins are desktop-only; mobile targets
+    // cannot build these crates, so the plugin registration mirrors the
+    // target cfg in Cargo.toml.
     #[cfg(desktop)]
     {
         builder = builder.plugin(tauri_plugin_updater::Builder::new().build());
+        // Persist only SIZE | POSITION. VISIBLE is excluded on purpose: the
+        // close button hides the main window, so a hidden state could be saved
+        // and the next launch would never show the window.
+        builder = builder.plugin(
+            tauri_plugin_window_state::Builder::new()
+                .with_state_flags(
+                    tauri_plugin_window_state::StateFlags::SIZE
+                        | tauri_plugin_window_state::StateFlags::POSITION,
+                )
+                .build(),
+        );
     }
 
     builder

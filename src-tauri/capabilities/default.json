@@ -6,7 +6,7 @@
   "permissions": [
     "core:default",
     "core:window:allow-set-size",
-    "core:window:allow-center",
+    "core:window:allow-set-position",
     "dialog:allow-save",
     "fs:allow-write-file",
     "fs:allow-read-file",

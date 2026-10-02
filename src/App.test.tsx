@@ -124,6 +124,7 @@ vi.mock("./lib/useQuitConfirm", () => ({
 }));
 vi.mock("./lib/windowResize", () => ({
   applyWindowSizeForImage: vi.fn(() => Promise.resolve()),
+  clampWindowToWorkArea: vi.fn(() => Promise.resolve()),
 }));
 vi.mock("./lib/exportImage", () => ({
   copyImageToClipboard: vi.fn(() => Promise.resolve()),
