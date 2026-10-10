@@ -60,11 +60,7 @@ export interface Point {
 //
 // When the arrow length is shorter than `headLength`, the head is uniformly
 // scaled down so the arrowhead never wraps behind the tail.
-export function computeArrowPolygon(
-  from: Point,
-  to: Point,
-  opts: ArrowGeometryOptions,
-): number[] {
+export function computeArrowPolygon(from: Point, to: Point, opts: ArrowGeometryOptions): number[] {
   const dx = to.x - from.x;
   const dy = to.y - from.y;
   const length = Math.hypot(dx, dy);

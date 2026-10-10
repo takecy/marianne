@@ -67,8 +67,7 @@ const STROKE_WIDTH_PRESET_NAMES: ReadonlySet<StrokeWidthPresetName> = new Set(
 );
 
 function isStrokeWidthPresetName(value: unknown): value is StrokeWidthPresetName {
-  return typeof value === "string" &&
-    STROKE_WIDTH_PRESET_NAMES.has(value as StrokeWidthPresetName);
+  return typeof value === "string" && STROKE_WIDTH_PRESET_NAMES.has(value as StrokeWidthPresetName);
 }
 
 export function loadLastSelectedStrokeWidth(): StrokeWidthPresetName | undefined {

@@ -6,7 +6,7 @@ const QUERY = "(prefers-color-scheme: dark)";
 
 export function useThemeMode(): ThemeMode {
   const [mode, setMode] = useState<ThemeMode>(() =>
-    window.matchMedia(QUERY).matches ? "dark" : "light"
+    window.matchMedia(QUERY).matches ? "dark" : "light",
   );
 
   useEffect(() => {

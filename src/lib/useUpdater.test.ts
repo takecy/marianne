@@ -235,7 +235,7 @@ describe("useUpdater", () => {
     mockRelaunch.mockResolvedValueOnce(undefined);
 
     const { result } = renderHook(() =>
-      useUpdater({ autoCheckOnMount: false, canRelaunch: () => true })
+      useUpdater({ autoCheckOnMount: false, canRelaunch: () => true }),
     );
     await act(async () => {
       await result.current.checkForUpdates("auto");
@@ -337,10 +337,11 @@ describe("useUpdater", () => {
     // Hand out a deferred per call so the two checks can be settled in the
     // opposite order from which they started — the whole point of the guard.
     const pending: { resolve: (value: unknown) => void; reject: (err: Error) => void }[] = [];
-    mockCheck.mockImplementation(() =>
-      new Promise((resolve, reject) => {
-        pending.push({ resolve, reject });
-      })
+    mockCheck.mockImplementation(
+      () =>
+        new Promise((resolve, reject) => {
+          pending.push({ resolve, reject });
+        }),
     );
     const { result } = renderHook(() => useUpdater({ autoCheckOnMount: false }));
 
@@ -398,7 +399,8 @@ describe("useUpdater", () => {
   });
 
   it("keeps the cached update after a failed install so a retry can reuse it", async () => {
-    const downloadAndInstall = vi.fn()
+    const downloadAndInstall = vi
+      .fn()
       .mockRejectedValueOnce(new Error("signature mismatch"))
       .mockResolvedValueOnce(undefined);
     mockCheck.mockResolvedValueOnce(buildUpdate({ downloadAndInstall }));

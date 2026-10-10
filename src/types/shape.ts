@@ -58,26 +58,26 @@ export type Shape = RectShape | TextShape | ArrowShape | MosaicShape;
 
 export type DraftShape =
   | {
-    type: "rect";
-    color: ColorPresetName;
-    strokeWidth: StrokeWidthPresetName;
-    x: number;
-    y: number;
-    width: number;
-    height: number;
-  }
+      type: "rect";
+      color: ColorPresetName;
+      strokeWidth: StrokeWidthPresetName;
+      x: number;
+      y: number;
+      width: number;
+      height: number;
+    }
   | {
-    type: "arrow";
-    color: ColorPresetName;
-    fromX: number;
-    fromY: number;
-    toX: number;
-    toY: number;
-  }
+      type: "arrow";
+      color: ColorPresetName;
+      fromX: number;
+      fromY: number;
+      toX: number;
+      toY: number;
+    }
   | {
-    type: "mosaic";
-    x: number;
-    y: number;
-    width: number;
-    height: number;
-  };
+      type: "mosaic";
+      x: number;
+      y: number;
+      width: number;
+      height: number;
+    };

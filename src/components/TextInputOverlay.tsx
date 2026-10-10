@@ -55,11 +55,7 @@ export function TextInputOverlay(props: TextInputOverlayProps) {
     // event-order anomalies (WebKit bug 165004), so we triangulate three
     // signals: standard nativeEvent.isComposing, legacy keyCode 229, and a
     // ref kept true across the compositionend → keydown microtask gap.
-    if (
-      event.nativeEvent.isComposing ||
-      event.keyCode === 229 ||
-      isComposingRef.current
-    ) {
+    if (event.nativeEvent.isComposing || event.keyCode === 229 || isComposingRef.current) {
       return;
     }
     if (event.key === "Enter" && !event.shiftKey) {

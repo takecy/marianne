@@ -34,7 +34,10 @@
   cursor: pointer;
   color: var(--color-fg);
   position: relative;
-  transition: background 0.12s ease, border-color 0.12s ease, color 0.12s ease;
+  transition:
+    background 0.12s ease,
+    border-color 0.12s ease,
+    color 0.12s ease;
 }
 
 .toolButton:hover:not(:disabled),
@@ -123,7 +126,10 @@
   border-radius: 0.375rem;
   cursor: pointer;
   color: var(--color-fg);
-  transition: background 0.12s ease, border-color 0.12s ease, color 0.12s ease;
+  transition:
+    background 0.12s ease,
+    border-color 0.12s ease,
+    color 0.12s ease;
 }
 
 .strokeWidthButton:hover:not(:disabled) {

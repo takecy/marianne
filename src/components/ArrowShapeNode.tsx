@@ -132,20 +132,18 @@ export function ArrowShapeNode(props: ArrowShapeNodeProps) {
 
   return (
     <>
-      {showAltDragGhost
-        ? (
-          <Line
-            listening={false}
-            points={polygon}
-            closed
-            fill={colorHex(shape.color)}
-            shadowBlur={6 * arrowScale}
-            shadowColor="rgba(0,0,0,0.45)"
-            shadowOffsetX={1 * arrowScale}
-            shadowOffsetY={2 * arrowScale}
-          />
-        )
-        : null}
+      {showAltDragGhost ? (
+        <Line
+          listening={false}
+          points={polygon}
+          closed
+          fill={colorHex(shape.color)}
+          shadowBlur={6 * arrowScale}
+          shadowColor="rgba(0,0,0,0.45)"
+          shadowOffsetX={1 * arrowScale}
+          shadowOffsetY={2 * arrowScale}
+        />
+      ) : null}
       <Line
         ref={(node) => {
           lineRef.current = node;
@@ -208,11 +206,7 @@ export function ArrowShapeNode(props: ArrowShapeNodeProps) {
           }
           node.x(0);
           node.y(0);
-          const newTo = screenToImage(
-            { x: toScreen.x + dx, y: toScreen.y + dy },
-            fit,
-            imageSize,
-          );
+          const newTo = screenToImage({ x: toScreen.x + dx, y: toScreen.y + dy }, fit, imageSize);
           onUpdateArrow(shape.id, {
             fromX: newFrom.x,
             fromY: newFrom.y,
@@ -221,58 +215,56 @@ export function ArrowShapeNode(props: ArrowShapeNodeProps) {
           });
         }}
       />
-      {isSelectMode && isSelected
-        ? (
-          <>
-            <Circle
-              ref={(node) => {
-                fromHandleRef.current = node;
-              }}
-              x={fromScreen.x}
-              y={fromScreen.y}
-              radius={ARROW_HANDLE_RADIUS}
-              fill={ARROW_HANDLE_FILL}
-              stroke={ARROW_HANDLE_STROKE}
-              strokeWidth={ARROW_HANDLE_STROKE_WIDTH}
-              shadowColor="rgba(0,0,0,0.45)"
-              shadowBlur={ARROW_HANDLE_SHADOW_BLUR}
-              draggable
-              listening
-              onMouseDown={(event) => {
-                event.cancelBubble = true;
-              }}
-              onDragStart={(event) => {
-                event.cancelBubble = true;
-              }}
-              onDragMove={(event) => handleEndpointDragMove(event, "from")}
-              onDragEnd={(event) => handleEndpointDragEnd(event, "from")}
-            />
-            <Circle
-              ref={(node) => {
-                toHandleRef.current = node;
-              }}
-              x={toScreen.x}
-              y={toScreen.y}
-              radius={ARROW_HANDLE_RADIUS}
-              fill={ARROW_HANDLE_FILL}
-              stroke={ARROW_HANDLE_STROKE}
-              strokeWidth={ARROW_HANDLE_STROKE_WIDTH}
-              shadowColor="rgba(0,0,0,0.45)"
-              shadowBlur={ARROW_HANDLE_SHADOW_BLUR}
-              draggable
-              listening
-              onMouseDown={(event) => {
-                event.cancelBubble = true;
-              }}
-              onDragStart={(event) => {
-                event.cancelBubble = true;
-              }}
-              onDragMove={(event) => handleEndpointDragMove(event, "to")}
-              onDragEnd={(event) => handleEndpointDragEnd(event, "to")}
-            />
-          </>
-        )
-        : null}
+      {isSelectMode && isSelected ? (
+        <>
+          <Circle
+            ref={(node) => {
+              fromHandleRef.current = node;
+            }}
+            x={fromScreen.x}
+            y={fromScreen.y}
+            radius={ARROW_HANDLE_RADIUS}
+            fill={ARROW_HANDLE_FILL}
+            stroke={ARROW_HANDLE_STROKE}
+            strokeWidth={ARROW_HANDLE_STROKE_WIDTH}
+            shadowColor="rgba(0,0,0,0.45)"
+            shadowBlur={ARROW_HANDLE_SHADOW_BLUR}
+            draggable
+            listening
+            onMouseDown={(event) => {
+              event.cancelBubble = true;
+            }}
+            onDragStart={(event) => {
+              event.cancelBubble = true;
+            }}
+            onDragMove={(event) => handleEndpointDragMove(event, "from")}
+            onDragEnd={(event) => handleEndpointDragEnd(event, "from")}
+          />
+          <Circle
+            ref={(node) => {
+              toHandleRef.current = node;
+            }}
+            x={toScreen.x}
+            y={toScreen.y}
+            radius={ARROW_HANDLE_RADIUS}
+            fill={ARROW_HANDLE_FILL}
+            stroke={ARROW_HANDLE_STROKE}
+            strokeWidth={ARROW_HANDLE_STROKE_WIDTH}
+            shadowColor="rgba(0,0,0,0.45)"
+            shadowBlur={ARROW_HANDLE_SHADOW_BLUR}
+            draggable
+            listening
+            onMouseDown={(event) => {
+              event.cancelBubble = true;
+            }}
+            onDragStart={(event) => {
+              event.cancelBubble = true;
+            }}
+            onDragMove={(event) => handleEndpointDragMove(event, "to")}
+            onDragEnd={(event) => handleEndpointDragEnd(event, "to")}
+          />
+        </>
+      ) : null}
     </>
   );
 }

@@ -57,7 +57,11 @@ export function StatusBar({ image, zoom, notice }: StatusBarProps) {
 
 function ImagePath({ image }: { image: LoadedImage }) {
   const leftText = image.sourcePath ?? SOURCE_LABELS[image.source];
-  return <span className={styles.left} title={leftText}>{leftText}</span>;
+  return (
+    <span className={styles.left} title={leftText}>
+      {leftText}
+    </span>
+  );
 }
 
 function ImageMetrics({ image, zoom }: { image: LoadedImage; zoom: number }) {

@@ -82,8 +82,9 @@ describe("screenToImage / imageToScreen", () => {
   });
 
   it("screenToImage returns origin when fit has zero size", () => {
-    expect(screenToImage({ x: 50, y: 50 }, { x: 0, y: 0, width: 0, height: 0 }, imageSize))
-      .toEqual({ x: 0, y: 0 });
+    expect(screenToImage({ x: 50, y: 50 }, { x: 0, y: 0, width: 0, height: 0 }, imageSize)).toEqual(
+      { x: 0, y: 0 },
+    );
   });
 });
 
@@ -127,7 +128,8 @@ describe("strokeWidthToScreen", () => {
   it("falls back to the natural width when the image has zero size", () => {
     // imageToScreenScale returns a 1:1 scale for a degenerate image so the
     // renderer never multiplies a stroke by NaN.
-    expect(strokeWidthToScreen(18, { x: 0, y: 0, width: 0, height: 0 }, { width: 0, height: 0 }))
-      .toBe(18);
+    expect(
+      strokeWidthToScreen(18, { x: 0, y: 0, width: 0, height: 0 }, { width: 0, height: 0 }),
+    ).toBe(18);
   });
 });

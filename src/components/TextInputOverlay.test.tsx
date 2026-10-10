@@ -20,13 +20,7 @@ describe("TextInputOverlay", () => {
 
   it("starts empty when initialText is omitted (new-text creation flow)", () => {
     const { getByRole } = render(
-      <TextInputOverlay
-        x={0}
-        y={0}
-        color="red"
-        onConfirm={vi.fn()}
-        onCancel={vi.fn()}
-      />,
+      <TextInputOverlay x={0} y={0} color="red" onConfirm={vi.fn()} onCancel={vi.fn()} />,
     );
     const textarea = getByRole("textbox") as HTMLTextAreaElement;
     expect(textarea.value).toBe("");
@@ -65,13 +59,7 @@ describe("TextInputOverlay", () => {
 
   it("does not select when initialText is empty (avoid spurious selection range)", () => {
     const { getByRole } = render(
-      <TextInputOverlay
-        x={0}
-        y={0}
-        color="red"
-        onConfirm={vi.fn()}
-        onCancel={vi.fn()}
-      />,
+      <TextInputOverlay x={0} y={0} color="red" onConfirm={vi.fn()} onCancel={vi.fn()} />,
     );
     const textarea = getByRole("textbox") as HTMLTextAreaElement;
     // Empty value collapses selection to 0/0 regardless; this guard ensures
@@ -85,13 +73,7 @@ describe("TextInputOverlay", () => {
   it("does not confirm on Enter while IME composition is in progress", () => {
     const onConfirm = vi.fn();
     const { getByRole } = render(
-      <TextInputOverlay
-        x={0}
-        y={0}
-        color="red"
-        onConfirm={onConfirm}
-        onCancel={vi.fn()}
-      />,
+      <TextInputOverlay x={0} y={0} color="red" onConfirm={onConfirm} onCancel={vi.fn()} />,
     );
     const textarea = getByRole("textbox") as HTMLTextAreaElement;
     fireEvent.change(textarea, { target: { value: "あ" } });
@@ -107,13 +89,7 @@ describe("TextInputOverlay", () => {
   it("confirms on Enter once IME composition has ended", async () => {
     const onConfirm = vi.fn();
     const { getByRole } = render(
-      <TextInputOverlay
-        x={0}
-        y={0}
-        color="red"
-        onConfirm={onConfirm}
-        onCancel={vi.fn()}
-      />,
+      <TextInputOverlay x={0} y={0} color="red" onConfirm={onConfirm} onCancel={vi.fn()} />,
     );
     const textarea = getByRole("textbox") as HTMLTextAreaElement;
     fireEvent.change(textarea, { target: { value: "亜" } });
@@ -130,13 +106,7 @@ describe("TextInputOverlay", () => {
   it("does not confirm on Shift+Enter even during IME composition (newline path preserved)", () => {
     const onConfirm = vi.fn();
     const { getByRole } = render(
-      <TextInputOverlay
-        x={0}
-        y={0}
-        color="red"
-        onConfirm={onConfirm}
-        onCancel={vi.fn()}
-      />,
+      <TextInputOverlay x={0} y={0} color="red" onConfirm={onConfirm} onCancel={vi.fn()} />,
     );
     const textarea = getByRole("textbox") as HTMLTextAreaElement;
     fireEvent.compositionStart(textarea);
@@ -151,13 +121,7 @@ describe("TextInputOverlay", () => {
   it("defers blur during composition and recovers on compositionEnd when focus is lost", () => {
     const onConfirm = vi.fn();
     const { getByRole } = render(
-      <TextInputOverlay
-        x={0}
-        y={0}
-        color="red"
-        onConfirm={onConfirm}
-        onCancel={vi.fn()}
-      />,
+      <TextInputOverlay x={0} y={0} color="red" onConfirm={onConfirm} onCancel={vi.fn()} />,
     );
     const textarea = getByRole("textbox") as HTMLTextAreaElement;
     fireEvent.change(textarea, { target: { value: "あ" } });

@@ -15,12 +15,7 @@ describe("ActionBar", () => {
     const user = userEvent.setup();
     const onExportToFile = vi.fn();
     const onExportToClipboard = vi.fn();
-    render(
-      <ActionBar
-        onExportToFile={onExportToFile}
-        onExportToClipboard={onExportToClipboard}
-      />,
-    );
+    render(<ActionBar onExportToFile={onExportToFile} onExportToClipboard={onExportToClipboard} />);
 
     await user.click(screen.getByRole("button", { name: t("action.save.label") }));
     expect(onExportToFile).toHaveBeenCalledTimes(1);
@@ -66,9 +61,7 @@ describe("ActionBar", () => {
     const user = userEvent.setup();
     const onUndo = vi.fn();
     const onRedo = vi.fn();
-    render(
-      <ActionBar onUndo={onUndo} onRedo={onRedo} canUndo canRedo />,
-    );
+    render(<ActionBar onUndo={onUndo} onRedo={onRedo} canUndo canRedo />);
 
     await user.click(screen.getByRole("button", { name: t("action.undo.label") }));
     expect(onUndo).toHaveBeenCalledTimes(1);
@@ -81,14 +74,7 @@ describe("ActionBar", () => {
     const user = userEvent.setup();
     const onUndo = vi.fn();
     const onRedo = vi.fn();
-    render(
-      <ActionBar
-        onUndo={onUndo}
-        onRedo={onRedo}
-        canUndo={false}
-        canRedo={false}
-      />,
-    );
+    render(<ActionBar onUndo={onUndo} onRedo={onRedo} canUndo={false} canRedo={false} />);
 
     expect(screen.getByRole("button", { name: t("action.undo.label") })).toBeDisabled();
     expect(screen.getByRole("button", { name: t("action.redo.label") })).toBeDisabled();
@@ -104,15 +90,7 @@ describe("ActionBar", () => {
   // progress"; the latter must still allow undo/redo (matching the previous
   // Sidebar behavior, where `disabled = image === null` only).
   it("keeps undo/redo enabled even when the action bar is disabled, as long as canUndo/canRedo are true", () => {
-    render(
-      <ActionBar
-        disabled
-        onUndo={vi.fn()}
-        onRedo={vi.fn()}
-        canUndo
-        canRedo
-      />,
-    );
+    render(<ActionBar disabled onUndo={vi.fn()} onRedo={vi.fn()} canUndo canRedo />);
 
     expect(screen.getByRole("button", { name: t("action.undo.label") })).not.toBeDisabled();
     expect(screen.getByRole("button", { name: t("action.redo.label") })).not.toBeDisabled();

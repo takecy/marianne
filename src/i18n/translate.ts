@@ -5,19 +5,13 @@ import { ja } from "./ja";
 // cases without rebuilding the module graph. The lookup is a cheap property
 // read; no caching needed.
 function dict(): Record<TranslationKey, string> {
-  if (
-    typeof navigator !== "undefined" &&
-    navigator.language.toLowerCase().startsWith("ja")
-  ) {
+  if (typeof navigator !== "undefined" && navigator.language.toLowerCase().startsWith("ja")) {
     return ja;
   }
   return en;
 }
 
-export function t(
-  key: TranslationKey,
-  params?: Record<string, string | number>,
-): string {
+export function t(key: TranslationKey, params?: Record<string, string | number>): string {
   const template = dict()[key];
   if (!params) {
     return template;

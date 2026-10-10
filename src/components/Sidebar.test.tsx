@@ -108,8 +108,9 @@ describe("Sidebar", () => {
     );
     // The slot's presence IS the message, so nothing may be rendered while
     // the app is up to date.
-    expect(screen.queryByRole("group", { name: t("sidebar.updateGroup.label") }))
-      .not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("group", { name: t("sidebar.updateGroup.label") }),
+    ).not.toBeInTheDocument();
   });
 
   it("renders the bell with the version and invokes the callback on click", async () => {
@@ -167,8 +168,9 @@ describe("Sidebar", () => {
     );
     const button = screen.getByRole("button", { name: t("update.notice.downloading.title") });
     expect(button).toBeDisabled();
-    expect(screen.getByRole("group", { name: t("sidebar.updateGroup.label") }))
-      .toHaveTextContent("45%");
+    expect(screen.getByRole("group", { name: t("sidebar.updateGroup.label") })).toHaveTextContent(
+      "45%",
+    );
   });
 
   it("falls back to an indeterminate label when the download size is unknown", () => {
@@ -184,8 +186,9 @@ describe("Sidebar", () => {
         onUpdateNoticeClick={vi.fn()}
       />,
     );
-    expect(screen.getByRole("group", { name: t("sidebar.updateGroup.label") }))
-      .toHaveTextContent(t("update.notice.downloading.labelUnknown"));
+    expect(screen.getByRole("group", { name: t("sidebar.updateGroup.label") })).toHaveTextContent(
+      t("update.notice.downloading.labelUnknown"),
+    );
   });
 
   it("keeps the restart notice clickable when the relaunch was held back", async () => {
@@ -224,8 +227,9 @@ describe("Sidebar", () => {
         onUpdateNoticeClick={vi.fn()}
       />,
     );
-    expect(screen.getByRole("button", { name: t("update.notice.installing.title") }))
-      .toBeDisabled();
+    expect(
+      screen.getByRole("button", { name: t("update.notice.installing.title") }),
+    ).toBeDisabled();
   });
 
   it("renders a short failure indicator with the full message in title", () => {
@@ -250,8 +254,9 @@ describe("Sidebar", () => {
     // Full text is preserved on hover via the title attribute.
     expect(status).toHaveAttribute("title", full);
     // Button remains usable so the user can retry the install.
-    expect(screen.getByRole("button", { name: t("update.notice.failed.title") }))
-      .not.toBeDisabled();
+    expect(
+      screen.getByRole("button", { name: t("update.notice.failed.title") }),
+    ).not.toBeDisabled();
   });
 
   // --- stroke width presets ---

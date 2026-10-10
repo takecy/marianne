@@ -189,10 +189,7 @@ export function defaultExportFileName(image: LoadedImage, now?: Date): string {
 // Opens the Tauri native save dialog seeded with `defaultPath`, writes the
 // PNG bytes via tauri-plugin-fs, and returns the chosen path (or null if
 // the user cancelled the dialog).
-export async function saveBlobToFile(
-  blob: Blob,
-  defaultPath: string,
-): Promise<string | null> {
+export async function saveBlobToFile(blob: Blob, defaultPath: string): Promise<string | null> {
   const target = await save({
     defaultPath,
     filters: [{ name: "PNG", extensions: ["png"] }],
@@ -213,9 +210,7 @@ export function copyImageToClipboard(blobPromise: Promise<Blob>): Promise<void> 
   // is initiated synchronously inside the user-gesture handler. Awaiting the
   // blob first would lose the transient user activation token under
   // WebKit/WKWebView.
-  return navigator.clipboard.write([
-    new ClipboardItem({ "image/png": blobPromise }),
-  ]);
+  return navigator.clipboard.write([new ClipboardItem({ "image/png": blobPromise })]);
 }
 
 export function generateExportFilename(now: Date = new Date()): string {
