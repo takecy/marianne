@@ -34,7 +34,7 @@ pnpm tauri dev   # launches the Tauri dev shell
 ## Validation (run before committing)
 
 ```bash
-pnpm fmt:check     # deno fmt (NOT Prettier)
+pnpm fmt:check     # oxfmt (.oxfmtrc.json)
 pnpm lint          # oxlint (.oxlintrc.json)
 pnpm typecheck     # tsc --noEmit (strict + noUncheckedIndexedAccess)
 pnpm test:run      # Vitest + Testing Library
@@ -67,8 +67,10 @@ also runs this and uploads `coverage/coverage-summary.json` as an artifact.
 
 ## Code Style
 
-- **Formatter**: `deno fmt`, **not** Prettier. Config in `deno.json`
-  (lineWidth 100, 2-space indent, double quotes, semicolons).
+- **Formatter**: [oxfmt](https://oxc.rs/docs/guide/usage/formatter) (Prettier-compatible).
+  Config in `.oxfmtrc.json` (printWidth 100, 2-space indent, double quotes,
+  semicolons). For format-on-save in VS Code, install the recommended Oxc
+  extension (`oxc.oxc-vscode`).
 - **TypeScript**: `strict` + `noUncheckedIndexedAccess` + `noUnusedLocals` +
   `noUnusedParameters` + `noImplicitOverride`. Array index access yields
   `T | undefined` — handle accordingly.

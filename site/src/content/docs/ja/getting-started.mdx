@@ -17,7 +17,7 @@ import { Aside, Steps } from "@astrojs/starlight/components";
 | 状態管理 | [Zustand](https://github.com/pmndrs/zustand) | identity-preserving な undo / redo (`src/store/canvasStore.ts`) |
 | テスト | [Vitest](https://vitest.dev/) + [jsdom](https://github.com/jsdom/jsdom) + [Testing Library](https://testing-library.com/) | `@testing-library/react`, `@testing-library/jest-dom` |
 | Lint | [oxlint](https://oxc.rs/docs/guide/usage/linter.html) | `.oxlintrc.json`。Rust 実装で `typescript` パッケージに依存しない |
-| フォーマッタ | [`deno fmt`](https://docs.deno.com/runtime/reference/cli/fmt/) | Prettier ではない |
+| フォーマッタ | [oxfmt](https://oxc.rs/docs/guide/usage/formatter) | `.oxfmtrc.json`。Prettier 互換で、oxlint と同じ Oxc プロジェクト製 |
 | docs サイト | [Astro Starlight](https://starlight.astro.build/) | 今読んでいるこのサイト。`site/` から `/docs/` にビルドされる |
 
 Tauri Rust バックエンドは意図的に最小化 — `src-tauri/src/lib.rs` には OS 統合用のコマンド (`take_pending_open_paths` / `confirm_quit` / `renderer_ready` / `pick_and_open_image`) のみ。機能開発はほぼ全て `src/` で完結する。
@@ -30,7 +30,6 @@ Tauri Rust バックエンドは意図的に最小化 — `src-tauri/src/lib.rs`
 | pnpm | `package.json` の `packageManager` のバージョン |
 | Rust toolchain | `rustup` で stable をインストール |
 | Xcode CLT | macOS で Tauri バンドル生成に必要 |
-| deno | フォーマッタとして使用 (`deno fmt`) |
 | gh CLI | PR 作成用 |
 
 ## 初回セットアップ
@@ -75,7 +74,7 @@ push 前にローカルで以下を実行する。CI も同じセットを順次
 |----------|------|
 | `pnpm typecheck` | TypeScript strict チェック (`tsc --noEmit`) |
 | `pnpm lint` | oxlint (`.oxlintrc.json`)。warning も error 扱い |
-| `pnpm fmt:check` | 全ソース + Markdown に対する `deno fmt --check` |
+| `pnpm fmt:check` | 全ソース + Markdown に対する `oxfmt --check` |
 | `pnpm test:run` | Vitest シングルラン |
 | `pnpm build` | React フロントエンドの Vite ビルド |
 | `pnpm docs:build` | このドキュメントサイトを `/docs/` にビルド |

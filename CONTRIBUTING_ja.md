@@ -33,7 +33,7 @@ pnpm tauri dev   # Tauri 開発シェル起動
 ## コミット前の検証
 
 ```bash
-pnpm fmt:check     # deno fmt (Prettier ではない)
+pnpm fmt:check     # oxfmt (.oxfmtrc.json)
 pnpm lint          # oxlint (.oxlintrc.json)
 pnpm typecheck     # tsc --noEmit (strict + noUncheckedIndexedAccess)
 pnpm test:run      # Vitest + Testing Library
@@ -67,8 +67,9 @@ pnpm docs:build    # docs/ または site/ を変更した場合のみ
 
 ## コードスタイル
 
-- **フォーマッタ**: `deno fmt` (Prettier では **ありません**)。設定は
-  `deno.json` (lineWidth 100、スペース 2、ダブルクォート、セミコロンあり)。
+- **フォーマッタ**: [oxfmt](https://oxc.rs/docs/guide/usage/formatter) (Prettier 互換)。設定は
+  `.oxfmtrc.json` (printWidth 100、スペース 2、ダブルクォート、セミコロンあり)。
+  VS Code で保存時に整形するには、推奨拡張の Oxc (`oxc.oxc-vscode`) を入れてください。
 - **TypeScript**: `strict` + `noUncheckedIndexedAccess` + `noUnusedLocals` +
   `noUnusedParameters` + `noImplicitOverride`。配列インデックスアクセスの
   結果は `T | undefined` なので適切に扱ってください。
