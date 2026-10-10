@@ -59,12 +59,5 @@
     "prefer-rest-params": "error",
     "prefer-spread": "error"
   },
-  "ignorePatterns": [
-    "dist",
-    "coverage",
-    "src-tauri/target",
-    "src-tauri/gen",
-    "site",
-    "docs"
-  ]
+  "ignorePatterns": ["dist", "coverage", "src-tauri/target", "src-tauri/gen", "site", "docs"]
 }

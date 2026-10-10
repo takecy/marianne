@@ -41,20 +41,14 @@ describe("computeWindowSize", () => {
   it("subtracts the decoration margin from the height cap to keep outer window inside work area", () => {
     // natural+chrome = (900+85, 990+45) = (985, 1035)
     // work area height 1000, margin 40 → height cap is 960
-    const size = computeWindowSize(
-      { width: 900, height: 990 },
-      { width: 1200, height: 1000 },
-    );
+    const size = computeWindowSize({ width: 900, height: 990 }, { width: 1200, height: 1000 });
     expect(size.width).toBe(985);
     expect(size.height).toBe(960);
   });
 
   it("rounds the result to integers for LogicalSize compatibility", () => {
     // monitor with a fractional logical height (e.g. retina with scaleFactor 1.5)
-    const size = computeWindowSize(
-      { width: 1500, height: 850 },
-      { width: 1366.6, height: 768.4 },
-    );
+    const size = computeWindowSize({ width: 1500, height: 850 }, { width: 1366.6, height: 768.4 });
     expect(Number.isInteger(size.width)).toBe(true);
     expect(Number.isInteger(size.height)).toBe(true);
   });

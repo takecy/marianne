@@ -121,9 +121,7 @@ function App() {
   const updateArrow = useCanvasStore((s) => s.updateArrow);
   const updateMosaic = useCanvasStore((s) => s.updateMosaic);
   const setSelectedShapeColor = useCanvasStore((s) => s.setSelectedShapeColor);
-  const setSelectedShapeStrokeWidth = useCanvasStore(
-    (s) => s.setSelectedShapeStrokeWidth,
-  );
+  const setSelectedShapeStrokeWidth = useCanvasStore((s) => s.setSelectedShapeStrokeWidth);
   const clearShapes = useCanvasStore((s) => s.clearShapes);
   const resetShapes = useCanvasStore((s) => s.resetShapes);
   const copyShape = useCanvasStore((s) => s.copyShape);
@@ -138,21 +136,27 @@ function App() {
   // When a shape is selected, repaint it with the chosen color before updating
   // the active color used for new shapes. The store call is a no-op for mosaic,
   // when no shape is selected, or when the color is unchanged.
-  const handleColorChange = useCallback((name: ColorPresetName) => {
-    setSelectedShapeColor(name);
-    setActiveColor(name);
-    saveLastSelectedColor(name);
-  }, [setSelectedShapeColor]);
+  const handleColorChange = useCallback(
+    (name: ColorPresetName) => {
+      setSelectedShapeColor(name);
+      setActiveColor(name);
+      saveLastSelectedColor(name);
+    },
+    [setSelectedShapeColor],
+  );
 
   // Symmetric to handleColorChange: try to repaint the selected shape first,
   // then update the active preset used for new rects, then persist. The store
   // call is a silent no-op when the selection is not a rect (text/arrow/mosaic)
   // or when the value is unchanged — see canvasStore.setSelectedShapeStrokeWidth.
-  const handleStrokeWidthChange = useCallback((name: StrokeWidthPresetName) => {
-    setSelectedShapeStrokeWidth(name);
-    setActiveStrokeWidth(name);
-    saveLastSelectedStrokeWidth(name);
-  }, [setSelectedShapeStrokeWidth]);
+  const handleStrokeWidthChange = useCallback(
+    (name: StrokeWidthPresetName) => {
+      setSelectedShapeStrokeWidth(name);
+      setActiveStrokeWidth(name);
+      saveLastSelectedStrokeWidth(name);
+    },
+    [setSelectedShapeStrokeWidth],
+  );
 
   const handleImageLoaded = useCallback(
     (loaded: LoadedImage) => {
@@ -233,10 +237,7 @@ function App() {
       if (!image) return;
       try {
         const newImage = await cropLoadedImage(image, rect);
-        const newShapes = transformShapesForCrop(
-          useCanvasStore.getState().shapes,
-          rect,
-        );
+        const newShapes = transformShapesForCrop(useCanvasStore.getState().shapes, rect);
         resetShapes(newShapes);
         setImage(newImage);
         setActiveTool("select");
@@ -319,13 +320,16 @@ function App() {
   // for every notice kind: retrying a failed install and finishing a parked
   // update are both the same destructive relaunch, so branching on the kind
   // before the shape check would let them slip past the guard.
-  const runUpdateAction = useCallback((action: "install" | "relaunch") => {
-    if (action === "relaunch") {
-      void relaunchNow();
-      return;
-    }
-    void installUpdate();
-  }, [installUpdate, relaunchNow]);
+  const runUpdateAction = useCallback(
+    (action: "install" | "relaunch") => {
+      if (action === "relaunch") {
+        void relaunchNow();
+        return;
+      }
+      void installUpdate();
+    },
+    [installUpdate, relaunchNow],
+  );
 
   const handleUpdateNoticeClick = useCallback(() => {
     const action = updateNotice?.kind === "relaunch" ? "relaunch" : "install";
@@ -367,9 +371,8 @@ function App() {
   // Mirrors the three <ConfirmDialog open={...}> conditions at the bottom of
   // this component. A fourth dialog must be added here too, or its keystrokes
   // leak through to the canvas shortcuts while it is open.
-  const isModalOpen = pendingUpdateAction !== null ||
-    quitState.kind === "confirming" ||
-    pendingImage !== null;
+  const isModalOpen =
+    pendingUpdateAction !== null || quitState.kind === "confirming" || pendingImage !== null;
 
   const handleExportToFile = useCallback(async () => {
     if (!image || isEditingText) {
@@ -383,9 +386,8 @@ function App() {
     try {
       const blob = await exportToBlob(image, exported);
       const defaultName = defaultExportFileName(image);
-      const sourceDir = image.sourcePath !== undefined
-        ? await dirname(image.sourcePath)
-        : undefined;
+      const sourceDir =
+        image.sourcePath !== undefined ? await dirname(image.sourcePath) : undefined;
       const defaultDir = sourceDir ?? loadLastSaveDirectory();
       const defaultPath = defaultDir ? await join(defaultDir, defaultName) : defaultName;
       const savedPath = await saveBlobToFile(blob, defaultPath);
@@ -456,18 +458,15 @@ function App() {
   // write. Trusted routes (keydown / toolbar) raise the flag normally so a
   // subsequent menu firing is suppressed.
   const lastFiredRef = useRef<{ id: string; ts: number } | null>(null);
-  const shouldSuppress = useCallback(
-    (id: string, opts?: { record?: boolean }): boolean => {
-      const now = performance.now();
-      const last = lastFiredRef.current;
-      if (last && last.id === id && now - last.ts < 100) return true;
-      if (opts?.record !== false) {
-        lastFiredRef.current = { id, ts: now };
-      }
-      return false;
-    },
-    [],
-  );
+  const shouldSuppress = useCallback((id: string, opts?: { record?: boolean }): boolean => {
+    const now = performance.now();
+    const last = lastFiredRef.current;
+    if (last && last.id === id && now - last.ts < 100) return true;
+    if (opts?.record !== false) {
+      lastFiredRef.current = { id, ts: now };
+    }
+    return false;
+  }, []);
   const guardedUndo = useCallback(() => {
     if (!shouldSuppress("undo")) undo();
   }, [undo, shouldSuppress]);

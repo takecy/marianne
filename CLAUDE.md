@@ -12,7 +12,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 基本コマンドは @README_ja.md を参照（英語版は @README.md）。CLAUDE 固有の注意点のみ:
 
-- フォーマッタは **`deno fmt`** であって Prettier ではない (`deno.json` 設定済み)
+- フォーマッタは **oxfmt**（Oxc 製、Prettier 互換）。設定は `.oxfmtrc.json`、`pnpm fmt` / `pnpm fmt:check` で実行する
 - 単一テスト実行: `pnpm test:run src/store/canvasStore.test.ts` / `pnpm test:run -t "undo"`
 - パスエイリアス `@/*` → `./src/*` は `tsconfig.json` / `vite.config.ts` / `vitest.config.ts` の 3 箇所で設定。変更時は全て同期させる。
 - ローカルインストール: `pnpm install:local`（macOS 専用。`scripts/install-local.sh` が `pnpm tauri build` 実行後、`/Applications/Marianne.app` にコピー。コード署名なしのため初回起動で Gatekeeper 警告 — 右クリック「開く」または `xattr -dr com.apple.quarantine` で回避。詳細は README）
@@ -174,7 +174,10 @@ copyImageToClipboard(blobPromise); // Promise<Blob> をそのまま ClipboardIte
 
 ## 規約
 
-- **フォーマッタは `deno fmt`（Prettier ではない）。** 設定は `deno.json`（lineWidth 100、スペース 2、ダブルクォート、セミコロンあり）。コミット前に `pnpm fmt:check` を回すこと。
+- **フォーマッタは oxfmt。** 設定は `.oxfmtrc.json`（printWidth 100、スペース 2、ダブルクォート、セミコロンあり）。バージョンは 1.0 前のため完全固定しており、更新で整形差分が出たら単独のコミットにする。コミット前に `pnpm fmt:check` を回すこと。対象範囲は `ignorePatterns` で `src/` とルート直下の設定・Markdown に限定している（`docs/` / `site/` / `.github/` / `src-tauri/` は対象外）。壊しやすい設定が 3 つある:
+  - `pnpm-workspace.yaml` は除外必須。pnpm v11 が install のたびにシングルクォートで書き戻すため、整形対象にするとダブルクォートと衝突し `fmt:check` が落ち続ける。
+  - `.claude` は除外必須。oxfmt はリポジトリの `.gitignore` は読むがグローバル gitignore（`~/.config/git/ignore`）を読まないため、git が無視する `.claude/settings.local.json` まで整形しにいく。
+  - `sortPackageJson: false` を外すと、oxfmt の既定で `package.json` のキーが並べ替わる。
 - **Linter は oxlint**（`.oxlintrc.json`）。ESLint 系は撤去済み（issue #108）。壊しやすい不変条件が多いので変更前に必読:
   - `plugins` を書くと **oxlint のデフォルトプラグイン集合を上書きする**（デフォルトは `unicorn` / `typescript` / `oxc` で **`react` は含まれない**）。`react` を列挙から落とすと **lint は成功したまま React の検査だけが静かに消える**。設定を触ったら必ず `pnpm exec oxlint --print-config` で `plugins` に `react` があること、`react/*` が `deny` であることを目視する。
   - `rules` に列挙している 55 ルールは **旧 ESLint 構成（`tseslint.configs.strict` + `stylistic` + `react-hooks` recommended = 106 ルール）を再現するために明示 `error` 化したもの**。`correctness` カテゴリだけでは `no-explicit-any` / `no-non-null-assertion` / `ban-ts-comment` / `prefer-const` / `no-var` / `no-fallthrough` などが有効にならず、静かにカバレッジが落ちる。**`rules` から項目を削ると `src/test/oxlintConfig.test.ts` が落ちる**（プラグイン欠落 / `correctness` の格下げ / ルールの `warn` 降格も同時に検出する tripwire）。削除が正当な場合はテスト側のベースライン配列も同時に更新すること — 意識的な判断を強制するのがこのテストの目的。現状 106 → 184 ルールで、未カバーは後述の 1 件のみ。

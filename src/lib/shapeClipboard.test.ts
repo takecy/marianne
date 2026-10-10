@@ -180,11 +180,7 @@ describe("cloneShapeAt", () => {
 
   it("clamps a rect anchor when it falls outside image bounds", () => {
     const source = sampleRect();
-    const cloned = cloneShapeAt(
-      source,
-      { x: IMAGE_SIZE.width + 50, y: -20 },
-      IMAGE_SIZE,
-    );
+    const cloned = cloneShapeAt(source, { x: IMAGE_SIZE.width + 50, y: -20 }, IMAGE_SIZE);
     if (cloned.type !== "rect") throw new Error("expected rect");
     expect(cloned.x).toBe(IMAGE_SIZE.width);
     expect(cloned.y).toBe(0);

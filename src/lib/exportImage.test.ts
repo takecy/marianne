@@ -213,13 +213,15 @@ describe("buildShapeNode (rect stroke width)", () => {
   }
 
   it("emits the preset width unscaled, because the export stage is natural-sized", () => {
-    expect(buildShapeNode(rect("thick"), buildLoadedImage()).getAttr("strokeWidth"))
-      .toBe(strokeWidthValue("thick"));
+    expect(buildShapeNode(rect("thick"), buildLoadedImage()).getAttr("strokeWidth")).toBe(
+      strokeWidthValue("thick"),
+    );
   });
 
   it("falls back to thick for rects saved before strokeWidth existed", () => {
-    expect(buildShapeNode(rect(undefined), buildLoadedImage()).getAttr("strokeWidth"))
-      .toBe(strokeWidthValue("thick"));
+    expect(buildShapeNode(rect(undefined), buildLoadedImage()).getAttr("strokeWidth")).toBe(
+      strokeWidthValue("thick"),
+    );
   });
 
   // The regression this pins (issue #117): the export stage is built at the

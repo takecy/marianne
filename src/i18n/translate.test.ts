@@ -34,9 +34,7 @@ describe("t (English locale)", () => {
   });
 
   it("leaves unmatched {name} placeholders intact when the param is missing", () => {
-    expect(t("update.upToDate.statusWithVersion", {})).toBe(
-      "You're up to date (v{version})",
-    );
+    expect(t("update.upToDate.statusWithVersion", {})).toBe("You're up to date (v{version})");
   });
 
   it("coerces numeric params to strings", () => {

@@ -114,9 +114,11 @@ export function Sidebar(props: SidebarProps) {
             <button
               key={tool}
               type="button"
-              className={tool === activeTool
-                ? `${styles.toolButton} ${styles.toolButtonActive}`
-                : styles.toolButton}
+              className={
+                tool === activeTool
+                  ? `${styles.toolButton} ${styles.toolButtonActive}`
+                  : styles.toolButton
+              }
               aria-pressed={tool === activeTool}
               aria-keyshortcuts={shortcut}
               aria-label={label}
@@ -137,9 +139,11 @@ export function Sidebar(props: SidebarProps) {
           <button
             key={preset.name}
             type="button"
-            className={preset.name === activeColor
-              ? `${styles.colorSwatch} ${styles.colorSwatchActive}`
-              : styles.colorSwatch}
+            className={
+              preset.name === activeColor
+                ? `${styles.colorSwatch} ${styles.colorSwatchActive}`
+                : styles.colorSwatch
+            }
             aria-pressed={preset.name === activeColor}
             aria-label={preset.name}
             style={{ backgroundColor: preset.hex }}
@@ -163,9 +167,11 @@ export function Sidebar(props: SidebarProps) {
             <button
               key={preset.name}
               type="button"
-              className={isActive
-                ? `${styles.strokeWidthButton} ${styles.strokeWidthButtonActive}`
-                : styles.strokeWidthButton}
+              className={
+                isActive
+                  ? `${styles.strokeWidthButton} ${styles.strokeWidthButtonActive}`
+                  : styles.strokeWidthButton
+              }
               aria-pressed={isActive}
               aria-label={label}
               title={label}
@@ -198,27 +204,25 @@ export function Sidebar(props: SidebarProps) {
           >
             <UpdateIcon />
           </button>
-          {updateNotice.kind === "failed"
-            ? (
-              // Announced once, and the raw error text stays in the title so
-              // the 64px column keeps a stable width no matter how long the
-              // underlying message is.
-              <span
-                className={`${styles.updateNoticeText} ${styles.updateNoticeTextError}`}
-                role="status"
-                title={updateNotice.message}
-              >
-                {noticeLabel(updateNotice)}
-              </span>
-            )
-            : (
-              // Deliberately not a live region: announcing every percent tick
-              // while downloading would be unusable. The button's aria-label
-              // already names the state.
-              <span className={styles.updateNoticeText} aria-hidden>
-                {noticeLabel(updateNotice)}
-              </span>
-            )}
+          {updateNotice.kind === "failed" ? (
+            // Announced once, and the raw error text stays in the title so
+            // the 64px column keeps a stable width no matter how long the
+            // underlying message is.
+            <span
+              className={`${styles.updateNoticeText} ${styles.updateNoticeTextError}`}
+              role="status"
+              title={updateNotice.message}
+            >
+              {noticeLabel(updateNotice)}
+            </span>
+          ) : (
+            // Deliberately not a live region: announcing every percent tick
+            // while downloading would be unusable. The button's aria-label
+            // already names the state.
+            <span className={styles.updateNoticeText} aria-hidden>
+              {noticeLabel(updateNotice)}
+            </span>
+          )}
         </div>
       )}
     </aside>

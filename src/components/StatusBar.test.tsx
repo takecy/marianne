@@ -60,9 +60,7 @@ describe("StatusBar", () => {
   });
 
   it("omits the extension segment when sourceFileName has no extension", () => {
-    render(
-      <StatusBar image={makeImage({ source: "paste", sourceFileName: "noext" })} zoom={1} />,
-    );
+    render(<StatusBar image={makeImage({ source: "paste", sourceFileName: "noext" })} zoom={1} />);
     expect(screen.getByText("1920×1080")).toBeInTheDocument();
   });
 

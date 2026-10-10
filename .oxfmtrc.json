@@ -1,0 +1,22 @@
+{
+  "$schema": "./node_modules/oxfmt/configuration_schema.json",
+  "printWidth": 100,
+  "tabWidth": 2,
+  "useTabs": false,
+  "semi": true,
+  "singleQuote": false,
+  "proseWrap": "preserve",
+  "sortPackageJson": false,
+  "ignorePatterns": [
+    "dist",
+    "coverage",
+    "node_modules",
+    "pnpm-lock.yaml",
+    "pnpm-workspace.yaml",
+    "docs",
+    "site",
+    "src-tauri",
+    ".github",
+    ".claude"
+  ]
+}

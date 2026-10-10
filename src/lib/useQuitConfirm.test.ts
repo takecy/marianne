@@ -142,9 +142,7 @@ describe("useQuitConfirm", () => {
   it("invokes renderer_ready exactly once on mount", async () => {
     renderHook(() => useQuitConfirm({ hasUnsavedShapes: false }));
     await waitFor(() => expect(mockInvoke).toHaveBeenCalledWith("renderer_ready"));
-    const readyCalls = mockInvoke.mock.calls.filter(
-      (c) => c[0] === "renderer_ready",
-    );
+    const readyCalls = mockInvoke.mock.calls.filter((c) => c[0] === "renderer_ready");
     expect(readyCalls).toHaveLength(1);
   });
 

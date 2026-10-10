@@ -115,12 +115,8 @@ describe("ConfirmDialog", () => {
   it("leaves modifier combos to the OS and app menu", () => {
     const { onConfirm } = renderDialog();
     const dialog = screen.getByRole("dialog");
-    dialog.dispatchEvent(
-      new KeyboardEvent("keydown", { key: "y", metaKey: true, bubbles: true }),
-    );
-    dialog.dispatchEvent(
-      new KeyboardEvent("keydown", { key: "y", ctrlKey: true, bubbles: true }),
-    );
+    dialog.dispatchEvent(new KeyboardEvent("keydown", { key: "y", metaKey: true, bubbles: true }));
+    dialog.dispatchEvent(new KeyboardEvent("keydown", { key: "y", ctrlKey: true, bubbles: true }));
     expect(onConfirm).not.toHaveBeenCalled();
   });
 
@@ -216,9 +212,7 @@ describe("ConfirmDialog", () => {
         />
       </>,
     );
-    const ids = screen
-      .getAllByRole("dialog")
-      .map((d) => d.getAttribute("aria-labelledby"));
+    const ids = screen.getAllByRole("dialog").map((d) => d.getAttribute("aria-labelledby"));
     expect(ids).toHaveLength(2);
     expect(ids[0]).not.toBe(ids[1]);
     expect(idA).toBeTruthy();

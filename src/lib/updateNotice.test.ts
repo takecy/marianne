@@ -35,9 +35,10 @@ describe("deriveUpdateNotice", () => {
 
   it("reports an unknown percentage when contentLength is zero", () => {
     // Guards against a divide-by-zero producing Infinity in the label.
-    expect(
-      deriveUpdateNotice({ kind: "downloading", downloaded: 0, contentLength: 0 }),
-    ).toEqual({ kind: "downloading", percent: null });
+    expect(deriveUpdateNotice({ kind: "downloading", downloaded: 0, contentLength: 0 })).toEqual({
+      kind: "downloading",
+      percent: null,
+    });
   });
 
   it("clamps the percentage at 100 when more bytes arrive than announced", () => {

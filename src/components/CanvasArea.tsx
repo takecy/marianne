@@ -133,10 +133,7 @@ const TEXT_RESIZE_ANCHORS: readonly string[] = [
 // Konva 10.x, so `stagePointToFitPoint` must be applied here for natural-
 // space conversions to remain correct under view zoom. With DEFAULT_ZOOM_STATE
 // this is the identity, preserving pre-zoom behavior exactly.
-function getStagePointer(
-  event: KonvaEventObject<MouseEvent>,
-  zoom: ZoomState,
-): Point | null {
+function getStagePointer(event: KonvaEventObject<MouseEvent>, zoom: ZoomState): Point | null {
   const stage = event.target.getStage();
   const pos = stage?.getPointerPosition();
   if (!pos) {
@@ -282,9 +279,8 @@ export function CanvasArea(props: CanvasAreaProps) {
   const cropRectRef = useRef<Konva.Rect | null>(null);
   const cropTransformerRef = useRef<Konva.Transformer | null>(null);
   const themeMode = useThemeMode();
-  const mosaicDraftColors = themeMode === "dark"
-    ? MOSAIC_DRAFT_COLORS_DARK
-    : MOSAIC_DRAFT_COLORS_LIGHT;
+  const mosaicDraftColors =
+    themeMode === "dark" ? MOSAIC_DRAFT_COLORS_DARK : MOSAIC_DRAFT_COLORS_LIGHT;
 
   const isSelectMode = activeTool === "select";
   const isCropMode = activeTool === "crop";
@@ -345,9 +341,7 @@ export function CanvasArea(props: CanvasAreaProps) {
     // this synchronous with the activeTool change so the Stage already sees
     // the right cropRect on its first render after the transition.
     if (activeTool === "crop" && prevTool !== "crop" && image) {
-      setCropRect(
-        defaultCropRect({ width: image.naturalWidth, height: image.naturalHeight }),
-      );
+      setCropRect(defaultCropRect({ width: image.naturalWidth, height: image.naturalHeight }));
     } else if (activeTool !== "crop" && cropRect !== null) {
       setCropRect(null);
     }
@@ -403,9 +397,7 @@ export function CanvasArea(props: CanvasAreaProps) {
   // prior state". Without this, isEditingText would remain true forever
   // and the Toolbar export would stay disabled.
   if (editingTextId !== null) {
-    const stillExists = shapes.some(
-      (s) => s.id === editingTextId && s.type === "text",
-    );
+    const stillExists = shapes.some((s) => s.id === editingTextId && s.type === "text");
     if (!stillExists) {
       setEditingTextId(null);
     }
@@ -466,9 +458,7 @@ export function CanvasArea(props: CanvasAreaProps) {
       const target = e.target as HTMLElement | null;
       if (
         target &&
-        (target.tagName === "INPUT" ||
-          target.tagName === "TEXTAREA" ||
-          target.isContentEditable)
+        (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable)
       ) {
         return;
       }
@@ -490,11 +480,7 @@ export function CanvasArea(props: CanvasAreaProps) {
         }
       }
 
-      if (
-        (e.metaKey || e.ctrlKey) &&
-        e.shiftKey &&
-        (e.key === "s" || e.key === "S")
-      ) {
+      if ((e.metaKey || e.ctrlKey) && e.shiftKey && (e.key === "s" || e.key === "S")) {
         e.preventDefault();
         onExportToFile();
         return;
@@ -503,11 +489,7 @@ export function CanvasArea(props: CanvasAreaProps) {
       // Cmd/Ctrl + Shift + C: export PNG to system clipboard. Distinct from
       // the plain Cmd/Ctrl + C below, which copies the selected shape to the
       // internal clipboard (for in-app duplication via Cmd+V).
-      if (
-        (e.metaKey || e.ctrlKey) &&
-        e.shiftKey &&
-        (e.key === "c" || e.key === "C")
-      ) {
+      if ((e.metaKey || e.ctrlKey) && e.shiftKey && (e.key === "c" || e.key === "C")) {
         e.preventDefault();
         onExportToClipboard();
         return;
@@ -551,11 +533,7 @@ export function CanvasArea(props: CanvasAreaProps) {
       }
 
       // Cmd/Ctrl + C: copy the selected shape (select mode only).
-      if (
-        (e.metaKey || e.ctrlKey) &&
-        !e.shiftKey &&
-        (e.key === "c" || e.key === "C")
-      ) {
+      if ((e.metaKey || e.ctrlKey) && !e.shiftKey && (e.key === "c" || e.key === "C")) {
         if (isSelectMode && selectedShapeId !== null && image !== null) {
           e.preventDefault();
           onCopyShape(selectedShapeId);
@@ -570,11 +548,7 @@ export function CanvasArea(props: CanvasAreaProps) {
       // runs normally so OS-clipboard image paste keeps working.
       // imageSize is built inline from image to avoid TDZ on the `imageSize`
       // const declared later in this component.
-      if (
-        (e.metaKey || e.ctrlKey) &&
-        !e.shiftKey &&
-        (e.key === "v" || e.key === "V")
-      ) {
+      if ((e.metaKey || e.ctrlKey) && !e.shiftKey && (e.key === "v" || e.key === "V")) {
         if (image !== null && hasClipboardShape) {
           e.preventDefault();
           onPasteShape({ width: image.naturalWidth, height: image.naturalHeight });
@@ -645,18 +619,15 @@ export function CanvasArea(props: CanvasAreaProps) {
   // Render mosaics first, then other shapes, so arrows / rects / text stay
   // visible on top of overlapping mosaics. Stable within each group; logical
   // order in the `shapes` array is unchanged (issue #51).
-  const { mosaics, others } = useMemo(
-    () => partitionShapesByMosaicFirst(shapes),
-    [shapes],
-  );
+  const { mosaics, others } = useMemo(() => partitionShapesByMosaicFirst(shapes), [shapes]);
 
   const enabledAnchors = !selectedShape
     ? []
     : selectedShape.type === "text"
-    ? TEXT_RESIZE_ANCHORS
-    : selectedShape.type === "rect" || selectedShape.type === "mosaic"
-    ? RESIZE_ANCHORS
-    : [];
+      ? TEXT_RESIZE_ANCHORS
+      : selectedShape.type === "rect" || selectedShape.type === "mosaic"
+        ? RESIZE_ANCHORS
+        : [];
 
   const handleMouseDown = (event: KonvaEventObject<MouseEvent>) => {
     if (textInput !== null) {
@@ -832,48 +803,52 @@ export function CanvasArea(props: CanvasAreaProps) {
   // Konva-rendered preview / shape pixel-for-pixel. Font size scales by the
   // image-to-screen ratio (matches `Konva.Text` on-canvas scaling) AND by
   // `zoomState.scale` so the visible glyph size mirrors the zoomed Stage.
-  const textInputScreen = textInput && fit && imageSize
-    ? naturalToDomScreen(textInput, fit, imageSize, zoomState)
-    : null;
-  const textInputFontSize = textInput && fit && imageSize
-    ? (() => {
-      const { scaleX, scaleY } = imageToScreenScale(fit, imageSize);
-      return TEXT_FONT_SIZE * Math.min(scaleX, scaleY) * zoomState.scale;
-    })()
-    : undefined;
+  const textInputScreen =
+    textInput && fit && imageSize ? naturalToDomScreen(textInput, fit, imageSize, zoomState) : null;
+  const textInputFontSize =
+    textInput && fit && imageSize
+      ? (() => {
+          const { scaleX, scaleY } = imageToScreenScale(fit, imageSize);
+          return TEXT_FONT_SIZE * Math.min(scaleX, scaleY) * zoomState.scale;
+        })()
+      : undefined;
 
   const editingShape: TextShape | null = editingTextId
     ? (shapes.find((s): s is TextShape => s.id === editingTextId && s.type === "text") ?? null)
     : null;
-  const editingScreen = editingShape && fit && imageSize
-    ? naturalToDomScreen({ x: editingShape.x, y: editingShape.y }, fit, imageSize, zoomState)
-    : null;
-  const editingFontSize = editingShape && fit && imageSize
-    ? (() => {
-      const { scaleX, scaleY } = imageToScreenScale(fit, imageSize);
-      return (editingShape.fontSize ?? TEXT_FONT_SIZE) * Math.min(scaleX, scaleY) * zoomState.scale;
-    })()
-    : undefined;
+  const editingScreen =
+    editingShape && fit && imageSize
+      ? naturalToDomScreen({ x: editingShape.x, y: editingShape.y }, fit, imageSize, zoomState)
+      : null;
+  const editingFontSize =
+    editingShape && fit && imageSize
+      ? (() => {
+          const { scaleX, scaleY } = imageToScreenScale(fit, imageSize);
+          return (
+            (editingShape.fontSize ?? TEXT_FONT_SIZE) * Math.min(scaleX, scaleY) * zoomState.scale
+          );
+        })()
+      : undefined;
 
   // Screen-space coordinates of the active crop selection, derived from the
   // natural-space cropRect. Used for Konva node positioning and for placing
   // the Confirm / Cancel overlay buttons.
-  const cropScreenRect = cropRect && fit && imageSize
-    ? (() => {
-      const tl = imageToScreen({ x: cropRect.x, y: cropRect.y }, fit, imageSize);
-      const { scaleX, scaleY } = imageToScreenScale(fit, imageSize);
-      return {
-        x: tl.x,
-        y: tl.y,
-        width: cropRect.width * scaleX,
-        height: cropRect.height * scaleY,
-      };
-    })()
-    : null;
+  const cropScreenRect =
+    cropRect && fit && imageSize
+      ? (() => {
+          const tl = imageToScreen({ x: cropRect.x, y: cropRect.y }, fit, imageSize);
+          const { scaleX, scaleY } = imageToScreenScale(fit, imageSize);
+          return {
+            x: tl.x,
+            y: tl.y,
+            width: cropRect.width * scaleX,
+            height: cropRect.height * scaleY,
+          };
+        })()
+      : null;
 
-  const cropConfirmDisabled = cropRect === null ||
-    cropRect.width < MIN_CROP_DIM ||
-    cropRect.height < MIN_CROP_DIM;
+  const cropConfirmDisabled =
+    cropRect === null || cropRect.width < MIN_CROP_DIM || cropRect.height < MIN_CROP_DIM;
 
   const handleCropConfirm = () => {
     if (cropRect === null || cropConfirmDisabled) return;
@@ -886,330 +861,300 @@ export function CanvasArea(props: CanvasAreaProps) {
 
   return (
     <div ref={containerRef} className={className} aria-label={t("canvas.label")}>
-      {size.width > 0 && size.height > 0
-        ? (
-          <Stage
-            width={size.width}
-            height={size.height}
-            scaleX={zoomState.scale}
-            scaleY={zoomState.scale}
-            x={zoomState.offsetX}
-            y={zoomState.offsetY}
-            onMouseDown={handleMouseDown}
-            onMouseMove={handleMouseMove}
-            onMouseUp={handleMouseUp}
-            onWheel={handleWheel}
-          >
-            <Layer listening={false}>
-              {image && fit
-                ? (
-                  <KonvaImage
-                    image={image.element}
-                    x={fit.x}
-                    y={fit.y}
-                    width={fit.width}
-                    height={fit.height}
-                  />
-                )
-                : null}
-            </Layer>
-            <Layer listening={isSelectMode}>
-              {fit && imageSize
-                ? (
-                  <>
-                    {mosaics.map((shape) => (
-                      <SelectableShape
-                        key={shape.id}
-                        shape={shape}
-                        fit={fit}
-                        imageSize={imageSize}
-                        image={image}
-                        isSelectMode={isSelectMode}
-                        isSelected={shape.id === selectedShapeId}
-                        isEditing={shape.id === editingTextId}
-                        onSelect={onSelectShape}
-                        onStartEditText={handleStartEditText}
-                        onAddShape={onShapeAdded}
-                        onUpdateRect={onUpdateRect}
-                        onUpdateText={onUpdateText}
-                        onUpdateArrow={onUpdateArrow}
-                        onUpdateMosaic={onUpdateMosaic}
-                        registerNode={registerNode}
-                      />
-                    ))}
-                    {others.map((shape) => (
-                      <SelectableShape
-                        key={shape.id}
-                        shape={shape}
-                        fit={fit}
-                        imageSize={imageSize}
-                        image={image}
-                        isSelectMode={isSelectMode}
-                        isSelected={shape.id === selectedShapeId}
-                        isEditing={shape.id === editingTextId}
-                        onSelect={onSelectShape}
-                        onStartEditText={handleStartEditText}
-                        onAddShape={onShapeAdded}
-                        onUpdateRect={onUpdateRect}
-                        onUpdateText={onUpdateText}
-                        onUpdateArrow={onUpdateArrow}
-                        onUpdateMosaic={onUpdateMosaic}
-                        registerNode={registerNode}
-                      />
-                    ))}
-                  </>
-                )
-                : null}
-              <Transformer
-                ref={transformerRef}
-                rotateEnabled={false}
-                flipEnabled={false}
-                keepRatio={selectedShape?.type === "text"}
-                enabledAnchors={enabledAnchors as string[]}
-                boundBoxFunc={(oldBox, newBox) => {
-                  // newBox dimensions are in Stage-absolute coords. Compare
-                  // against the 8px minimum in fit-internal space so the
-                  // threshold remains consistent at any view zoom level.
-                  const fitWidth = newBox.width / zoomState.scale;
-                  const fitHeight = newBox.height / zoomState.scale;
-                  return fitWidth >= 8 && fitHeight >= 8 ? newBox : oldBox;
-                }}
+      {size.width > 0 && size.height > 0 ? (
+        <Stage
+          width={size.width}
+          height={size.height}
+          scaleX={zoomState.scale}
+          scaleY={zoomState.scale}
+          x={zoomState.offsetX}
+          y={zoomState.offsetY}
+          onMouseDown={handleMouseDown}
+          onMouseMove={handleMouseMove}
+          onMouseUp={handleMouseUp}
+          onWheel={handleWheel}
+        >
+          <Layer listening={false}>
+            {image && fit ? (
+              <KonvaImage
+                image={image.element}
+                x={fit.x}
+                y={fit.y}
+                width={fit.width}
+                height={fit.height}
               />
-            </Layer>
-            <Layer listening={false}>
-              {draft && fit && imageSize
-                ? renderDraft(draft, fit, imageSize, mosaicDraftColors)
-                : null}
-            </Layer>
-            <Layer listening={isCropMode}>
-              {isCropMode && cropScreenRect && cropRect && fit && imageSize
-                ? (
-                  <>
-                    {
-                      /* Dim mask: four strips covering everything outside the
-                        crop rectangle (within the image fit area). Non-interactive. */
+            ) : null}
+          </Layer>
+          <Layer listening={isSelectMode}>
+            {fit && imageSize ? (
+              <>
+                {mosaics.map((shape) => (
+                  <SelectableShape
+                    key={shape.id}
+                    shape={shape}
+                    fit={fit}
+                    imageSize={imageSize}
+                    image={image}
+                    isSelectMode={isSelectMode}
+                    isSelected={shape.id === selectedShapeId}
+                    isEditing={shape.id === editingTextId}
+                    onSelect={onSelectShape}
+                    onStartEditText={handleStartEditText}
+                    onAddShape={onShapeAdded}
+                    onUpdateRect={onUpdateRect}
+                    onUpdateText={onUpdateText}
+                    onUpdateArrow={onUpdateArrow}
+                    onUpdateMosaic={onUpdateMosaic}
+                    registerNode={registerNode}
+                  />
+                ))}
+                {others.map((shape) => (
+                  <SelectableShape
+                    key={shape.id}
+                    shape={shape}
+                    fit={fit}
+                    imageSize={imageSize}
+                    image={image}
+                    isSelectMode={isSelectMode}
+                    isSelected={shape.id === selectedShapeId}
+                    isEditing={shape.id === editingTextId}
+                    onSelect={onSelectShape}
+                    onStartEditText={handleStartEditText}
+                    onAddShape={onShapeAdded}
+                    onUpdateRect={onUpdateRect}
+                    onUpdateText={onUpdateText}
+                    onUpdateArrow={onUpdateArrow}
+                    onUpdateMosaic={onUpdateMosaic}
+                    registerNode={registerNode}
+                  />
+                ))}
+              </>
+            ) : null}
+            <Transformer
+              ref={transformerRef}
+              rotateEnabled={false}
+              flipEnabled={false}
+              keepRatio={selectedShape?.type === "text"}
+              enabledAnchors={enabledAnchors as string[]}
+              boundBoxFunc={(oldBox, newBox) => {
+                // newBox dimensions are in Stage-absolute coords. Compare
+                // against the 8px minimum in fit-internal space so the
+                // threshold remains consistent at any view zoom level.
+                const fitWidth = newBox.width / zoomState.scale;
+                const fitHeight = newBox.height / zoomState.scale;
+                return fitWidth >= 8 && fitHeight >= 8 ? newBox : oldBox;
+              }}
+            />
+          </Layer>
+          <Layer listening={false}>
+            {draft && fit && imageSize
+              ? renderDraft(draft, fit, imageSize, mosaicDraftColors)
+              : null}
+          </Layer>
+          <Layer listening={isCropMode}>
+            {isCropMode && cropScreenRect && cropRect && fit && imageSize ? (
+              <>
+                {/* Dim mask: four strips covering everything outside the
+                        crop rectangle (within the image fit area). Non-interactive. */}
+                <Rect
+                  x={fit.x}
+                  y={fit.y}
+                  width={fit.width}
+                  height={Math.max(0, cropScreenRect.y - fit.y)}
+                  fill="rgba(0,0,0,0.5)"
+                  listening={false}
+                />
+                <Rect
+                  x={fit.x}
+                  y={cropScreenRect.y + cropScreenRect.height}
+                  width={fit.width}
+                  height={Math.max(
+                    0,
+                    fit.y + fit.height - (cropScreenRect.y + cropScreenRect.height),
+                  )}
+                  fill="rgba(0,0,0,0.5)"
+                  listening={false}
+                />
+                <Rect
+                  x={fit.x}
+                  y={cropScreenRect.y}
+                  width={Math.max(0, cropScreenRect.x - fit.x)}
+                  height={cropScreenRect.height}
+                  fill="rgba(0,0,0,0.5)"
+                  listening={false}
+                />
+                <Rect
+                  x={cropScreenRect.x + cropScreenRect.width}
+                  y={cropScreenRect.y}
+                  width={Math.max(0, fit.x + fit.width - (cropScreenRect.x + cropScreenRect.width))}
+                  height={cropScreenRect.height}
+                  fill="rgba(0,0,0,0.5)"
+                  listening={false}
+                />
+                <Rect
+                  ref={cropRectRef}
+                  x={cropScreenRect.x}
+                  y={cropScreenRect.y}
+                  width={cropScreenRect.width}
+                  height={cropScreenRect.height}
+                  stroke="#3b82f6"
+                  strokeWidth={2}
+                  draggable
+                  dragBoundFunc={(pos) => {
+                    // `pos` is in Stage-absolute coordinates (post Stage
+                    // transform), not the fit-internal space `fit.x..` uses.
+                    // Round-trip through fit-internal space so the clamp
+                    // works correctly at any zoom level.
+                    const fitPos = stagePointToFitPoint(pos, zoomState);
+                    const maxX = fit.x + fit.width - cropScreenRect.width;
+                    const maxY = fit.y + fit.height - cropScreenRect.height;
+                    const clamped = {
+                      x: Math.max(fit.x, Math.min(maxX, fitPos.x)),
+                      y: Math.max(fit.y, Math.min(maxY, fitPos.y)),
+                    };
+                    return fitPointToStagePoint(clamped, zoomState);
+                  }}
+                  onDragEnd={(e) => {
+                    const node = e.target;
+                    const naturalPos = screenToImage({ x: node.x(), y: node.y() }, fit, imageSize);
+                    setCropRect({
+                      x: Math.round(naturalPos.x),
+                      y: Math.round(naturalPos.y),
+                      width: cropRect.width,
+                      height: cropRect.height,
+                    });
+                  }}
+                  onTransformEnd={(e) => {
+                    const node = e.target as Konva.Rect;
+                    const newWidthScreen = node.width() * node.scaleX();
+                    const newHeightScreen = node.height() * node.scaleY();
+                    const naturalPos = screenToImage({ x: node.x(), y: node.y() }, fit, imageSize);
+                    const { scaleX: imgScaleX, scaleY: imgScaleY } = imageToScreenScale(
+                      fit,
+                      imageSize,
+                    );
+                    // Reset scale on the node so the next React-driven
+                    // render reads our rounded natural-space dimensions
+                    // without Konva re-applying scale on top.
+                    node.scaleX(1);
+                    node.scaleY(1);
+                    setCropRect({
+                      x: Math.round(naturalPos.x),
+                      y: Math.round(naturalPos.y),
+                      width: Math.round(newWidthScreen / imgScaleX),
+                      height: Math.round(newHeightScreen / imgScaleY),
+                    });
+                  }}
+                />
+                <Transformer
+                  ref={cropTransformerRef}
+                  rotateEnabled={false}
+                  flipEnabled={false}
+                  enabledAnchors={RESIZE_ANCHORS as string[]}
+                  boundBoxFunc={(oldBox, newBox) => {
+                    // `newBox.{x,y,width,height}` are in Stage-absolute
+                    // coords. Convert to fit-internal space before applying
+                    // the existing image-range and MIN_CROP_DIM constraints
+                    // (which are themselves expressed in fit-internal /
+                    // natural-pixel units). zoom=DEFAULT is the identity.
+                    const topLeft = stagePointToFitPoint({ x: newBox.x, y: newBox.y }, zoomState);
+                    const fitWidth = newBox.width / zoomState.scale;
+                    const fitHeight = newBox.height / zoomState.scale;
+                    if (fitWidth < MIN_CROP_DIM || fitHeight < MIN_CROP_DIM) {
+                      return oldBox;
                     }
-                    <Rect
-                      x={fit.x}
-                      y={fit.y}
-                      width={fit.width}
-                      height={Math.max(0, cropScreenRect.y - fit.y)}
-                      fill="rgba(0,0,0,0.5)"
-                      listening={false}
-                    />
-                    <Rect
-                      x={fit.x}
-                      y={cropScreenRect.y + cropScreenRect.height}
-                      width={fit.width}
-                      height={Math.max(
-                        0,
-                        fit.y + fit.height - (cropScreenRect.y + cropScreenRect.height),
-                      )}
-                      fill="rgba(0,0,0,0.5)"
-                      listening={false}
-                    />
-                    <Rect
-                      x={fit.x}
-                      y={cropScreenRect.y}
-                      width={Math.max(0, cropScreenRect.x - fit.x)}
-                      height={cropScreenRect.height}
-                      fill="rgba(0,0,0,0.5)"
-                      listening={false}
-                    />
-                    <Rect
-                      x={cropScreenRect.x + cropScreenRect.width}
-                      y={cropScreenRect.y}
-                      width={Math.max(
-                        0,
-                        fit.x + fit.width - (cropScreenRect.x + cropScreenRect.width),
-                      )}
-                      height={cropScreenRect.height}
-                      fill="rgba(0,0,0,0.5)"
-                      listening={false}
-                    />
-                    <Rect
-                      ref={cropRectRef}
-                      x={cropScreenRect.x}
-                      y={cropScreenRect.y}
-                      width={cropScreenRect.width}
-                      height={cropScreenRect.height}
-                      stroke="#3b82f6"
-                      strokeWidth={2}
-                      draggable
-                      dragBoundFunc={(pos) => {
-                        // `pos` is in Stage-absolute coordinates (post Stage
-                        // transform), not the fit-internal space `fit.x..` uses.
-                        // Round-trip through fit-internal space so the clamp
-                        // works correctly at any zoom level.
-                        const fitPos = stagePointToFitPoint(pos, zoomState);
-                        const maxX = fit.x + fit.width - cropScreenRect.width;
-                        const maxY = fit.y + fit.height - cropScreenRect.height;
-                        const clamped = {
-                          x: Math.max(fit.x, Math.min(maxX, fitPos.x)),
-                          y: Math.max(fit.y, Math.min(maxY, fitPos.y)),
-                        };
-                        return fitPointToStagePoint(clamped, zoomState);
-                      }}
-                      onDragEnd={(e) => {
-                        const node = e.target;
-                        const naturalPos = screenToImage(
-                          { x: node.x(), y: node.y() },
-                          fit,
-                          imageSize,
-                        );
-                        setCropRect({
-                          x: Math.round(naturalPos.x),
-                          y: Math.round(naturalPos.y),
-                          width: cropRect.width,
-                          height: cropRect.height,
-                        });
-                      }}
-                      onTransformEnd={(e) => {
-                        const node = e.target as Konva.Rect;
-                        const newWidthScreen = node.width() * node.scaleX();
-                        const newHeightScreen = node.height() * node.scaleY();
-                        const naturalPos = screenToImage(
-                          { x: node.x(), y: node.y() },
-                          fit,
-                          imageSize,
-                        );
-                        const { scaleX: imgScaleX, scaleY: imgScaleY } = imageToScreenScale(
-                          fit,
-                          imageSize,
-                        );
-                        // Reset scale on the node so the next React-driven
-                        // render reads our rounded natural-space dimensions
-                        // without Konva re-applying scale on top.
-                        node.scaleX(1);
-                        node.scaleY(1);
-                        setCropRect({
-                          x: Math.round(naturalPos.x),
-                          y: Math.round(naturalPos.y),
-                          width: Math.round(newWidthScreen / imgScaleX),
-                          height: Math.round(newHeightScreen / imgScaleY),
-                        });
-                      }}
-                    />
-                    <Transformer
-                      ref={cropTransformerRef}
-                      rotateEnabled={false}
-                      flipEnabled={false}
-                      enabledAnchors={RESIZE_ANCHORS as string[]}
-                      boundBoxFunc={(oldBox, newBox) => {
-                        // `newBox.{x,y,width,height}` are in Stage-absolute
-                        // coords. Convert to fit-internal space before applying
-                        // the existing image-range and MIN_CROP_DIM constraints
-                        // (which are themselves expressed in fit-internal /
-                        // natural-pixel units). zoom=DEFAULT is the identity.
-                        const topLeft = stagePointToFitPoint(
-                          { x: newBox.x, y: newBox.y },
-                          zoomState,
-                        );
-                        const fitWidth = newBox.width / zoomState.scale;
-                        const fitHeight = newBox.height / zoomState.scale;
-                        if (fitWidth < MIN_CROP_DIM || fitHeight < MIN_CROP_DIM) {
-                          return oldBox;
-                        }
-                        if (topLeft.x < fit.x - 0.5 || topLeft.y < fit.y - 0.5) {
-                          return oldBox;
-                        }
-                        if (
-                          topLeft.x + fitWidth > fit.x + fit.width + 0.5 ||
-                          topLeft.y + fitHeight > fit.y + fit.height + 0.5
-                        ) {
-                          return oldBox;
-                        }
-                        return newBox;
-                      }}
-                    />
-                  </>
-                )
-                : null}
-            </Layer>
-          </Stage>
-        )
-        : null}
-      {textInput && textInputScreen
-        ? (
-          <TextInputOverlay
-            x={textInputScreen.x}
-            y={textInputScreen.y}
-            color={activeColor}
-            fontSize={textInputFontSize}
-            onConfirm={confirmText}
-            onCancel={cancelText}
-          />
-        )
-        : editingShape && editingScreen
-        ? (
-          // `key` forces remount when the edited shape changes so the
-          // overlay's internal `useState(initialText)` is re-initialized.
-          // Without it, switching to another text via double-click would
-          // leak the previous value into the new edit session.
-          <TextInputOverlay
-            key={editingShape.id}
-            x={editingScreen.x}
-            y={editingScreen.y}
-            color={editingShape.color}
-            initialText={editingShape.text}
-            fontSize={editingFontSize}
-            onConfirm={confirmEditText}
-            onCancel={cancelEditText}
-          />
-        )
-        : null}
+                    if (topLeft.x < fit.x - 0.5 || topLeft.y < fit.y - 0.5) {
+                      return oldBox;
+                    }
+                    if (
+                      topLeft.x + fitWidth > fit.x + fit.width + 0.5 ||
+                      topLeft.y + fitHeight > fit.y + fit.height + 0.5
+                    ) {
+                      return oldBox;
+                    }
+                    return newBox;
+                  }}
+                />
+              </>
+            ) : null}
+          </Layer>
+        </Stage>
+      ) : null}
+      {textInput && textInputScreen ? (
+        <TextInputOverlay
+          x={textInputScreen.x}
+          y={textInputScreen.y}
+          color={activeColor}
+          fontSize={textInputFontSize}
+          onConfirm={confirmText}
+          onCancel={cancelText}
+        />
+      ) : editingShape && editingScreen ? (
+        // `key` forces remount when the edited shape changes so the
+        // overlay's internal `useState(initialText)` is re-initialized.
+        // Without it, switching to another text via double-click would
+        // leak the previous value into the new edit session.
+        <TextInputOverlay
+          key={editingShape.id}
+          x={editingScreen.x}
+          y={editingScreen.y}
+          color={editingShape.color}
+          initialText={editingShape.text}
+          fontSize={editingFontSize}
+          onConfirm={confirmEditText}
+          onCancel={cancelEditText}
+        />
+      ) : null}
       {isCropMode && cropScreenRect
         ? (() => {
-          // cropScreenRect is in fit-internal screen coords. Stage zoom
-          // transform applies to Konva nodes but not to DOM overlays, so
-          // convert the rect's bottom-left to viewport (DOM) coords via
-          // fitPointToStagePoint. The 8px gap is added AFTER the transform
-          // so it stays at UI scale instead of being multiplied by zoom.
-          const cropDomAnchor = fitPointToStagePoint(
-            { x: cropScreenRect.x, y: cropScreenRect.y + cropScreenRect.height },
-            zoomState,
-          );
-          return (
-            <div
-              className={styles.cropOverlay}
-              style={{
-                left: cropDomAnchor.x,
-                top: cropDomAnchor.y + 8,
-              }}
-            >
-              <button
-                type="button"
-                className={`${styles.cropButton} ${styles.cropButtonConfirm}`}
-                onClick={handleCropConfirm}
-                disabled={cropConfirmDisabled}
-                aria-label={t("crop.confirm.label")}
-                title={t("crop.confirm.title")}
+            // cropScreenRect is in fit-internal screen coords. Stage zoom
+            // transform applies to Konva nodes but not to DOM overlays, so
+            // convert the rect's bottom-left to viewport (DOM) coords via
+            // fitPointToStagePoint. The 8px gap is added AFTER the transform
+            // so it stays at UI scale instead of being multiplied by zoom.
+            const cropDomAnchor = fitPointToStagePoint(
+              { x: cropScreenRect.x, y: cropScreenRect.y + cropScreenRect.height },
+              zoomState,
+            );
+            return (
+              <div
+                className={styles.cropOverlay}
+                style={{
+                  left: cropDomAnchor.x,
+                  top: cropDomAnchor.y + 8,
+                }}
               >
-                {t("crop.confirm.label")}
-              </button>
-              <button
-                type="button"
-                className={styles.cropButton}
-                onClick={handleCropCancel}
-                aria-label={t("crop.cancel.label")}
-                title={t("crop.cancel.title")}
-              >
-                {t("crop.cancel.label")}
-              </button>
-            </div>
-          );
-        })()
+                <button
+                  type="button"
+                  className={`${styles.cropButton} ${styles.cropButtonConfirm}`}
+                  onClick={handleCropConfirm}
+                  disabled={cropConfirmDisabled}
+                  aria-label={t("crop.confirm.label")}
+                  title={t("crop.confirm.title")}
+                >
+                  {t("crop.confirm.label")}
+                </button>
+                <button
+                  type="button"
+                  className={styles.cropButton}
+                  onClick={handleCropCancel}
+                  aria-label={t("crop.cancel.label")}
+                  title={t("crop.cancel.title")}
+                >
+                  {t("crop.cancel.label")}
+                </button>
+              </div>
+            );
+          })()
         : null}
-      {image === null
-        ? (
-          <div className={styles.emptyState} aria-hidden={false}>
-            <div className={styles.emptyStateInner}>
-              <p className={styles.emptyStateTitle}>{t("canvas.empty.title")}</p>
-              <p className={styles.emptyStateBody}>{t("canvas.empty.message")}</p>
-            </div>
+      {image === null ? (
+        <div className={styles.emptyState} aria-hidden={false}>
+          <div className={styles.emptyStateInner}>
+            <p className={styles.emptyStateTitle}>{t("canvas.empty.title")}</p>
+            <p className={styles.emptyStateBody}>{t("canvas.empty.message")}</p>
           </div>
-        )
-        : null}
+        </div>
+      ) : null}
     </div>
   );
 }

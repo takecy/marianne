@@ -99,9 +99,8 @@ export async function clampWindowToWorkArea(): Promise<void> {
     return;
   }
   try {
-    const { getCurrentWindow, currentMonitor, primaryMonitor, PhysicalPosition } = await import(
-      "@tauri-apps/api/window"
-    );
+    const { getCurrentWindow, currentMonitor, primaryMonitor, PhysicalPosition } =
+      await import("@tauri-apps/api/window");
     const monitor = (await currentMonitor()) ?? (await primaryMonitor());
     if (!monitor) return;
     await clampWindowWithin(getCurrentWindow(), physicalWorkArea(monitor), PhysicalPosition);
@@ -120,9 +119,8 @@ export async function applyWindowSizeForImage(
     return;
   }
   try {
-    const { getCurrentWindow, currentMonitor, LogicalSize, PhysicalPosition } = await import(
-      "@tauri-apps/api/window"
-    );
+    const { getCurrentWindow, currentMonitor, LogicalSize, PhysicalPosition } =
+      await import("@tauri-apps/api/window");
 
     const monitor = await currentMonitor();
     let workArea: MonitorWorkArea | null = null;
@@ -131,10 +129,7 @@ export async function applyWindowSizeForImage(
       workArea = { width: logical.width, height: logical.height };
     }
 
-    const target = computeWindowSize(
-      { width: naturalWidth, height: naturalHeight },
-      workArea,
-    );
+    const target = computeWindowSize({ width: naturalWidth, height: naturalHeight }, workArea);
 
     const win = getCurrentWindow();
     await win.setSize(new LogicalSize(target.width, target.height));

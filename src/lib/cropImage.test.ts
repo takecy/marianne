@@ -190,9 +190,7 @@ describe("transformShapesForCrop - arrow (line clipping)", () => {
 
   it("drops an arrow whose clipped length falls below MIN_ARROW_LENGTH", () => {
     // Arrow just barely grazes the rect corner — clipped length will be < MIN_ARROW_LENGTH.
-    const shapes: Shape[] = [
-      arrow({ fromX: 49, fromY: 49, toX: 51, toY: 51 }),
-    ];
+    const shapes: Shape[] = [arrow({ fromX: 49, fromY: 49, toX: 51, toY: 51 })];
     const out = transformShapesForCrop(shapes, { x: 50, y: 50, width: 100, height: 100 });
     // Clipped to (50,50)-(51,51), length ≈ 1.41 < MIN_ARROW_LENGTH (4)
     expect(out).toEqual([]);

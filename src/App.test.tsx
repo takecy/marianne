@@ -28,9 +28,10 @@ vi.mock("./components/CanvasArea", () => ({
 // wiring in App.tsx (which handler runs, what text reaches the StatusBar) can
 // be asserted without pulling in their real markup.
 vi.mock("./components/Sidebar", () => ({
-  Sidebar: (
-    props: { updateNotice?: { kind: string } | null; onUpdateNoticeClick?: () => void },
-  ) => (
+  Sidebar: (props: {
+    updateNotice?: { kind: string } | null;
+    onUpdateNoticeClick?: () => void;
+  }) => (
     <div data-testid="sidebar">
       {props.updateNotice && (
         <button type="button" data-testid="update-notice" onClick={props.onUpdateNoticeClick}>
@@ -442,7 +443,7 @@ describe("App update notice", () => {
     await waitFor(() =>
       expect(screen.getByTestId("status-bar")).toHaveTextContent(
         t("update.upToDate.statusWithVersion", { version: "0.3.5" }),
-      )
+      ),
     );
     expect(updater.checkForUpdates).toHaveBeenCalledWith("manual");
   });
@@ -460,7 +461,7 @@ describe("App update notice", () => {
     });
 
     await waitFor(() =>
-      expect(screen.getByTestId("status-bar")).toHaveTextContent(t("update.checkFailed.status"))
+      expect(screen.getByTestId("status-bar")).toHaveTextContent(t("update.checkFailed.status")),
     );
     // A failed check says nothing about whether an update exists, so the
     // bottom-left slot must stay empty.

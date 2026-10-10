@@ -102,9 +102,7 @@ vi.mock("react-konva", () => {
 // Rendered as a button so tests can trigger the double-click-to-edit path
 // (onStartEditText) that puts CanvasArea into inline text editing.
 vi.mock("./SelectableShape", () => ({
-  SelectableShape: (
-    props: { shape: { id: string }; onStartEditText: (id: string) => void },
-  ) => (
+  SelectableShape: (props: { shape: { id: string }; onStartEditText: (id: string) => void }) => (
     <button
       type="button"
       data-testid={`start-edit-${props.shape.id}`}
@@ -118,9 +116,7 @@ vi.mock("./SelectableShape", () => ({
 // Exposes confirm/cancel as buttons so tests can close the overlay the same
 // two ways a user can, without driving a real textarea through jsdom.
 vi.mock("./TextInputOverlay", () => ({
-  TextInputOverlay: (
-    props: { onConfirm: (text: string) => void; onCancel: () => void },
-  ) => (
+  TextInputOverlay: (props: { onConfirm: (text: string) => void; onCancel: () => void }) => (
     <div data-testid="text-overlay">
       <button type="button" data-testid="text-confirm" onClick={() => props.onConfirm("typed")}>
         confirm
@@ -132,9 +128,7 @@ vi.mock("./TextInputOverlay", () => ({
   ),
 }));
 
-function renderCanvas(
-  overrides: Partial<Parameters<typeof CanvasArea>[0]> = {},
-) {
+function renderCanvas(overrides: Partial<Parameters<typeof CanvasArea>[0]> = {}) {
   const handlers = {
     onToolChange: vi.fn(),
     onShapeAdded: vi.fn(),
@@ -188,25 +182,19 @@ function makeLoadedImage(): LoadedImage {
 describe("CanvasArea keyboard shortcuts", () => {
   it("invokes onExportToFile when Meta+Shift+S is pressed", () => {
     const { onExportToFile } = renderCanvas();
-    window.dispatchEvent(
-      new KeyboardEvent("keydown", { key: "s", metaKey: true, shiftKey: true }),
-    );
+    window.dispatchEvent(new KeyboardEvent("keydown", { key: "s", metaKey: true, shiftKey: true }));
     expect(onExportToFile).toHaveBeenCalledTimes(1);
   });
 
   it("also accepts Ctrl+Shift+S for non-mac platforms", () => {
     const { onExportToFile } = renderCanvas();
-    window.dispatchEvent(
-      new KeyboardEvent("keydown", { key: "s", ctrlKey: true, shiftKey: true }),
-    );
+    window.dispatchEvent(new KeyboardEvent("keydown", { key: "s", ctrlKey: true, shiftKey: true }));
     expect(onExportToFile).toHaveBeenCalledTimes(1);
   });
 
   it("accepts uppercase S as the key (caps lock or shift modifier quirks)", () => {
     const { onExportToFile } = renderCanvas();
-    window.dispatchEvent(
-      new KeyboardEvent("keydown", { key: "S", metaKey: true, shiftKey: true }),
-    );
+    window.dispatchEvent(new KeyboardEvent("keydown", { key: "S", metaKey: true, shiftKey: true }));
     expect(onExportToFile).toHaveBeenCalledTimes(1);
   });
 
@@ -237,9 +225,7 @@ describe("CanvasArea keyboard shortcuts", () => {
 
   it("invokes onExportToClipboard when Meta+Shift+C is pressed", () => {
     const { onExportToClipboard, onCopyShape } = renderCanvas();
-    window.dispatchEvent(
-      new KeyboardEvent("keydown", { key: "c", metaKey: true, shiftKey: true }),
-    );
+    window.dispatchEvent(new KeyboardEvent("keydown", { key: "c", metaKey: true, shiftKey: true }));
     expect(onExportToClipboard).toHaveBeenCalledTimes(1);
     // Shift+C must NOT invoke the shape-copy handler (which is the plain Cmd+C).
     expect(onCopyShape).not.toHaveBeenCalled();
@@ -247,17 +233,13 @@ describe("CanvasArea keyboard shortcuts", () => {
 
   it("also accepts Ctrl+Shift+C for non-mac platforms", () => {
     const { onExportToClipboard } = renderCanvas();
-    window.dispatchEvent(
-      new KeyboardEvent("keydown", { key: "c", ctrlKey: true, shiftKey: true }),
-    );
+    window.dispatchEvent(new KeyboardEvent("keydown", { key: "c", ctrlKey: true, shiftKey: true }));
     expect(onExportToClipboard).toHaveBeenCalledTimes(1);
   });
 
   it("accepts uppercase C as the key for clipboard export", () => {
     const { onExportToClipboard } = renderCanvas();
-    window.dispatchEvent(
-      new KeyboardEvent("keydown", { key: "C", metaKey: true, shiftKey: true }),
-    );
+    window.dispatchEvent(new KeyboardEvent("keydown", { key: "C", metaKey: true, shiftKey: true }));
     expect(onExportToClipboard).toHaveBeenCalledTimes(1);
   });
 
@@ -401,9 +383,7 @@ describe("CanvasArea zoom shortcuts", () => {
 
   it("zooms in on Cmd++ (Meta + Shift + equals on US layouts)", () => {
     const { onZoomChange } = renderCanvas({ image: makeLoadedImage() });
-    window.dispatchEvent(
-      new KeyboardEvent("keydown", { key: "+", metaKey: true, shiftKey: true }),
-    );
+    window.dispatchEvent(new KeyboardEvent("keydown", { key: "+", metaKey: true, shiftKey: true }));
     expect(onZoomChange).toHaveBeenCalledTimes(1);
     expect(onZoomChange.mock.calls[0]?.[0]?.scale).toBeGreaterThan(1);
   });
@@ -649,16 +629,10 @@ describe("CanvasArea modal suppression", () => {
       image: makeLoadedImage(),
       isModalOpen: true,
     });
-    window.dispatchEvent(
-      new KeyboardEvent("keydown", { key: "s", metaKey: true, shiftKey: true }),
-    );
-    window.dispatchEvent(
-      new KeyboardEvent("keydown", { key: "c", metaKey: true, shiftKey: true }),
-    );
+    window.dispatchEvent(new KeyboardEvent("keydown", { key: "s", metaKey: true, shiftKey: true }));
+    window.dispatchEvent(new KeyboardEvent("keydown", { key: "c", metaKey: true, shiftKey: true }));
     window.dispatchEvent(new KeyboardEvent("keydown", { key: "z", metaKey: true }));
-    window.dispatchEvent(
-      new KeyboardEvent("keydown", { key: "z", metaKey: true, shiftKey: true }),
-    );
+    window.dispatchEvent(new KeyboardEvent("keydown", { key: "z", metaKey: true, shiftKey: true }));
     expect(onExportToFile).not.toHaveBeenCalled();
     expect(onExportToClipboard).not.toHaveBeenCalled();
     expect(onUndo).not.toHaveBeenCalled();

@@ -120,20 +120,18 @@ export function SelectableShape(props: SelectableShapeProps) {
     );
     return (
       <>
-        {showAltDragGhost
-          ? (
-            <Rect
-              listening={false}
-              x={topLeft.x}
-              y={topLeft.y}
-              width={shape.width * imgScaleX}
-              height={shape.height * imgScaleY}
-              stroke={colorHex(shape.color)}
-              strokeWidth={strokeWidth}
-              lineJoin="round"
-            />
-          )
-          : null}
+        {showAltDragGhost ? (
+          <Rect
+            listening={false}
+            x={topLeft.x}
+            y={topLeft.y}
+            width={shape.width * imgScaleX}
+            height={shape.height * imgScaleY}
+            stroke={colorHex(shape.color)}
+            strokeWidth={strokeWidth}
+            lineJoin="round"
+          />
+        ) : null}
         <Rect
           ref={(node) => {
             ref.current = node;
@@ -208,28 +206,26 @@ export function SelectableShape(props: SelectableShapeProps) {
     const fontSizeRatio = baseFontSize / TEXT_FONT_SIZE;
     return (
       <>
-        {showAltDragGhost
-          ? (
-            <Text
-              listening={false}
-              x={topLeft.x}
-              y={topLeft.y}
-              text={shape.text}
-              fontSize={baseFontSize * fontScale}
-              fontStyle={TEXT_FONT_STYLE}
-              fontFamily="sans-serif"
-              fill={colorHex(shape.color)}
-              stroke={textStrokeColorFor(shape.color)}
-              strokeWidth={TEXT_STROKE_WIDTH * fontSizeRatio * fontScale}
-              lineJoin="round"
-              fillAfterStrokeEnabled
-              shadowColor={TEXT_SHADOW_COLOR}
-              shadowBlur={TEXT_SHADOW_BLUR * fontSizeRatio * fontScale}
-              shadowOffsetX={TEXT_SHADOW_OFFSET_X * fontSizeRatio * fontScale}
-              shadowOffsetY={TEXT_SHADOW_OFFSET_Y * fontSizeRatio * fontScale}
-            />
-          )
-          : null}
+        {showAltDragGhost ? (
+          <Text
+            listening={false}
+            x={topLeft.x}
+            y={topLeft.y}
+            text={shape.text}
+            fontSize={baseFontSize * fontScale}
+            fontStyle={TEXT_FONT_STYLE}
+            fontFamily="sans-serif"
+            fill={colorHex(shape.color)}
+            stroke={textStrokeColorFor(shape.color)}
+            strokeWidth={TEXT_STROKE_WIDTH * fontSizeRatio * fontScale}
+            lineJoin="round"
+            fillAfterStrokeEnabled
+            shadowColor={TEXT_SHADOW_COLOR}
+            shadowBlur={TEXT_SHADOW_BLUR * fontSizeRatio * fontScale}
+            shadowOffsetX={TEXT_SHADOW_OFFSET_X * fontSizeRatio * fontScale}
+            shadowOffsetY={TEXT_SHADOW_OFFSET_Y * fontSizeRatio * fontScale}
+          />
+        ) : null}
         <Text
           ref={(node) => {
             ref.current = node;
@@ -334,23 +330,21 @@ export function SelectableShape(props: SelectableShapeProps) {
   const pixelSize = mosaicPixelSize(shape.strengthLevel) * Math.min(imgScaleX, imgScaleY);
   return (
     <>
-      {showAltDragGhost
-        ? (
-          <MosaicNode
-            image={image.element}
-            screenX={topLeft.x}
-            screenY={topLeft.y}
-            screenWidth={shape.width * imgScaleX}
-            screenHeight={shape.height * imgScaleY}
-            cropX={shape.x}
-            cropY={shape.y}
-            cropWidth={shape.width}
-            cropHeight={shape.height}
-            pixelSize={pixelSize}
-            isSelectMode={false}
-          />
-        )
-        : null}
+      {showAltDragGhost ? (
+        <MosaicNode
+          image={image.element}
+          screenX={topLeft.x}
+          screenY={topLeft.y}
+          screenWidth={shape.width * imgScaleX}
+          screenHeight={shape.height * imgScaleY}
+          cropX={shape.x}
+          cropY={shape.y}
+          cropWidth={shape.width}
+          cropHeight={shape.height}
+          pixelSize={pixelSize}
+          isSelectMode={false}
+        />
+      ) : null}
       <MosaicNode
         ref={(node) => {
           ref.current = node;

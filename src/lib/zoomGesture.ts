@@ -130,15 +130,17 @@ export function naturalToDomScreen(
 export function clampPan(zoom: ZoomState, stageSize: Size, fit: FitRect): ZoomState {
   const minOffsetX = stageSize.width - (fit.x + fit.width) * zoom.scale;
   const maxOffsetX = -fit.x * zoom.scale;
-  const offsetX = minOffsetX <= maxOffsetX
-    ? Math.max(minOffsetX, Math.min(maxOffsetX, zoom.offsetX))
-    : Math.max(maxOffsetX, Math.min(minOffsetX, zoom.offsetX));
+  const offsetX =
+    minOffsetX <= maxOffsetX
+      ? Math.max(minOffsetX, Math.min(maxOffsetX, zoom.offsetX))
+      : Math.max(maxOffsetX, Math.min(minOffsetX, zoom.offsetX));
 
   const minOffsetY = stageSize.height - (fit.y + fit.height) * zoom.scale;
   const maxOffsetY = -fit.y * zoom.scale;
-  const offsetY = minOffsetY <= maxOffsetY
-    ? Math.max(minOffsetY, Math.min(maxOffsetY, zoom.offsetY))
-    : Math.max(maxOffsetY, Math.min(minOffsetY, zoom.offsetY));
+  const offsetY =
+    minOffsetY <= maxOffsetY
+      ? Math.max(minOffsetY, Math.min(maxOffsetY, zoom.offsetY))
+      : Math.max(maxOffsetY, Math.min(minOffsetY, zoom.offsetY));
 
   return { scale: zoom.scale, offsetX, offsetY };
 }

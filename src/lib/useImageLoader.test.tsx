@@ -6,14 +6,10 @@ import { useImageLoader } from "./useImageLoader";
 const ERROR_MARKER = "blob:trigger-error";
 
 // Drag-drop handler captured by the mocked @tauri-apps/api/webview module.
-let capturedDragDropHandler:
-  | ((event: { payload: DragDropPayload }) => void)
-  | null = null;
+let capturedDragDropHandler: ((event: { payload: DragDropPayload }) => void) | null = null;
 // Listen handler captured by the mocked @tauri-apps/api/event module for
 // the "file-open-requested" channel (macOS "Open With" warm start).
-let capturedFileOpenHandler:
-  | ((event: { payload: string[] }) => void)
-  | null = null;
+let capturedFileOpenHandler: ((event: { payload: string[] }) => void) | null = null;
 const mockUnlisten = vi.fn();
 const mockUnlistenFileOpen = vi.fn();
 const mockReadFile = vi.fn();
@@ -136,9 +132,7 @@ describe("useImageLoader (browser fallback)", () => {
     renderHook(() => useImageLoader({ onImageLoaded }));
 
     const file = new File(["bytes"], "screenshot.png", { type: "image/png" });
-    const evt = buildPasteEvent([
-      { kind: "file", type: "image/png", getAsFile: () => file },
-    ]);
+    const evt = buildPasteEvent([{ kind: "file", type: "image/png", getAsFile: () => file }]);
     window.dispatchEvent(evt);
 
     await waitFor(() => expect(onImageLoaded).toHaveBeenCalledTimes(1));
@@ -242,7 +236,7 @@ describe("useImageLoader (Tauri native drag-drop)", () => {
     });
 
     await waitFor(() =>
-      expect(mockReadFile).toHaveBeenCalledWith("/Users/test/Pictures/photo.png")
+      expect(mockReadFile).toHaveBeenCalledWith("/Users/test/Pictures/photo.png"),
     );
     await waitFor(() => expect(onImageLoaded).toHaveBeenCalledTimes(1));
 
@@ -356,7 +350,7 @@ describe("useImageLoader (Tauri macOS Open With)", () => {
     mockInvoke.mockImplementation((cmd: string) =>
       cmd === "take_pending_open_paths"
         ? Promise.resolve(["/tmp/readme.txt"])
-        : Promise.resolve(null)
+        : Promise.resolve(null),
     );
 
     const onImageLoaded = vi.fn<(loaded: LoadedImage) => void>();

@@ -99,10 +99,7 @@ describe("splitMosaicByOverlap", () => {
   it("orders overlays by ascending level so higher levels render on top", () => {
     // Both existing mosaics overlap with the draft; one is level 1, one is level 3.
     const draft = { x: 0, y: 0, width: 50, height: 50 };
-    const existing = [
-      mosaic("strong", 30, 30, 50, 50, 3),
-      mosaic("weak", 0, 0, 20, 20, 1),
-    ];
+    const existing = [mosaic("strong", 30, 30, 50, 50, 3), mosaic("weak", 0, 0, 20, 20, 1)];
     const result = splitMosaicByOverlap(draft, existing, sequentialIdGen());
     expect(result).toHaveLength(3);
     expect(result[0]?.strengthLevel).toBe(1); // base
@@ -112,10 +109,7 @@ describe("splitMosaicByOverlap", () => {
 
   it("skips non-overlapping existing mosaics in the result", () => {
     const draft = { x: 0, y: 0, width: 20, height: 20 };
-    const existing = [
-      mosaic("inside", 5, 5, 5, 5, 1),
-      mosaic("outside", 100, 100, 10, 10, 5),
-    ];
+    const existing = [mosaic("inside", 5, 5, 5, 5, 1), mosaic("outside", 100, 100, 10, 10, 5)];
     const result = splitMosaicByOverlap(draft, existing, sequentialIdGen());
     expect(result).toHaveLength(2); // base + 1 overlay (outside is skipped)
     expect(result[1]?.strengthLevel).toBe(2);
@@ -131,10 +125,7 @@ describe("splitMosaicByOverlap", () => {
 
   it("assigns a fresh id to each generated shape", () => {
     const draft = { x: 0, y: 0, width: 50, height: 50 };
-    const existing = [
-      mosaic("a", 0, 0, 20, 20, 1),
-      mosaic("b", 30, 30, 20, 20, 2),
-    ];
+    const existing = [mosaic("a", 0, 0, 20, 20, 1), mosaic("b", 30, 30, 20, 20, 2)];
     const result = splitMosaicByOverlap(draft, existing, sequentialIdGen());
     const ids = result.map((s) => s.id);
     expect(new Set(ids).size).toBe(ids.length); // all unique

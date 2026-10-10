@@ -17,18 +17,15 @@ describe("drawingGesture - rect", () => {
   });
 
   it("moveDraft updates width and height from the original origin", () => {
-    const draft = moveDraft(
-      startDraft("rect", "red", "thick", { x: 10, y: 20 }),
-      { x: 60, y: 70 },
-    );
+    const draft = moveDraft(startDraft("rect", "red", "thick", { x: 10, y: 20 }), { x: 60, y: 70 });
     expect(draft).toMatchObject({ width: 50, height: 50 });
   });
 
   it("finalizeDraft normalises negative width/height into positive bounds", () => {
-    const draft = moveDraft(
-      startDraft("rect", "blue", "thick", { x: 100, y: 100 }),
-      { x: 40, y: 60 },
-    );
+    const draft = moveDraft(startDraft("rect", "blue", "thick", { x: 100, y: 100 }), {
+      x: 40,
+      y: 60,
+    });
     const shape = finalizeDraft(draft, fixedId);
     expect(shape).toEqual({
       id: "id-1",
@@ -43,27 +40,24 @@ describe("drawingGesture - rect", () => {
   });
 
   it("finalizeDraft returns null for a rect below MIN_RECT_DIM", () => {
-    const draft = moveDraft(
-      startDraft("rect", "red", "thick", { x: 10, y: 10 }),
-      { x: 11, y: 11 },
-    );
+    const draft = moveDraft(startDraft("rect", "red", "thick", { x: 10, y: 10 }), { x: 11, y: 11 });
     expect(finalizeDraft(draft, fixedId)).toBeNull();
   });
 
   it("startDraft propagates non-default strokeWidth presets onto the draft", () => {
-    expect(
-      startDraft("rect", "red", "thin", { x: 0, y: 0 }),
-    ).toMatchObject({ strokeWidth: "thin" });
-    expect(
-      startDraft("rect", "red", "extraThick", { x: 0, y: 0 }),
-    ).toMatchObject({ strokeWidth: "extraThick" });
+    expect(startDraft("rect", "red", "thin", { x: 0, y: 0 })).toMatchObject({
+      strokeWidth: "thin",
+    });
+    expect(startDraft("rect", "red", "extraThick", { x: 0, y: 0 })).toMatchObject({
+      strokeWidth: "extraThick",
+    });
   });
 
   it("finalizeDraft preserves the strokeWidth preset on the resulting RectShape", () => {
-    const draft = moveDraft(
-      startDraft("rect", "green", "extraThick", { x: 0, y: 0 }),
-      { x: 50, y: 50 },
-    );
+    const draft = moveDraft(startDraft("rect", "green", "extraThick", { x: 0, y: 0 }), {
+      x: 50,
+      y: 50,
+    });
     const shape = finalizeDraft(draft, fixedId);
     if (shape?.type !== "rect") {
       throw new Error("expected rect shape");
@@ -86,18 +80,18 @@ describe("drawingGesture - arrow", () => {
   });
 
   it("moveDraft updates only toX/toY", () => {
-    const draft = moveDraft(
-      startDraft("arrow", "green", "thick", { x: 5, y: 5 }),
-      { x: 50, y: 30 },
-    );
+    const draft = moveDraft(startDraft("arrow", "green", "thick", { x: 5, y: 5 }), {
+      x: 50,
+      y: 30,
+    });
     expect(draft).toMatchObject({ fromX: 5, fromY: 5, toX: 50, toY: 30 });
   });
 
   it("finalizeDraft returns an ArrowShape with assigned id and preserved color", () => {
-    const draft = moveDraft(
-      startDraft("arrow", "pink", "thick", { x: 0, y: 0 }),
-      { x: 100, y: 100 },
-    );
+    const draft = moveDraft(startDraft("arrow", "pink", "thick", { x: 0, y: 0 }), {
+      x: 100,
+      y: 100,
+    });
     expect(finalizeDraft(draft, fixedId)).toEqual({
       id: "id-1",
       type: "arrow",
@@ -110,10 +104,7 @@ describe("drawingGesture - arrow", () => {
   });
 
   it("finalizeDraft returns null for an arrow shorter than MIN_ARROW_LENGTH", () => {
-    const draft = moveDraft(
-      startDraft("arrow", "red", "thick", { x: 0, y: 0 }),
-      { x: 2, y: 1 },
-    );
+    const draft = moveDraft(startDraft("arrow", "red", "thick", { x: 0, y: 0 }), { x: 2, y: 1 });
     expect(finalizeDraft(draft, fixedId)).toBeNull();
   });
 
@@ -138,18 +129,18 @@ describe("drawingGesture - mosaic", () => {
   });
 
   it("moveDraft updates width and height for a mosaic draft", () => {
-    const draft = moveDraft(
-      startDraft("mosaic", "blue", "thick", { x: 0, y: 0 }),
-      { x: 80, y: 50 },
-    );
+    const draft = moveDraft(startDraft("mosaic", "blue", "thick", { x: 0, y: 0 }), {
+      x: 80,
+      y: 50,
+    });
     expect(draft).toMatchObject({ type: "mosaic", width: 80, height: 50 });
   });
 
   it("finalizeDraft returns a MosaicShape with id and normalised bounds, no color", () => {
-    const draft = moveDraft(
-      startDraft("mosaic", "black", "thick", { x: 100, y: 200 }),
-      { x: 50, y: 150 },
-    );
+    const draft = moveDraft(startDraft("mosaic", "black", "thick", { x: 100, y: 200 }), {
+      x: 50,
+      y: 150,
+    });
     const shape = finalizeDraft(draft, fixedId);
     expect(shape).toEqual({
       id: "id-1",
@@ -162,10 +153,7 @@ describe("drawingGesture - mosaic", () => {
   });
 
   it("finalizeDraft returns null for a mosaic smaller than MIN_MOSAIC_DIM", () => {
-    const draft = moveDraft(
-      startDraft("mosaic", "red", "thick", { x: 0, y: 0 }),
-      { x: 3, y: 3 },
-    );
+    const draft = moveDraft(startDraft("mosaic", "red", "thick", { x: 0, y: 0 }), { x: 3, y: 3 });
     expect(finalizeDraft(draft, fixedId)).toBeNull();
   });
 });
