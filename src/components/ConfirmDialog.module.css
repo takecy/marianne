@@ -48,7 +48,6 @@
   background: var(--color-accent);
   color: var(--color-on-accent);
   border-radius: 0.375rem;
-  cursor: pointer;
   font-size: 0.875rem;
   transition: background 0.12s ease;
 }
@@ -71,7 +70,6 @@
   background: var(--color-surface-raised);
   color: var(--color-fg);
   border-radius: 0.375rem;
-  cursor: pointer;
   font-size: 0.875rem;
 }
 
