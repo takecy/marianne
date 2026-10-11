@@ -57,16 +57,20 @@
 .cropButton {
   padding: 0.4rem 0.75rem;
   border-radius: 6px;
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--color-border-strong);
   background: var(--color-surface);
   color: var(--color-fg);
   font-size: 0.85rem;
-  cursor: pointer;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.18);
 }
 
 .cropButton:hover {
   background: var(--color-surface-hover, var(--color-surface));
+}
+
+.cropButton:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 1px;
 }
 
 .cropButtonConfirm {
@@ -77,4 +81,9 @@
 
 .cropButtonConfirm:hover {
   filter: brightness(1.05);
+}
+
+/* An accent outline would blend into the accent fill; match ConfirmDialog. */
+.cropButtonConfirm:focus-visible {
+  outline-color: var(--color-accent-hover);
 }

@@ -11,6 +11,14 @@ describe("ActionBar", () => {
     expect(screen.getByRole("button", { name: t("action.copy.label") })).toBeInTheDocument();
   });
 
+  it("marks the toolbar itself as the window drag region", () => {
+    render(<ActionBar />);
+
+    // React renders the boolean attribute as "true", which drag.js treats as
+    // "this element only" (not "deep"), keeping the child buttons clickable.
+    expect(screen.getByRole("toolbar")).toHaveAttribute("data-tauri-drag-region", "true");
+  });
+
   it("invokes onExportToFile and onExportToClipboard on the respective buttons", async () => {
     const user = userEvent.setup();
     const onExportToFile = vi.fn();
