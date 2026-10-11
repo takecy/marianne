@@ -105,6 +105,9 @@ export function Sidebar(props: SidebarProps) {
 
   return (
     <aside className={styles.sidebar} aria-label={t("sidebar.toolbar.label")}>
+      {/* The macOS traffic lights sit on this strip; the drag-region
+          attribute (rendered as "true") drags only on direct presses. */}
+      <div className={styles.titlebarRegion} data-tauri-drag-region aria-hidden />
       <div className={styles.toolGroup} role="group" aria-label={t("sidebar.toolGroup.label")}>
         {TOOL_KINDS.map((tool) => {
           const Icon = TOOL_ICONS[tool];

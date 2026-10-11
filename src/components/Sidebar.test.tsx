@@ -26,6 +26,22 @@ describe("Sidebar", () => {
     expect(colorGroup.querySelectorAll("button")).toHaveLength(8);
   });
 
+  it("starts with a drag region strip under the traffic lights", () => {
+    render(
+      <Sidebar
+        activeTool="select"
+        onToolChange={vi.fn()}
+        activeColor="red"
+        onColorChange={vi.fn()}
+        activeStrokeWidth="thick"
+        onStrokeWidthChange={vi.fn()}
+      />,
+    );
+
+    const sidebar = screen.getByRole("complementary", { name: t("sidebar.toolbar.label") });
+    expect(sidebar.firstElementChild).toHaveAttribute("data-tauri-drag-region", "true");
+  });
+
   it("marks the active tool as pressed", () => {
     render(
       <Sidebar

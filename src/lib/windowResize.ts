@@ -9,11 +9,11 @@ export const UI_CHROME = { sidebarWidth: 85, actionBarHeight: 45 } as const;
 
 export const MIN_WINDOW = { width: 600, height: 400 } as const;
 
-// `setSize` adjusts inner (content) size only. On macOS the native title bar
-// adds ~28px on top, so a window whose inner height equals the work area
-// would overflow vertically. Subtract a small margin from the height cap
-// to keep the outer window inside the work area.
-export const WINDOW_DECORATION_MARGIN = 40;
+// `setSize` adjusts inner (content) size only. With `titleBarStyle: "Overlay"`
+// the title bar lies inside the content area (ActionBar doubles as it), so
+// inner and outer heights match. Keep a small margin below the work area cap;
+// 12 is the slack the former value (40) left over the native 28px title bar.
+export const WINDOW_DECORATION_MARGIN = 12;
 
 export interface MonitorWorkArea {
   width: number;

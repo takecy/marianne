@@ -39,7 +39,16 @@ export function ActionBar(props: ActionBarProps) {
     : styles.exportButton;
 
   return (
-    <div className={styles.actionBar} role="toolbar" aria-label={t("actionBar.label")}>
+    // Doubles as the window title bar (titleBarStyle "Overlay"). The
+    // drag-region attribute (rendered as "true", not "deep") drags only on
+    // direct presses of this element, so the empty middle drags the window
+    // while the buttons stay clickable.
+    <div
+      className={styles.actionBar}
+      role="toolbar"
+      aria-label={t("actionBar.label")}
+      data-tauri-drag-region
+    >
       <div
         className={styles.historyGroup}
         role="group"
