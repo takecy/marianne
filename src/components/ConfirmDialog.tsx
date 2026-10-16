@@ -42,17 +42,23 @@ export function ConfirmDialog(props: ConfirmDialogProps) {
     const dialog = dialogRef.current;
     if (!dialog) return;
     if (open) {
-      if (!dialog.open) dialog.showModal();
+      if (!dialog.open) {
+        dialog.showModal();
+        // React's autoFocus calls focus() at commit, while the dialog is still
+        // closed (display: none), so it is a no-op. showModal() then focuses the
+        // first focusable descendant (always Cancel), so move focus explicitly.
+        (destructive ? cancelRef : confirmRef).current?.focus();
+      }
     } else {
       if (dialog.open) dialog.close();
     }
-  }, [open]);
+  }, [open, destructive]);
 
   // Arrow keys move focus between the two buttons; y / n activate them.
   // The listener lives on the <dialog> element rather than window because
   // App.tsx keeps three ConfirmDialog instances mounted at all times — a
-  // window listener would fire on the closed ones too. showModal() puts
-  // focus on the autoFocused button, so keydown reaches the dialog.
+  // window listener would fire on the closed ones too. The open effect above
+  // focuses a button inside the dialog, so keydown reaches the dialog.
   useEffect(() => {
     const dialog = dialogRef.current;
     if (!dialog || !open) return;

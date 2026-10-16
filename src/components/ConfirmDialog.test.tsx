@@ -169,8 +169,9 @@ describe("ConfirmDialog", () => {
 
   it("autofocuses Cancel when destructive (default)", () => {
     renderDialog({ confirmLabel: "Delete", destructive: true });
-    // autoFocus on a button is realized by jsdom as the focused element
-    // after the dialog mounts.
+    // The open effect focuses the intended button right after showModal().
+    // autoFocus alone is not enough: jsdom (>= 30.1.2) and real browsers ignore
+    // focus() on a button inside a closed (display: none) dialog.
     expect(screen.getByRole("button", { name: t("dialog.cancel") })).toHaveFocus();
   });
 
