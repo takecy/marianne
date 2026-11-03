@@ -38,3 +38,12 @@ minimumReleaseAgeExclude:
   - oxlint@1.85.0
   - w3c-xmlserializer@6.0.0
   - http-cache-semantics@4.3.0
+  - '@vitejs/plugin-react@6.2.1'
+  - '@vitest/coverage-v8@5.1.0'
+  - '@vitest/mocker@5.1.0'
+  - '@vitest/pretty-format@5.1.0'
+  - '@vitest/spy@5.1.0'
+  - '@vitest/ui@5.1.0'
+  - '@vitest/utils@5.1.0'
+  - astro@7.4.5
+  - vitest@5.1.0
