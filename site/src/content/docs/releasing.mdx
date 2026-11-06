@@ -24,7 +24,7 @@ Releases are fully automated by a single GitHub Actions workflow at [`.github/wo
    - `getLatestRelease` fetches the previous release tag, and `generateReleaseNotes` produces the changelog.
    - **A release is created with `draft: true`** and its `release.id` is exported as a job output. At this point `/releases/latest` still resolves to the previous release.
 
-3. **The `release` job runs on `macos-14` (with `needs: tagging`)**:
+3. **The `release` job runs on `macos-15` (with `needs: tagging`)**:
 
    - Checks out the new tag.
    - Rewrites `src-tauri/tauri.conf.json`'s `version` with `jq` to match the new tag (runner-local only; never committed).

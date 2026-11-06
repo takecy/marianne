@@ -24,7 +24,7 @@ import { Aside, Steps } from "@astrojs/starlight/components";
    - `getLatestRelease` で直前のリリースタグを取得し、`generateReleaseNotes` で changelog を自動生成。
    - **`draft: true` で release を作成** し、`release.id` を job output として export。この時点では `/releases/latest` は依然旧 release を指す。
 
-3. **`release` ジョブ (macos-14、`needs: tagging`)**:
+3. **`release` ジョブ (macos-15、`needs: tagging`)**:
 
    - 新タグを checkout。
    - `jq` で `src-tauri/tauri.conf.json` の `version` を新タグの値に上書き (runner ローカルのみ、commit しない)。
