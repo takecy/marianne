@@ -151,10 +151,10 @@ jobs:
 
   release:
     needs: tagging
-    # macos-14 is GitHub's Apple Silicon runner; aarch64-apple-darwin
+    # macos-15 is GitHub's Apple Silicon runner; aarch64-apple-darwin
     # cannot be cross-compiled from Intel runners with the current
     # toolchain, and Marianne is published as Apple Silicon only.
-    runs-on: macos-14
+    runs-on: macos-15
     timeout-minutes: 45
     steps:
       - name: Checkout (at the new tag)
